@@ -1,0 +1,54 @@
+# ── Core PDF processing ──────────────────────────────────────────────────────
+pymupdf<1.25.3
+pdfminer.six==20250416
+pikepdf
+pypdfium2
+
+# ── Translation providers ─────────────────────────────────────────────────────
+deepl
+openai>=1.0.0
+azure-ai-translation-text<=1.0.1
+tencentcloud-sdk-python-tmt
+ollama
+xinference-client
+
+# ── OCR / Scanned PDF (surya pipeline) ───────────────────────────────────────
+surya-ocr
+torch
+torchvision
+opencv-python-headless
+pillow
+numpy
+
+# ── Layout & document parsing ─────────────────────────────────────────────────
+babeldoc>=0.1.22,<0.3.0
+onnx
+onnxruntime
+fonttools
+peewee>=3.17.8
+
+# ── UI ────────────────────────────────────────────────────────────────────────
+gradio<5.36
+gradio_pdf>=0.0.21
+rich
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+requests
+tqdm
+tenacity
+huggingface_hub
+python-dotenv
+
+# ── Optional: Backend (flask/celery) ─────────────────────────────────────────
+# flask
+# celery
+# redis
+
+# ── Optional: MCP ─────────────────────────────────────────────────────────────
+# mcp>=1.6.0
+
+# ── Dev / Testing ─────────────────────────────────────────────────────────────
+pytest
+pytest-cov
+pre-commit
+ruff

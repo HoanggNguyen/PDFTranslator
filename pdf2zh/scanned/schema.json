@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://pdf2zh/scanned/parsed_document.schema.json",
+  "title": "ParsedDocument",
+  "description": "Stage A output - intermediate JSON representation of a scanned PDF.",
+  "type": "object",
+  "required": ["pdf_path", "pages", "chapters", "glossary"],
+  "additionalProperties": false,
+
+  "properties": {
+    "pdf_path": {
+      "type": "string",
+      "minLength": 1
+    },
+
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PageData" }
+    },
+
+    "chapters": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ChapterInfo" }
+    },
+
+    "glossary": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+
+  "$defs": {
+
+    "BboxPdf": {
+      "type": "array",
+      "description": "(x0, y0, x1, y1) in PDF points, top-left origin. x0<x1, y0<y1.",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4
+    },
+
+    "ElementCategory": {
+      "type": "string",
+      "enum": ["BYPASS", "FLOWING_TEXT", "IN_PLACE", "TABLE", "EQUATION"]
+    },
+
+    "CellData": {
+      "type": "object",
+      "required": ["bbox_pdf", "row_id", "col_id", "source_text", "translated_text"],
+      "additionalProperties": false,
+      "properties": {
+        "bbox_pdf":          { "$ref": "#/$defs/BboxPdf" },
+        "row_id":            { "type": "integer", "minimum": 0 },
+        "col_id":            { "type": "integer", "minimum": 0 },
+        "source_text":       { "type": "string" },
+        "translated_text":   { "type": "string" }
+      }
+    },
+
+    "ElementData": {
+      "type": "object",
+      "required": ["label", "category", "bbox_pdf", "source_text",
+                   "translated_text", "latex", "cells"],
+      "additionalProperties": false,
+      "properties": {
+        "label":             { "type": "string", "minLength": 1 },
+        "category":          { "$ref": "#/$defs/ElementCategory" },
+        "bbox_pdf":          { "$ref": "#/$defs/BboxPdf" },
+        "source_text":       { "type": "string" },
+        "translated_text":   { "type": "string" },
+        "latex":             { "type": "string" },
+        "cells": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CellData" }
+        }
+      }
+    },
+
+    "PageData": {
+      "type": "object",
+      "required": ["page_index", "page_width", "page_height",
+                   "elements", "raw_text", "chapter_id"],
+      "additionalProperties": false,
+      "properties": {
+        "page_index":   { "type": "integer", "minimum": 0 },
+        "page_width":   { "type": "number",  "exclusiveMinimum": 0 },
+        "page_height":  { "type": "number",  "exclusiveMinimum": 0 },
+        "elements":     {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ElementData" }
+        },
+        "raw_text":     { "type": "string" },
+        "chapter_id":   { "type": "string" }
+      }
+    },
+
+    "ChapterInfo": {
+      "type": "object",
+      "required": ["chapter_id", "title", "start_page", "end_page",
+                   "summary", "glossary"],
+      "additionalProperties": false,
+      "properties": {
+        "chapter_id":  { "type": "string", "minLength": 1 },
+        "title":       { "type": "string" },
+        "start_page":  { "type": "integer", "minimum": 0 },
+        "end_page":    { "type": "integer", "minimum": 0 },
+        "summary":     { "type": "string" },
+        "glossary":    {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  }
+}

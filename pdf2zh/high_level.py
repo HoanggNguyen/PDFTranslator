@@ -27,6 +27,8 @@ from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
 
 from pdf2zh.config import ConfigManager
+from pdf2zh.scanned.detector import PDFTypeDetector
+from pdf2zh.scanned.parser import StageAParser
 from babeldoc.assets.assets import get_font_and_metadata
 
 NOTO_NAME = "noto"
@@ -354,6 +356,29 @@ def translate(
                 )
         filename = os.path.splitext(os.path.basename(file))[0]
 
+        # Stage A: Check if PDF is scanned and route to scanned pipeline
+        # NOTE: Stages B, C, D will be wired in subsequent sprints
+        try:
+            detector = PDFTypeDetector()
+            pdf_type = detector.detect(file)
+            if pdf_type == "scanned":
+                logger.info(f"Detected scanned PDF: {file}, using Stage A parser")
+                parser = StageAParser(device="auto")
+                output_dir = Path(output) if output else Path(file).parent
+                cache_path = output_dir / f"{filename}_stage_a.json"
+                parsed_doc = parser.parse_pdf(
+                    file,
+                    cache_path=cache_path,
+                    pages=pages,
+                )
+                logger.info(f"Stage A complete: {len(parsed_doc.pages)} pages parsed")
+                # For now, return the cache path as placeholder
+                # Full translation pipeline (Stages B, C, D) will be added later
+                result_files.append((str(cache_path), str(cache_path)))
+                continue
+        except Exception as e:
+            logger.warning(f"Scanned PDF detection failed, falling back to digital pipeline: {e}")
+
         # If the commandline has specified converting to PDF/A format
         # --compatible / -cp
         if compatible:
@@ -377,7 +402,7 @@ def translate(
             ):
                 file_path.unlink(missing_ok=True)
                 logger.debug(f"Cleaned temp file: {file_path}")
-        except Exception as e:
+        except Exception:
             logger.warning(f"Failed to clean temp file {file_path}", exc_info=True)
 
         s_mono, s_dual = translate_stream(
