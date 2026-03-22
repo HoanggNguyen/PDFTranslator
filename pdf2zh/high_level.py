@@ -402,7 +402,7 @@ def translate(
             ):
                 file_path.unlink(missing_ok=True)
                 logger.debug(f"Cleaned temp file: {file_path}")
-        except Exception as e:
+        except Exception:
             logger.warning(f"Failed to clean temp file {file_path}", exc_info=True)
 
         s_mono, s_dual = translate_stream(

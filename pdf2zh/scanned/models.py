@@ -36,7 +36,12 @@ class CellData:
     translated_text: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+        """Serialize this cell to a JSON-compatible dictionary.
+
+        Returns:
+            Dict with keys ``bbox_pdf``, ``row_id``, ``col_id``,
+            ``source_text``, and ``translated_text``.
+        """
         return {
             "bbox_pdf": self.bbox_pdf,
             "row_id": self.row_id,
@@ -47,7 +52,15 @@ class CellData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CellData:
-        """Create from dictionary."""
+        """Deserialize a :class:`CellData` from a plain dictionary.
+
+        Args:
+            data: Dictionary as produced by :meth:`to_dict`.  ``translated_text``
+                  defaults to ``""`` if absent (backward compatibility).
+
+        Returns:
+            New :class:`CellData` instance.
+        """
         return cls(
             bbox_pdf=data["bbox_pdf"],
             row_id=data["row_id"],
@@ -79,7 +92,15 @@ class ElementData:
     cells: list[CellData] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+        """Serialize this element to a JSON-compatible dictionary.
+
+        The ``category`` field is stored as its string value so the output is
+        JSON-serializable without custom encoders.
+
+        Returns:
+            Dict with keys ``label``, ``category``, ``bbox_pdf``,
+            ``source_text``, ``translated_text``, ``latex``, and ``cells``.
+        """
         return {
             "label": self.label,
             "category": self.category.value if isinstance(self.category, ElementCategory) else self.category,
@@ -92,7 +113,16 @@ class ElementData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ElementData:
-        """Create from dictionary."""
+        """Deserialize an :class:`ElementData` from a plain dictionary.
+
+        Args:
+            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
+                  ``translated_text``, ``latex``, and ``cells`` default to
+                  ``""``, ``""``, and ``[]`` respectively.
+
+        Returns:
+            New :class:`ElementData` instance.
+        """
         return cls(
             label=data["label"],
             category=ElementCategory(data["category"]),
@@ -124,7 +154,12 @@ class PageData:
     chapter_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+        """Serialize this page to a JSON-compatible dictionary.
+
+        Returns:
+            Dict with keys ``page_index``, ``page_width``, ``page_height``,
+            ``elements``, ``raw_text``, and ``chapter_id``.
+        """
         return {
             "page_index": self.page_index,
             "page_width": self.page_width,
@@ -136,7 +171,16 @@ class PageData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PageData:
-        """Create from dictionary."""
+        """Deserialize a :class:`PageData` from a plain dictionary.
+
+        Args:
+            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
+                  ``elements``, ``raw_text``, and ``chapter_id`` default to
+                  ``[]``, ``""``, and ``""`` respectively.
+
+        Returns:
+            New :class:`PageData` instance.
+        """
         return cls(
             page_index=data["page_index"],
             page_width=data["page_width"],
@@ -167,7 +211,12 @@ class ChapterInfo:
     glossary: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+        """Serialize this chapter info to a JSON-compatible dictionary.
+
+        Returns:
+            Dict with keys ``chapter_id``, ``title``, ``start_page``,
+            ``end_page``, ``summary``, and ``glossary``.
+        """
         return {
             "chapter_id": self.chapter_id,
             "title": self.title,
@@ -179,7 +228,15 @@ class ChapterInfo:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ChapterInfo:
-        """Create from dictionary."""
+        """Deserialize a :class:`ChapterInfo` from a plain dictionary.
+
+        Args:
+            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
+                  ``summary`` and ``glossary`` default to ``""`` and ``{}``.
+
+        Returns:
+            New :class:`ChapterInfo` instance.
+        """
         return cls(
             chapter_id=data["chapter_id"],
             title=data["title"],
@@ -206,7 +263,12 @@ class ParsedDocument:
     glossary: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+        """Serialize the full document to a JSON-compatible dictionary.
+
+        Returns:
+            Dict with keys ``pdf_path``, ``pages``, ``chapters``,
+            and ``glossary``.
+        """
         return {
             "pdf_path": self.pdf_path,
             "pages": [p.to_dict() for p in self.pages],
@@ -216,7 +278,16 @@ class ParsedDocument:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ParsedDocument:
-        """Create from dictionary."""
+        """Deserialize a :class:`ParsedDocument` from a plain dictionary.
+
+        Args:
+            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
+                  ``pages``, ``chapters``, and ``glossary`` default to
+                  ``[]``, ``[]``, and ``{}`` respectively.
+
+        Returns:
+            New :class:`ParsedDocument` instance.
+        """
         return cls(
             pdf_path=data["pdf_path"],
             pages=[PageData.from_dict(p) for p in data.get("pages", [])],
@@ -225,21 +296,49 @@ class ParsedDocument:
         )
 
     def to_json(self, indent: int = 2) -> str:
-        """Serialize to JSON string."""
+        """Serialize the document to a JSON string.
+
+        Args:
+            indent: Number of spaces for JSON indentation (default 2).
+
+        Returns:
+            Pretty-printed JSON string with UTF-8 characters unescaped
+            (``ensure_ascii=False``).
+        """
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
 
     @classmethod
     def from_json(cls, json_str: str) -> ParsedDocument:
-        """Deserialize from JSON string."""
+        """Deserialize a :class:`ParsedDocument` from a JSON string.
+
+        Args:
+            json_str: JSON string as produced by :meth:`to_json`.
+
+        Returns:
+            New :class:`ParsedDocument` instance.
+        """
         return cls.from_dict(json.loads(json_str))
 
     def save(self, path: str | Path) -> None:
-        """Save to JSON file."""
+        """Save the document to a JSON file on disk.
+
+        Creates parent directories if they do not exist.
+
+        Args:
+            path: Destination file path (``str`` or :class:`~pathlib.Path`).
+        """
         path = Path(path)
         path.write_text(self.to_json(), encoding="utf-8")
 
     @classmethod
     def load(cls, path: str | Path) -> ParsedDocument:
-        """Load from JSON file."""
+        """Load a :class:`ParsedDocument` from a JSON file on disk.
+
+        Args:
+            path: Source file path (``str`` or :class:`~pathlib.Path`).
+
+        Returns:
+            New :class:`ParsedDocument` instance parsed from the file.
+        """
         path = Path(path)
         return cls.from_json(path.read_text(encoding="utf-8"))

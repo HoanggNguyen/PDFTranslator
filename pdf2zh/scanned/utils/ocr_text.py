@@ -137,7 +137,6 @@ def extract_text_for_region(
         return ""
 
     rx0, ry0, rx1, ry1 = region_bbox
-    region_area = max(1.0, (rx1 - rx0) * (ry1 - ry0))
 
     matching_lines = []
 
@@ -185,7 +184,6 @@ def log_toc_hints(elements: list[Any], page_index: int) -> None:
 
     for elem in elements:
         label = getattr(elem, "label", "")
-        category = getattr(elem, "category", None)
 
         # Look for section headers and TOC elements
         if label in ("Section-header", "Table-of-contents"):
@@ -200,16 +198,25 @@ def log_toc_hints(elements: list[Any], page_index: int) -> None:
 
 
 def join_raw_text(elements: list[Any]) -> str:
-    """Join source_text from FLOWING_TEXT and IN_PLACE elements.
+    """Concatenate ``source_text`` from translatable layout elements.
 
-    This creates the raw_text field for PageData by concatenating
-    text from translatable elements in order.
+    Collects source text from every :class:`~pdf2zh.scanned.enums.ElementCategory`
+    that carries translatable content (``FLOWING_TEXT`` and ``IN_PLACE``) and
+    joins them with newlines to form the ``raw_text`` field of
+    :class:`~pdf2zh.scanned.models.PageData`.
+
+    BYPASS, TABLE, and EQUATION categories are intentionally excluded:
+    BYPASS has no text; TABLE text is stored per-cell; EQUATION text is a
+    placeholder handled separately.
 
     Args:
-        elements: List of ElementData objects
+        elements: Ordered list of :class:`~pdf2zh.scanned.models.ElementData`
+                  objects (or any object with ``category`` and ``source_text``
+                  attributes) for a single page.
 
     Returns:
-        Joined text with single newline between elements
+        Single string with element texts joined by ``"\n"``,
+        or an empty string if no translatable elements are present.
     """
     from pdf2zh.scanned.enums import ElementCategory
 

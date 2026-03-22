@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import fitz  # PyMuPDF
 from PIL import Image
@@ -71,6 +70,14 @@ class _BlockInfo:
 
     def __init__(self, label: str, category: ElementCategory,
                  pdf_bbox: list[float], page_seq: int) -> None:
+        """Initialize a scratch-pad block info carrier.
+
+        Args:
+            label: Raw Surya layout label (e.g. "Text", "Table", "Picture")
+            category: Resolved ElementCategory for downstream handling
+            pdf_bbox: [x0, y0, x1, y1] bounding box in PDF points
+            page_seq: Index of this page within the current batch (0-based)
+        """
         self.label = label
         self.category = category
         self.pdf_bbox = pdf_bbox
@@ -81,6 +88,11 @@ class _BlockInfo:
         self.needs_ocr = False
 
     def to_element(self) -> ElementData:
+        """Convert this scratch-pad entry into a final ElementData instance.
+
+        Returns:
+            ElementData populated from the accumulated fields of this block info.
+        """
         return ElementData(
             label=self.label,
             category=self.category,
@@ -109,6 +121,16 @@ class StageAParser:
         device: str = "auto",
         batch_size: int | None = None,
     ) -> None:
+        """Initialize the Stage A parser and set up hardware.
+
+        Args:
+            device: Target device for Surya models — one of ``"auto"``,
+                ``"cuda"``, ``"mps"``, or ``"cpu"``.
+                ``"auto"`` detects CUDA → MPS → CPU in that priority order.
+            batch_size: Number of pages to process per batch.  When ``None``
+                the default for the resolved device is used (12 for CUDA,
+                4 for MPS, 2 for CPU).
+        """
         self.profile = resolve_hardware(device, batch_size)
         set_torch_device_env(self.profile.device)
 
@@ -146,6 +168,7 @@ class StageAParser:
 
     @property
     def detection_predictor(self):
+        """DetectionPredictor — text region detection model (lazy loaded)."""
         if self._detection_predictor is None:
             from surya.detection import DetectionPredictor
             self._detection_predictor = DetectionPredictor()
@@ -154,6 +177,7 @@ class StageAParser:
 
     @property
     def layout_predictor(self):
+        """LayoutPredictor — page layout analysis model (lazy loaded)."""
         if self._layout_predictor is None:
             from surya.layout import LayoutPredictor
             self._layout_predictor = LayoutPredictor(self.layout_foundation_predictor)
@@ -162,6 +186,7 @@ class StageAParser:
 
     @property
     def recognition_predictor(self):
+        """RecognitionPredictor — OCR text recognition model (lazy loaded)."""
         if self._recognition_predictor is None:
             from surya.recognition import RecognitionPredictor
             self._recognition_predictor = RecognitionPredictor(self.foundation_predictor)
@@ -170,6 +195,7 @@ class StageAParser:
 
     @property
     def table_predictor(self):
+        """TableRecPredictor — table structure recognition model (lazy loaded)."""
         if self._table_predictor is None:
             from surya.table_rec import TableRecPredictor
             self._table_predictor = TableRecPredictor()
@@ -244,6 +270,27 @@ class StageAParser:
         page_indices: list[int],
         page_dims: dict[int, tuple[float, float]],
     ) -> list[PageData]:
+        """Process pages from a PDF file in batches, running the full Surya pipeline.
+
+        Pages are grouped into batches of ``self.profile.batch_size`` and each
+        batch goes through four phases:
+
+        1. Load standard-DPI and highres-DPI images via Surya's ``load_from_file``.
+        2. Detect layout regions on all standard-DPI images in parallel.
+        3. Collect per-region OCR crops across the whole batch into **one**
+           ``recognition_predictor`` call for maximum GPU utilisation.
+        4. Run table structure recognition for TABLE regions.
+        5. Assemble :class:`~pdf2zh.scanned.models.PageData` objects.
+
+        Args:
+            pdf_path: Resolved path to the PDF file.
+            page_indices: Ordered list of 0-based page numbers to process.
+            page_dims: Mapping from page index to ``(width, height)`` in PDF points.
+
+        Returns:
+            List of :class:`~pdf2zh.scanned.models.PageData` in the same order
+            as *page_indices*.
+        """
         from surya.input.load import load_from_file
         from surya.settings import settings
 
@@ -387,7 +434,32 @@ class StageAParser:
         page_width: float,
         page_height: float,
     ) -> tuple[str, list[CellData]]:
-        """Crop table region → table structure → per-cell OCR."""
+        """Run table structure recognition and per-cell OCR for a single table region.
+
+        Processing steps:
+
+        1. Crop the table region from the standard-DPI page image.
+        2. Run ``table_predictor`` to detect row/column/cell structure.
+        3. Re-crop the highres image and run ``recognition_predictor`` on the
+           table crop to produce full-page OCR output for the region.
+        4. For each detected cell, extract OCR text using bounding-box overlap
+           with the recognition output.
+        5. Convert cell bounding boxes from table-image pixel space to absolute
+           PDF point coordinates.
+
+        Args:
+            image: Standard-DPI PIL Image of the full page.
+            highres_image: Highres PIL Image of the full page (for OCR quality).
+            pdf_bbox: [x0, y0, x1, y1] of the table in PDF points (page-absolute).
+            page_width: Page width in PDF points (used for coordinate conversion).
+            page_height: Page height in PDF points (used for coordinate conversion).
+
+        Returns:
+            A 2-tuple ``(source_text, cells)`` where:
+            - *source_text* is all cell texts joined by " | " (for full-table search).
+            - *cells* is a list of :class:`~pdf2zh.scanned.models.CellData`
+              with PDF-point bboxes and OCR text.
+        """
         table_crop = crop_image_to_bbox(image, pdf_bbox, page_width, page_height)
 
         try:

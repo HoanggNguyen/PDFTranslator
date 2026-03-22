@@ -13,7 +13,7 @@ import fitz  # PyMuPDF
 from PIL import Image
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,19 @@ def render_page_for_layout(
 
 
 def _fitz_render(page: fitz.Page, dpi: int) -> Image.Image:
-    """Internal: render a PDF page via fitz at the given DPI."""
+    """Render a PDF page to a PIL Image using fitz at the specified DPI.
+
+    Converts ``dpi`` to a scale factor relative to fitz's default 72 DPI and
+    renders the page without an alpha channel (RGB mode).
+
+    Args:
+        page: fitz Page object to render.
+        dpi: Output resolution in dots per inch.  Higher values produce larger
+             images with finer detail but require more memory.
+
+    Returns:
+        PIL Image in ``RGB`` mode at the requested DPI.
+    """
     zoom = dpi / 72.0
     matrix = fitz.Matrix(zoom, zoom)
     pixmap = page.get_pixmap(matrix=matrix, alpha=False)

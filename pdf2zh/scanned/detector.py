@@ -91,7 +91,24 @@ class PDFTypeDetector:
             doc.close()
 
     def _analyze_document(self, doc: fitz.Document) -> PDFType:
-        """Analyze document pages to determine type."""
+        """Sample pages from the document and classify the overall PDF type.
+
+        Pages are sampled evenly up to ``self.sample_pages``.  Each sampled
+        page is classified independently by :meth:`_analyze_page`.  The
+        overall type is determined by majority vote with thresholds:
+
+        - 100 % scanned  → ``"scanned"``
+        - 100 % digital  → ``"digital"``
+        - ≥ 80 % scanned → ``"scanned"``
+        - ≤ 20 % scanned → ``"digital"``
+        - otherwise      → ``"mixed"``
+
+        Args:
+            doc: Open fitz Document to analyse.
+
+        Returns:
+            ``"scanned"``, ``"digital"``, or ``"mixed"``.
+        """
         page_count = len(doc)
         if page_count == 0:
             logger.warning("Empty PDF, defaulting to digital")
@@ -134,7 +151,26 @@ class PDFTypeDetector:
                 return "mixed"
 
     def _analyze_page(self, page: fitz.Page) -> Literal["scanned", "digital"]:
-        """Analyze a single page."""
+        """Classify a single page as scanned or digital.
+
+        The classification uses a three-tier heuristic:
+
+        1. **Raw text length** — if extracted text has ≥ ``text_threshold``
+           characters, the page is ``digital``.
+        2. **Text block count fallback** — if font encoding prevents raw text
+           extraction (e.g. ``font.unknown`` PDFs), count structural text blocks
+           from ``get_text("blocks")``.  ≥ ``text_block_threshold`` blocks
+           signals ``digital``.
+        3. **Image coverage** — if images cover ≥ ``image_coverage_threshold``
+           of the page area, the page is ``scanned``.
+        4. Otherwise defaults to ``digital``.
+
+        Args:
+            page: fitz Page object to classify.
+
+        Returns:
+            ``"scanned"`` or ``"digital"``.
+        """
         # Extract text
         text = page.get_text("text")
         text_length = len(text.strip())

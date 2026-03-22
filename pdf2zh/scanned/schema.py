@@ -48,20 +48,57 @@ class ValidationResult:
 
 
 def _load_schema() -> dict[str, Any]:
-    """Load the JSON Schema from schema.json."""
+    """Load the JSON Schema definition from the bundled ``schema.json`` file.
+
+    The schema file lives alongside this module in the same package directory
+    and is used by :func:`validate_stage_output` for structural validation of
+    :class:`~pdf2zh.scanned.models.ParsedDocument` dictionaries.
+
+    Returns:
+        Parsed JSON Schema as a Python dictionary.
+    """
     schema_path = Path(__file__).parent / "schema.json"
     return json.loads(schema_path.read_text(encoding="utf-8"))
 
 
 def _is_finite(value: Any) -> bool:
-    """Check if a numeric value is finite (not NaN or Infinity)."""
+    """Return True if *value* is a finite number (not NaN or ±Infinity).
+
+    Non-numeric values (e.g. strings, None) are considered valid and return
+    True so that callers can use this as a lightweight numeric guard without
+    performing isinstance checks themselves.
+
+    Args:
+        value: Any Python object to check.  Only ``int`` and ``float`` values
+               are tested for NaN / Infinity; all other types pass through.
+
+    Returns:
+        ``True`` if *value* is not numeric, or is a finite numeric value.
+        ``False`` if *value* is ``float('nan')``, ``float('inf')``, or
+        ``float('-inf')``.
+    """
     if not isinstance(value, (int, float)):
         return True
     return not (math.isnan(value) or math.isinf(value))
 
 
 def _check_bbox_valid(bbox: list[float], path: str, result: ValidationResult) -> bool:
-    """Check bbox invariants: [x0, y0, x1, y1] with x0 < x1 and y0 < y1."""
+    """Validate basic bbox structural invariants and record any errors.
+
+    Checks that *bbox* is a 4-element list of finite numbers where
+    ``x0 < x1`` and ``y0 < y1``.  Errors are appended to *result*;
+    the function returns a boolean so callers can short-circuit further
+    checks that depend on a valid bbox.
+
+    Args:
+        bbox: Candidate bounding box ``[x0, y0, x1, y1]``.
+        path: JSON path string used as the error location (e.g.
+              ``"pages[0].elements[2].bbox_pdf"``).
+        result: Mutable :class:`ValidationResult` that errors are appended to.
+
+    Returns:
+        ``True`` if all invariants pass; ``False`` if any error was recorded.
+    """
     if not isinstance(bbox, list) or len(bbox) != 4:
         result.add_error(path, "bbox must be a list of 4 numbers", "BBOX_FORMAT")
         return False
@@ -89,7 +126,18 @@ def _check_bbox_within_page(
     path: str,
     result: ValidationResult
 ) -> None:
-    """Check that bbox fits within page bounds."""
+    """Verify that a bbox lies within the page boundaries and record violations.
+
+    A small floating-point tolerance (0.01 pt) is allowed on all sides to
+    accommodate rounding errors introduced by coordinate conversions.
+
+    Args:
+        bbox: Validated ``[x0, y0, x1, y1]`` in PDF points.
+        page_width: Page width in PDF points (maximum allowed x coordinate).
+        page_height: Page height in PDF points (maximum allowed y coordinate).
+        path: JSON path string used as the error location.
+        result: Mutable :class:`ValidationResult` that errors are appended to.
+    """
     x0, y0, x1, y1 = bbox
     # Allow small tolerance for floating point issues
     tolerance = 0.01
@@ -120,7 +168,17 @@ def _check_cell_within_table(
     cell_path: str,
     result: ValidationResult
 ) -> None:
-    """Check that cell bbox is contained within table bbox."""
+    """Verify that a cell bbox is contained within its parent table bbox.
+
+    A small floating-point tolerance (0.01 pt) is applied on all edges to
+    account for rounding during coordinate conversion from image to PDF space.
+
+    Args:
+        cell_bbox: Cell bounding box ``[x0, y0, x1, y1]`` in PDF points.
+        table_bbox: Parent table bounding box ``[x0, y0, x1, y1]`` in PDF points.
+        cell_path: JSON path string for the cell (used in error messages).
+        result: Mutable :class:`ValidationResult` that errors are appended to.
+    """
     tolerance = 0.01
     cx0, cy0, cx1, cy1 = cell_bbox
     tx0, ty0, tx1, ty1 = table_bbox
@@ -287,12 +345,12 @@ def validate_stage_output(
                     _check_cell_within_table(cell_bbox, bbox, cell_path, result)
 
                 # Check for NaN/Infinity in row_id, col_id
-                for field in ["row_id", "col_id"]:
-                    val = cell.get(field)
+                for field_name in ["row_id", "col_id"]:
+                    val = cell.get(field_name)
                     if val is not None and not _is_finite(val):
                         result.add_error(
-                            f"{cell_path}.{field}",
-                            f"{field} contains NaN or Infinity",
+                            f"{cell_path}.{field_name}",
+                            f"{field_name} contains NaN or Infinity",
                             "INVALID_NUMBER"
                         )
 
