@@ -134,6 +134,48 @@ class ElementData:
         )
 
 
+class BlockInfo:
+    """Intermediate layout block information used during Stage A parsing."""
+
+    __slots__ = (
+        "label",
+        "category",
+        "pdf_bbox",
+        "source_text",
+        "latex",
+        "cells",
+        "page_seq",
+        "needs_ocr",
+    )
+
+    def __init__(
+        self,
+        label: str,
+        category: ElementCategory,
+        pdf_bbox: list[float],
+        page_seq: int,
+    ) -> None:
+        self.label = label
+        self.category = category
+        self.pdf_bbox = pdf_bbox
+        self.source_text = ""
+        self.latex = ""
+        self.cells: list[CellData] = []
+        self.page_seq = page_seq
+        self.needs_ocr = False
+
+    def to_element(self) -> ElementData:
+        return ElementData(
+            label=self.label,
+            category=self.category,
+            bbox_pdf=self.pdf_bbox,
+            source_text=self.source_text,
+            translated_text="",
+            latex=self.latex,
+            cells=self.cells,
+        )
+
+
 @dataclass
 class PageData:
     """Data for a single PDF page.

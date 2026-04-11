@@ -26,6 +26,7 @@ from pdf2zh.scanned.models import (
     ParsedDocument,
 )
 from pdf2zh.scanned.detector import PDFTypeDetector
+from pdf2zh.scanned.parser import StageAParser
 
 __all__ = [
     # Enums and mappings
@@ -41,4 +42,5 @@ __all__ = [
     "ParsedDocument",
     # Detector
     "PDFTypeDetector",
+    "StageAParser",
 ]
