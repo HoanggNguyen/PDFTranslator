@@ -30,6 +30,7 @@ class HardwareProfile:
     """
     device: str
     batch_size: int
+    ocr_batch_size: int
 
 
 _DEFAULT_PROFILES: dict[str, HardwareProfile] = {
