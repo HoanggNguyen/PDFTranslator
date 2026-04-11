@@ -14,6 +14,7 @@ xinference-client
 
 # ── OCR / Scanned PDF (surya pipeline) ───────────────────────────────────────
 surya-ocr
+transformers<=4.56.1
 torch
 torchvision
 opencv-python-headless

@@ -30,12 +30,13 @@ class HardwareProfile:
     """
     device: str
     batch_size: int
+    ocr_batch_size: int
 
 
 _DEFAULT_PROFILES: dict[str, HardwareProfile] = {
-    "cuda": HardwareProfile(device="cuda", batch_size=12),
-    "mps": HardwareProfile(device="mps", batch_size=4),
-    "cpu": HardwareProfile(device="cpu", batch_size=2),
+    "cuda": HardwareProfile(device="cuda", batch_size=32, ocr_batch_size=32),  # Tested on T4 GPU GGColab
+    "mps": HardwareProfile(device="mps", batch_size=4, ocr_batch_size=4),
+    "cpu": HardwareProfile(device="cpu", batch_size=2, ocr_batch_size=2),
 }
 
 
@@ -68,6 +69,7 @@ def _detect_device() -> str:
 def resolve_hardware(
     device: DeviceType = "auto",
     batch_size: int | None = None,
+    ocr_batch_size: int | None = None,
     **_kwargs,
 ) -> HardwareProfile:
     """Resolve hardware configuration.
@@ -92,6 +94,7 @@ def resolve_hardware(
     return HardwareProfile(
         device=profile.device,
         batch_size=batch_size if batch_size is not None else profile.batch_size,
+        ocr_batch_size=ocr_batch_size if ocr_batch_size is not None else profile.ocr_batch_size,
     )
 
 
