@@ -22,6 +22,8 @@ from pathlib import Path
 
 import fitz  # PyMuPDF
 from PIL import Image
+import gc
+import torch
 
 from pdf2zh.scanned.enums import (
     ElementCategory,
@@ -120,6 +122,7 @@ class StageAParser:
         self,
         device: str = "auto",
         batch_size: int | None = None,
+        ocr_batch_size: int | None = None,
     ) -> None:
         """Initialize the Stage A parser and set up hardware.
 
@@ -130,8 +133,10 @@ class StageAParser:
             batch_size: Number of pages to process per batch.  When ``None``
                 the default for the resolved device is used (12 for CUDA,
                 4 for MPS, 2 for CPU).
+            ocr_batch_size: Number of OCR crops to process per batch.  When ``None``
+                the default for the resolved device is used (12 for CUDA, 4 for MPS, 2 for CPU).
         """
-        self.profile = resolve_hardware(device, batch_size)
+        self.profile = resolve_hardware(device, batch_size, ocr_batch_size)
         set_torch_device_env(self.profile.device)
 
         self._foundation_predictor = None
@@ -295,6 +300,7 @@ class StageAParser:
         from surya.settings import settings
 
         batch_size = self.profile.batch_size
+        ocr_batch_size = self.profile.ocr_batch_size
         all_page_data: list[PageData] = []
 
         for batch_start in range(0, len(page_indices), batch_size):
@@ -371,16 +377,20 @@ class StageAParser:
                     f"Batch OCR: {len(all_ocr_std)} crops from "
                     f"{len(batch_indices)} pages"
                 )
-                ocr_results = self.recognition_predictor(
-                    all_ocr_std,
-                    det_predictor=self.detection_predictor,
-                    highres_images=all_ocr_hr,
-                )
-                for crop_i, info in enumerate(all_ocr_targets):
-                    text = collect_ocr_text(ocr_results[crop_i])
-                    info.source_text = text
-                    if info.category == ElementCategory.EQUATION:
-                        info.latex = "[EQUATION_PLACEHOLDER]"
+                ocr_results = []
+                for i in range(0, len(all_ocr_std), ocr_batch_size):
+                    sub_std = all_ocr_std[i:i + ocr_batch_size]
+                    sub_hr = all_ocr_hr[i:i + ocr_batch_size]
+
+                    sub_results = self.recognition_predictor(
+                        sub_std,
+                        det_predictor=self.detection_predictor,
+                        highres_images=sub_hr,
+                    )
+                    ocr_results.extend(sub_results)
+                    
+                    # Dọn dẹp ngay lập tức sau mỗi sub-batch
+                    torch.cuda.empty_cache()
 
             # ----------------------------------------------------------
             # Phase 3 — TABLE regions (table structure + per-cell OCR)
@@ -419,6 +429,13 @@ class StageAParser:
                     raw_text=raw_text,
                     chapter_id="",
                 ))
+
+            del images, highres_images, layout_results
+            if 'all_ocr_std' in locals():
+                del all_ocr_std, all_ocr_hr, ocr_results
+            
+            gc.collect()
+            torch.cuda.empty_cache() # Xóa cache của PyTorch trên GPU
 
         return all_page_data
 
@@ -486,6 +503,8 @@ class StageAParser:
                 highres_images=[hr_crop],
             )
             ocr_result = ocr_results[0] if ocr_results else None
+
+            del hr_crop, ocr_results
         except Exception as e:
             logger.error(f"Table OCR failed: {e}")
             ocr_result = None
