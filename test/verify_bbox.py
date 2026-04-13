@@ -102,9 +102,23 @@ def verify_pdf(
 
     logger.info(f"Parsing {input_path}...")
 
-    # Parse the PDF
+    # Parse the PDF through explicit Stage A phases
     parser = StageAParser(device=device)
-    parsed_doc = parser.parse_pdf(input_path, pages=pages)
+    layout_result = parser.parse_layout(input_path, pages=pages)
+    ocr_result = parser.parse_ocr(input_path, pages=pages)
+    table_result = parser.parse_tables(input_path, layout_result, ocr_result)
+    equation_result = parser.parse_equations(
+        input_path,
+        layout_result,
+        enable_latex=parser.hardware.enable_latex,
+    )
+    parsed_doc = parser.merge_results(
+        input_path,
+        layout_result,
+        ocr_result,
+        table_result=table_result,
+        equation_result=equation_result,
+    )
 
     logger.info(f"Found {len(parsed_doc.pages)} pages")
 

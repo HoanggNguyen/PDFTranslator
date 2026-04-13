@@ -366,11 +366,23 @@ def translate(
                 parser = StageAParser(device="auto")
                 output_dir = Path(output) if output else Path(file).parent
                 cache_path = output_dir / f"{filename}_stage_a.json"
-                parsed_doc = parser.parse_pdf(
+                layout_result = parser.parse_layout(file, pages=pages)
+                ocr_result = parser.parse_ocr(file, pages=pages)
+                table_result = parser.parse_tables(file, layout_result, ocr_result)
+                equation_result = parser.parse_equations(
                     file,
-                    cache_path=cache_path,
-                    pages=pages,
+                    layout_result,
+                    enable_latex=parser.hardware.enable_latex,
                 )
+                parsed_doc = parser.merge_results(
+                    file,
+                    layout_result,
+                    ocr_result,
+                    table_result=table_result,
+                    equation_result=equation_result,
+                )
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                parsed_doc.save(cache_path)
                 logger.info(f"Stage A complete: {len(parsed_doc.pages)} pages parsed")
                 # For now, return the cache path as placeholder
                 # Full translation pipeline (Stages B, C, D) will be added later
