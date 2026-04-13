@@ -7,12 +7,12 @@ Main exports:
 - PDFTypeDetector: Detect if PDF is scanned, digital, or mixed
 - StageAParser and phase result objects: Main parser for Stage A processing
 """
-
 from pdf2zh.scanned.detector import PDFTypeDetector
 
 __all__ = [
     # Detector
     "PDFTypeDetector",
+
     # Parser
-    "StageAParser",
+    "StageAParser"
 ]

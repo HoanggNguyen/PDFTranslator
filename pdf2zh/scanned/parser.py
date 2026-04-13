@@ -11,6 +11,7 @@ from typing import Any, Iterable
 import fitz  # PyMuPDF
 import torch
 from PIL import Image
+import torch
 
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
@@ -29,11 +30,19 @@ from pdf2zh.scanned.models import (
     OCRParseResult,
     PageData,
     ParsedDocument,
+    EquationBlockResult,
+    EquationParseResult,
+    LayoutBlockResult,
+    LayoutPageResult,
+    LayoutParseResult,
+    OCRPageResult,
+    OCRParseResult,
     TableBlockResult,
     TableParseResult,
     _DocumentContext,
-    _TableJob,
+    _TableJob
 )
+
 from pdf2zh.scanned.utils.bbox import (
     clamp_bbox,
     convert_bbox,
@@ -104,7 +113,7 @@ class StageAParser:
         _ = self.detection_predictor
         _ = self.layout_predictor
         _ = self.recognition_predictor
-        _ = self.table_predictor
+        _ = self.table_predictor 
 
     @property
     def foundation_predictor(self):
@@ -150,9 +159,7 @@ class StageAParser:
         if self._recognition_predictor is None:
             from surya.recognition import RecognitionPredictor
 
-            self._recognition_predictor = RecognitionPredictor(
-                self.foundation_predictor
-            )
+            self._recognition_predictor = RecognitionPredictor(self.foundation_predictor)
             logger.info("Loaded RecognitionPredictor")
         return self._recognition_predictor
 
@@ -175,15 +182,9 @@ class StageAParser:
         context = self._prepare_document_context(pdf_path, pages)
         parsed_pages: list[LayoutPageResult] = []
 
-        for batch_indices in self._chunked(
-            context.page_indices, self.hardware.page_batch_size
-        ):
-            images, _ = self._load_page_images(
-                context.pdf_path, batch_indices, include_highres=False
-            )
-            parsed_pages.extend(
-                self._parse_layout_batch(batch_indices, context.page_dims, images)
-            )
+        for batch_indices in self._chunked(context.page_indices, self.hardware.page_batch_size):
+            images, _ = self._load_page_images(context.pdf_path, batch_indices, include_highres=False)
+            parsed_pages.extend(self._parse_layout_batch(batch_indices, context.page_dims, images))
             self._release_batch(images)
 
         return LayoutParseResult(pdf_path=str(context.pdf_path), pages=parsed_pages)
@@ -198,17 +199,13 @@ class StageAParser:
         context = self._prepare_document_context(pdf_path, pages)
         parsed_pages: list[OCRPageResult] = []
 
-        for batch_indices in self._chunked(
-            context.page_indices, self.hardware.page_batch_size
-        ):
+        for batch_indices in self._chunked(context.page_indices, self.hardware.page_batch_size):
             images, highres_images = self._load_page_images(
                 context.pdf_path,
                 batch_indices,
                 include_highres=True,
             )
-            parsed_pages.extend(
-                self._parse_ocr_batch(batch_indices, images, highres_images)
-            )
+            parsed_pages.extend(self._parse_ocr_batch(batch_indices, images, highres_images))
             self._release_batch(images, highres_images)
 
         return OCRParseResult(pdf_path=str(context.pdf_path), pages=parsed_pages)
@@ -230,13 +227,9 @@ class StageAParser:
         tables: dict[str, TableBlockResult] = {}
         ocr_page_map = ocr_result.page_map()
 
-        for page_batch in self._chunked(
-            layout_result.pages, self.hardware.page_batch_size
-        ):
+        for page_batch in self._chunked(layout_result.pages, self.hardware.page_batch_size):
             batch_indices = [page.page_index for page in page_batch]
-            images, highres_images = self._load_page_images(
-                pdf_path, batch_indices, include_highres=True
-            )
+            images, highres_images = self._load_page_images(pdf_path, batch_indices, include_highres=True)
 
             batch_tables = self._parse_tables_batch(
                 page_batch,
@@ -277,16 +270,10 @@ class StageAParser:
 
         equations: dict[str, EquationBlockResult] = {}
 
-        for page_batch in self._chunked(
-            layout_result.pages, self.hardware.page_batch_size
-        ):
+        for page_batch in self._chunked(layout_result.pages, self.hardware.page_batch_size):
             batch_indices = [page.page_index for page in page_batch]
-            _, highres_images = self._load_page_images(
-                pdf_path, batch_indices, include_highres=True
-            )
-            batch_equations = self._parse_equations_batch(
-                page_batch, highres_images, enable_latex=True
-            )
+            _, highres_images = self._load_page_images(pdf_path, batch_indices, include_highres=True)
+            batch_equations = self._parse_equations_batch(page_batch, highres_images, enable_latex=True)
             equations.update(batch_equations.equations)
             self._release_batch(highres_images)
 
@@ -327,9 +314,7 @@ class StageAParser:
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
-                        fallback_text = self._extract_block_text(
-                            page_ocr, block.bbox_image
-                        )
+                        fallback_text = self._extract_block_text(page_ocr, block.bbox_image)
                         table_block = TableBlockResult(
                             block_id=block.block_id,
                             source_text=fallback_text,
@@ -404,18 +389,14 @@ class StageAParser:
                 return ParsedDocument.load(cache_path)
 
         context = self._prepare_document_context(pdf_path, pages)
-        enable_latex = (
-            self.hardware.enable_latex if enable_latex is None else enable_latex
-        )
+        enable_latex = self.hardware.enable_latex if enable_latex is None else enable_latex
 
         layout_pages: list[LayoutPageResult] = []
         ocr_pages: list[OCRPageResult] = []
         tables: dict[str, TableBlockResult] = {}
         equations: dict[str, EquationBlockResult] = {}
 
-        for batch_indices in self._chunked(
-            context.page_indices, self.hardware.page_batch_size
-        ):
+        for batch_indices in self._chunked(context.page_indices, self.hardware.page_batch_size):
             images, highres_images = self._load_page_images(
                 context.pdf_path,
                 batch_indices,
@@ -451,12 +432,8 @@ class StageAParser:
             context.pdf_path,
             LayoutParseResult(pdf_path=str(context.pdf_path), pages=layout_pages),
             OCRParseResult(pdf_path=str(context.pdf_path), pages=ocr_pages),
-            table_result=TableParseResult(
-                pdf_path=str(context.pdf_path), tables=tables
-            ),
-            equation_result=EquationParseResult(
-                pdf_path=str(context.pdf_path), equations=equations
-            ),
+            table_result=TableParseResult(pdf_path=str(context.pdf_path), tables=tables),
+            equation_result=EquationParseResult(pdf_path=str(context.pdf_path), equations=equations),
         )
 
         if cache_path:
@@ -480,9 +457,7 @@ class StageAParser:
                 page_indices = list(range(len(doc)))
             else:
                 page_indices = [index for index in pages if 0 <= index < len(doc)]
-            page_dims = {
-                index: get_page_dimensions(doc[index]) for index in page_indices
-            }
+            page_dims = {index: get_page_dimensions(doc[index]) for index in page_indices}
         finally:
             doc.close()
 
@@ -535,9 +510,7 @@ class StageAParser:
                 label = block.label
                 category = SURYA_LABEL_MAP.get(label, DEFAULT_CATEGORY)
                 bbox_pdf = clamp_bbox(
-                    image_bbox_to_pdf(
-                        raw_bbox, layout_image_bbox, page_width, page_height
-                    ),
+                    image_bbox_to_pdf(raw_bbox, layout_image_bbox, page_width, page_height),
                     page_width,
                     page_height,
                 )
@@ -554,9 +527,7 @@ class StageAParser:
                 )
 
                 if is_degenerate(bbox_pdf) or is_degenerate(bbox_image):
-                    logger.debug(
-                        "Skipping degenerate layout bbox on page %s", page_index
-                    )
+                    logger.debug("Skipping degenerate layout bbox on page %s", page_index)
                     continue
 
                 blocks.append(
@@ -603,18 +574,10 @@ class StageAParser:
         return [
             OCRPageResult(
                 page_index=page_index,
-                image_bbox=list(
-                    getattr(
-                        prediction,
-                        "image_bbox",
-                        [0, 0, images[seq].size[0], images[seq].size[1]],
-                    )
-                ),
+                image_bbox=list(getattr(prediction, "image_bbox", [0, 0, images[seq].size[0], images[seq].size[1]])),
                 ocr_result=prediction,
             )
-            for seq, (page_index, prediction) in enumerate(
-                zip(batch_indices, ocr_predictions)
-            )
+            for seq, (page_index, prediction) in enumerate(zip(batch_indices, ocr_predictions))
         ]
 
     def _parse_layout_and_ocr_batch(
@@ -630,13 +593,13 @@ class StageAParser:
                 self._parse_ocr_batch(batch_indices, images, highres_images),
             )
 
+        _ = self.layout_predictor
+        _ = self.detection_predictor
+        _ = self.recognition_predictor
+
         with ThreadPoolExecutor(max_workers=self.hardware.parallel_workers) as executor:
-            future_layout = executor.submit(
-                self._parse_layout_batch, batch_indices, page_dims, images
-            )
-            future_ocr = executor.submit(
-                self._parse_ocr_batch, batch_indices, images, highres_images
-            )
+            future_layout = executor.submit(self._parse_layout_batch, batch_indices, page_dims, images)
+            future_ocr = executor.submit(self._parse_ocr_batch, batch_indices, images, highres_images)
             return future_layout.result(), future_ocr.result()
 
     def _parse_tables_batch(
@@ -700,9 +663,7 @@ class StageAParser:
             table_result = self._table_prediction_to_cells(job, prediction)
             tables[job.block.block_id] = table_result
 
-            if table_result.cells and not any(
-                cell.source_text for cell in table_result.cells
-            ):
+            if table_result.cells and not any(cell.source_text for cell in table_result.cells):
                 fallback_jobs.append(job)
                 fallback_cell_bboxes.append(
                     self._cell_bboxes_in_table_crop(job, table_result.cells)
@@ -742,7 +703,8 @@ class StageAParser:
                             translated_text="",
                         )
                     )
-                    source_parts.append(cell_text)
+                    if cell_text:
+                        source_parts.append(cell_text)
 
                 tables[job.block.block_id] = TableBlockResult(
                     block_id=job.block.block_id,

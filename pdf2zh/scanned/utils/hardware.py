@@ -298,9 +298,7 @@ def main() -> None:
     """Print a resolved Surya hardware config for local tuning."""
 
     parser = argparse.ArgumentParser(description="Inspect resolved Surya settings")
-    parser.add_argument(
-        "--device", default="auto", choices=["auto", "cuda", "mps", "cpu"]
-    )
+    parser.add_argument("--device", default="auto", choices=["auto", "cuda", "mps", "cpu"])
     parser.add_argument("--page-batch-size", type=int, default=None)
     parser.add_argument("--layout-batch-size", type=int, default=None)
     parser.add_argument("--detection-batch-size", type=int, default=None)
