@@ -376,7 +376,9 @@ def translate(
                 result_files.append((str(cache_path), str(cache_path)))
                 continue
         except Exception as e:
-            logger.warning(f"Scanned PDF detection failed, falling back to digital pipeline: {e}")
+            logger.warning(
+                f"Scanned PDF detection failed, falling back to digital pipeline: {e}"
+            )
 
         # If the commandline has specified converting to PDF/A format
         # --compatible / -cp

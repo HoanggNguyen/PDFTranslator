@@ -17,8 +17,6 @@ except ImportError as e:
     raise
 
 
-
-
 class DocLayoutModel(abc.ABC):
     @staticmethod
     def load_onnx():

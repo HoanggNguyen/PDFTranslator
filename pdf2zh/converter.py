@@ -54,9 +54,9 @@ class PDFConverterEx(PDFConverter):
 
     def begin_page(self, page, ctm) -> None:
         # 重载替换 cropbox
-        (x0, y0, x1, y1) = page.cropbox
-        (x0, y0) = apply_matrix_pt(ctm, (x0, y0))
-        (x1, y1) = apply_matrix_pt(ctm, (x1, y1))
+        x0, y0, x1, y1 = page.cropbox
+        x0, y0 = apply_matrix_pt(ctm, (x0, y0))
+        x1, y1 = apply_matrix_pt(ctm, (x1, y1))
         mediabox = (0, 0, abs(x0 - x1), abs(y0 - y1))
         self.cur_item = LTPage(page.pageno, mediabox)
 

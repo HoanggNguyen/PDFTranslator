@@ -29,6 +29,7 @@ class CellData:
         source_text: OCR text content; empty string for empty cells
         translated_text: Empty string after Stage A; filled by Stage C
     """
+
     bbox_pdf: list[float]
     row_id: int
     col_id: int
@@ -83,6 +84,7 @@ class ElementData:
         latex: "[EQUATION_PLACEHOLDER]" for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
     """
+
     label: str
     category: ElementCategory
     bbox_pdf: list[float]
@@ -103,7 +105,11 @@ class ElementData:
         """
         return {
             "label": self.label,
-            "category": self.category.value if isinstance(self.category, ElementCategory) else self.category,
+            "category": (
+                self.category.value
+                if isinstance(self.category, ElementCategory)
+                else self.category
+            ),
             "bbox_pdf": self.bbox_pdf,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
@@ -146,6 +152,7 @@ class PageData:
         raw_text: Joined source_text of FLOWING_TEXT and IN_PLACE elements
         chapter_id: Empty string after Stage A; filled by Stage B
     """
+
     page_index: int
     page_width: float
     page_height: float
@@ -203,6 +210,7 @@ class ChapterInfo:
         summary: LLM-generated summary; empty initially
         glossary: {term: definition}; empty initially
     """
+
     chapter_id: str
     title: str
     start_page: int
@@ -257,6 +265,7 @@ class ParsedDocument:
         chapters: Empty list after Stage A; filled by Stage B
         glossary: Empty dict after Stage A; filled by Stage B
     """
+
     pdf_path: str
     pages: list[PageData] = field(default_factory=list)
     chapters: list[ChapterInfo] = field(default_factory=list)
