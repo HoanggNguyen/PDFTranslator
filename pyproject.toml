@@ -50,8 +50,6 @@ argostranslate = [
 mcp = [
     "mcp>=1.6.0",
 ]
-
-[dependency-groups]
 dev = [
     "black",
     "ruff",
