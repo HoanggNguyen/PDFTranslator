@@ -1,0 +1,12 @@
+# Ignore generated files and directories
+__pycache__/
+*.egg-info/
+.git/
+.venv/
+venv/
+env/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

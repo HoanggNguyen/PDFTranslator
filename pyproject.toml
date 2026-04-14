@@ -54,7 +54,7 @@ mcp = [
 [dependency-groups]
 dev = [
     "black",
-    "flake8",
+    "ruff",
     "pre-commit",
     "pytest",
     "build",
@@ -71,9 +71,17 @@ build-backend = "hatchling.build"
 [project.scripts]
 pdf2zh = "pdf2zh.pdf2zh:main"
 
-[tool.flake8]
-ignore = ["E203", "E261", "E501", "W503", "E741"]
-max-line-length = 88
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I"]
+ignore = ["E203", "E501", "W503"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311"]
 
 
 
