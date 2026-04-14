@@ -17,18 +17,18 @@ OCR crops from all pages in a batch are pooled into a single
 
 from __future__ import annotations
 
+import gc
 import logging
 from pathlib import Path
 
 import fitz  # PyMuPDF
-from PIL import Image
-import gc
 import torch
+from PIL import Image
 
 from pdf2zh.scanned.enums import (
-    ElementCategory,
-    SURYA_LABEL_MAP,
     DEFAULT_CATEGORY,
+    SURYA_LABEL_MAP,
+    ElementCategory,
 )
 from pdf2zh.scanned.models import (
     CellData,
@@ -37,25 +37,25 @@ from pdf2zh.scanned.models import (
     ParsedDocument,
 )
 from pdf2zh.scanned.utils.bbox import (
-    convert_bbox,
     clamp_bbox,
-    offset_bbox,
-    is_degenerate,
+    convert_bbox,
     image_bbox_to_pdf,
+    is_degenerate,
+    offset_bbox,
 )
 from pdf2zh.scanned.utils.hardware import (
     resolve_hardware,
     set_torch_device_env,
 )
 from pdf2zh.scanned.utils.image import (
-    get_page_dimensions,
     crop_image_to_bbox,
+    get_page_dimensions,
 )
 from pdf2zh.scanned.utils.ocr_text import (
     collect_ocr_text,
     extract_text_for_region,
-    log_toc_hints,
     join_raw_text,
+    log_toc_hints,
 )
 
 logger = logging.getLogger(__name__)
@@ -388,7 +388,7 @@ class StageAParser:
                         highres_images=sub_hr,
                     )
                     ocr_results.extend(sub_results)
-                    
+
                     # Dọn dẹp ngay lập tức sau mỗi sub-batch
                     torch.cuda.empty_cache()
 
@@ -439,7 +439,7 @@ class StageAParser:
             del images, highres_images, layout_results
             if 'all_ocr_std' in locals():
                 del all_ocr_std, all_ocr_hr, ocr_results
-            
+
             gc.collect()
             torch.cuda.empty_cache() # Xóa cache của PyTorch trên GPU
 

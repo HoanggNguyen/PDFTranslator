@@ -33,7 +33,7 @@ jobs:
 
       # 🔍 Lint with Ruff
       - name: Lint with Ruff
-        run: ruff check pdf2zh test --select=E,W,F,I
+        run: ruff check pdf2zh test
 
       # 🎨 Format check with Black
       - name: Check formatting with Black

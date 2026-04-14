@@ -1,8 +1,8 @@
 import abc
+import ast
 
 import cv2
 import numpy as np
-import ast
 from babeldoc.assets.assets import get_doclayout_onnx_model_path
 
 try:

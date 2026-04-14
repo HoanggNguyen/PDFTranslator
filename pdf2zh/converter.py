@@ -37,9 +37,9 @@ from pdf2zh.translator import (
     QwenMtTranslator,
     SiliconTranslator,
     TencentTranslator,
+    X302AITranslator,
     XinferenceTranslator,
     ZhipuTranslator,
-    X302AITranslator,
 )
 
 log = logging.getLogger(__name__)
