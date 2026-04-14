@@ -2,19 +2,20 @@
 
 import asyncio
 import io
+import logging
 import os
 import re
 import sys
 import tempfile
-import logging
 from asyncio import CancelledError
 from pathlib import Path
 from string import Template
-from typing import Any, BinaryIO, List, Optional, Dict
+from typing import Any, BinaryIO, Dict, List, Optional
 
 import numpy as np
 import requests
 import tqdm
+from babeldoc.assets.assets import get_font_and_metadata
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfexceptions import PDFValueError
 from pdfminer.pdfinterp import PDFResourceManager
@@ -22,14 +23,12 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 from pymupdf import Document, Font
 
+from pdf2zh.config import ConfigManager
 from pdf2zh.converter import TranslateConverter
 from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
-
-from pdf2zh.config import ConfigManager
 from pdf2zh.scanned.detector import PDFTypeDetector
 from pdf2zh.scanned.parser import StageAParser
-from babeldoc.assets.assets import get_font_and_metadata
 
 NOTO_NAME = "noto"
 
@@ -377,7 +376,9 @@ def translate(
                 result_files.append((str(cache_path), str(cache_path)))
                 continue
         except Exception as e:
-            logger.warning(f"Scanned PDF detection failed, falling back to digital pipeline: {e}")
+            logger.warning(
+                f"Scanned PDF detection failed, falling back to digital pipeline: {e}"
+            )
 
         # If the commandline has specified converting to PDF/A format
         # --compatible / -cp

@@ -12,20 +12,20 @@ Main exports:
 - StageAParser: Main parser for Stage A processing
 """
 
+from pdf2zh.scanned.detector import PDFTypeDetector
 from pdf2zh.scanned.enums import (
+    DEFAULT_CATEGORY,
+    SURYA_LABEL_MAP,
     ElementCategory,
     SuryaLabel,
-    SURYA_LABEL_MAP,
-    DEFAULT_CATEGORY,
 )
 from pdf2zh.scanned.models import (
     CellData,
+    ChapterInfo,
     ElementData,
     PageData,
-    ChapterInfo,
     ParsedDocument,
 )
-from pdf2zh.scanned.detector import PDFTypeDetector
 
 __all__ = [
     # Enums and mappings

@@ -8,22 +8,22 @@ This package contains:
 """
 
 from pdf2zh.scanned.utils.bbox import (
-    convert_bbox,
     clamp_bbox,
-    offset_bbox,
-    is_degenerate,
-    polygon_to_bbox,
+    convert_bbox,
     image_bbox_to_pdf,
+    is_degenerate,
+    offset_bbox,
+    polygon_to_bbox,
+)
+from pdf2zh.scanned.utils.hardware import (
+    HardwareProfile,
+    resolve_hardware,
 )
 from pdf2zh.scanned.utils.ocr_text import (
     clean_ocr_text,
     collect_ocr_text,
     extract_text_for_region,
     log_toc_hints,
-)
-from pdf2zh.scanned.utils.hardware import (
-    resolve_hardware,
-    HardwareProfile,
 )
 
 __all__ = [

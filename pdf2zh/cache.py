@@ -1,9 +1,9 @@
+import json
 import logging
 import os
-import json
-from peewee import Model, SqliteDatabase, AutoField, CharField, TextField, SQL
 from typing import Optional
 
+from peewee import SQL, AutoField, CharField, Model, SqliteDatabase, TextField
 
 # we don't init the database here
 db = SqliteDatabase(None)
@@ -19,18 +19,14 @@ class _TranslationCache(Model):
 
     class Meta:
         database = db
-        constraints = [
-            SQL(
-                """
+        constraints = [SQL("""
             UNIQUE (
                 translate_engine,
                 translate_engine_params,
                 original_text
                 )
             ON CONFLICT REPLACE
-            """
-            )
-        ]
+            """)]
 
 
 class TranslationCache:

@@ -336,6 +336,7 @@ def yadt_main(parsed_args) -> int:
     from babeldoc.high_level import init as yadt_init
     from babeldoc.main import create_progress_handler
     from babeldoc.translation_config import TranslationConfig as YadtConfig
+
     from pdf2zh.high_level import download_remote_fonts
 
     if parsed_args.dir:
@@ -369,29 +370,29 @@ def yadt_main(parsed_args) -> int:
             raise ValueError("prompt error.")
 
     from pdf2zh.translator import (
+        AnythingLLMTranslator,
+        ArgosTranslator,
         AzureOpenAITranslator,
-        GoogleTranslator,
+        AzureTranslator,
         BingTranslator,
         DeepLTranslator,
         DeepLXTranslator,
-        OllamaTranslator,
-        OpenAITranslator,
-        ZhipuTranslator,
-        ModelScopeTranslator,
-        SiliconTranslator,
-        GeminiTranslator,
-        AzureTranslator,
-        TencentTranslator,
+        DeepseekTranslator,
         DifyTranslator,
-        AnythingLLMTranslator,
-        XinferenceTranslator,
-        ArgosTranslator,
+        GeminiTranslator,
+        GoogleTranslator,
         GrokTranslator,
         GroqTranslator,
-        DeepseekTranslator,
+        ModelScopeTranslator,
+        OllamaTranslator,
         OpenAIlikedTranslator,
+        OpenAITranslator,
         QwenMtTranslator,
+        SiliconTranslator,
+        TencentTranslator,
         X302AITranslator,
+        XinferenceTranslator,
+        ZhipuTranslator,
     )
 
     for translator in [

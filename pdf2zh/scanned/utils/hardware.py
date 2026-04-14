@@ -28,13 +28,16 @@ class HardwareProfile:
         device: PyTorch device string ("cuda", "mps", or "cpu")
         batch_size: Number of pages to process in parallel per batch
     """
+
     device: str
     batch_size: int
     ocr_batch_size: int
 
 
 _DEFAULT_PROFILES: dict[str, HardwareProfile] = {
-    "cuda": HardwareProfile(device="cuda", batch_size=32, ocr_batch_size=32),  # Tested on T4 GPU GGColab
+    "cuda": HardwareProfile(
+        device="cuda", batch_size=32, ocr_batch_size=32
+    ),  # Tested on T4 GPU GGColab
     "mps": HardwareProfile(device="mps", batch_size=4, ocr_batch_size=4),
     "cpu": HardwareProfile(device="cpu", batch_size=2, ocr_batch_size=2),
 }
@@ -94,7 +97,9 @@ def resolve_hardware(
     return HardwareProfile(
         device=profile.device,
         batch_size=batch_size if batch_size is not None else profile.batch_size,
-        ocr_batch_size=ocr_batch_size if ocr_batch_size is not None else profile.ocr_batch_size,
+        ocr_batch_size=(
+            ocr_batch_size if ocr_batch_size is not None else profile.ocr_batch_size
+        ),
     )
 
 

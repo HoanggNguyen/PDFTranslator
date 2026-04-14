@@ -17,18 +17,17 @@ OCR crops from all pages in a batch are pooled into a single
 
 from __future__ import annotations
 
+import gc
 import logging
 from pathlib import Path
 
 import fitz  # PyMuPDF
 from PIL import Image
-import gc
-import torch
 
 from pdf2zh.scanned.enums import (
-    ElementCategory,
-    SURYA_LABEL_MAP,
     DEFAULT_CATEGORY,
+    SURYA_LABEL_MAP,
+    ElementCategory,
 )
 from pdf2zh.scanned.models import (
     CellData,
@@ -37,25 +36,25 @@ from pdf2zh.scanned.models import (
     ParsedDocument,
 )
 from pdf2zh.scanned.utils.bbox import (
-    convert_bbox,
     clamp_bbox,
-    offset_bbox,
-    is_degenerate,
+    convert_bbox,
     image_bbox_to_pdf,
+    is_degenerate,
+    offset_bbox,
 )
 from pdf2zh.scanned.utils.hardware import (
     resolve_hardware,
     set_torch_device_env,
 )
 from pdf2zh.scanned.utils.image import (
-    get_page_dimensions,
     crop_image_to_bbox,
+    get_page_dimensions,
 )
 from pdf2zh.scanned.utils.ocr_text import (
     collect_ocr_text,
     extract_text_for_region,
-    log_toc_hints,
     join_raw_text,
+    log_toc_hints,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,13 +64,28 @@ logger = logging.getLogger(__name__)
 # Internal data carrier used during per-page assembly (before ElementData)
 # ---------------------------------------------------------------------------
 
+
 class _BlockInfo:
     """Mutable scratch pad for one layout block while we collect OCR crops."""
-    __slots__ = ("label", "category", "pdf_bbox", "source_text", "latex",
-                 "cells", "page_seq", "needs_ocr")
 
-    def __init__(self, label: str, category: ElementCategory,
-                 pdf_bbox: list[float], page_seq: int) -> None:
+    __slots__ = (
+        "label",
+        "category",
+        "pdf_bbox",
+        "source_text",
+        "latex",
+        "cells",
+        "page_seq",
+        "needs_ocr",
+    )
+
+    def __init__(
+        self,
+        label: str,
+        category: ElementCategory,
+        pdf_bbox: list[float],
+        page_seq: int,
+    ) -> None:
         """Initialize a scratch-pad block info carrier.
 
         Args:
@@ -86,7 +100,7 @@ class _BlockInfo:
         self.source_text = ""
         self.latex = ""
         self.cells: list[CellData] = []
-        self.page_seq = page_seq      # index within batch
+        self.page_seq = page_seq  # index within batch
         self.needs_ocr = False
 
     def to_element(self) -> ElementData:
@@ -155,6 +169,7 @@ class StageAParser:
         """FoundationPredictor — default (OCR) checkpoint."""
         if self._foundation_predictor is None:
             from surya.foundation import FoundationPredictor
+
             self._foundation_predictor = FoundationPredictor()
             logger.info("Loaded FoundationPredictor (OCR)")
         return self._foundation_predictor
@@ -165,6 +180,7 @@ class StageAParser:
         if self._layout_foundation_predictor is None:
             from surya.foundation import FoundationPredictor
             from surya.settings import settings
+
             self._layout_foundation_predictor = FoundationPredictor(
                 checkpoint=settings.LAYOUT_MODEL_CHECKPOINT,
             )
@@ -176,6 +192,7 @@ class StageAParser:
         """DetectionPredictor — text region detection model (lazy loaded)."""
         if self._detection_predictor is None:
             from surya.detection import DetectionPredictor
+
             self._detection_predictor = DetectionPredictor()
             logger.info("Loaded DetectionPredictor")
         return self._detection_predictor
@@ -185,6 +202,7 @@ class StageAParser:
         """LayoutPredictor — page layout analysis model (lazy loaded)."""
         if self._layout_predictor is None:
             from surya.layout import LayoutPredictor
+
             self._layout_predictor = LayoutPredictor(self.layout_foundation_predictor)
             logger.info("Loaded LayoutPredictor")
         return self._layout_predictor
@@ -194,7 +212,10 @@ class StageAParser:
         """RecognitionPredictor — OCR text recognition model (lazy loaded)."""
         if self._recognition_predictor is None:
             from surya.recognition import RecognitionPredictor
-            self._recognition_predictor = RecognitionPredictor(self.foundation_predictor)
+
+            self._recognition_predictor = RecognitionPredictor(
+                self.foundation_predictor
+            )
             logger.info("Loaded RecognitionPredictor")
         return self._recognition_predictor
 
@@ -203,6 +224,7 @@ class StageAParser:
         """TableRecPredictor — table structure recognition model (lazy loaded)."""
         if self._table_predictor is None:
             from surya.table_rec import TableRecPredictor
+
             self._table_predictor = TableRecPredictor()
             logger.info("Loaded TableRecPredictor")
         return self._table_predictor
@@ -304,7 +326,7 @@ class StageAParser:
         all_page_data: list[PageData] = []
 
         for batch_start in range(0, len(page_indices), batch_size):
-            batch_indices = page_indices[batch_start:batch_start + batch_size]
+            batch_indices = page_indices[batch_start : batch_start + batch_size]
             logger.info(f"Processing pages {batch_indices}")
 
             # Load at Surya's native DPIs
@@ -339,7 +361,10 @@ class StageAParser:
                     category = SURYA_LABEL_MAP.get(label, DEFAULT_CATEGORY)
 
                     pdf_bbox = image_bbox_to_pdf(
-                        block.bbox, layout_image_bbox, pw, ph,
+                        block.bbox,
+                        layout_image_bbox,
+                        pw,
+                        ph,
                     )
                     pdf_bbox = clamp_bbox(pdf_bbox, pw, ph)
 
@@ -379,8 +404,8 @@ class StageAParser:
                 )
                 ocr_results = []
                 for i in range(0, len(all_ocr_std), ocr_batch_size):
-                    sub_std = all_ocr_std[i:i + ocr_batch_size]
-                    sub_hr = all_ocr_hr[i:i + ocr_batch_size]
+                    sub_std = all_ocr_std[i : i + ocr_batch_size]
+                    sub_hr = all_ocr_hr[i : i + ocr_batch_size]
 
                     sub_results = self.recognition_predictor(
                         sub_std,
@@ -388,9 +413,14 @@ class StageAParser:
                         highres_images=sub_hr,
                     )
                     ocr_results.extend(sub_results)
-                    
+
                     # Dọn dẹp ngay lập tức sau mỗi sub-batch
-                    torch.cuda.empty_cache()
+                    try:
+                        import torch
+
+                        torch.cuda.empty_cache()
+                    except ImportError:
+                        pass
 
                 for crop_i, info in enumerate(all_ocr_targets):
                     text = collect_ocr_text(ocr_results[crop_i])
@@ -427,21 +457,28 @@ class StageAParser:
                 log_toc_hints(elements, idx)
                 raw_text = join_raw_text(elements)
 
-                all_page_data.append(PageData(
-                    page_index=idx,
-                    page_width=pw,
-                    page_height=ph,
-                    elements=elements,
-                    raw_text=raw_text,
-                    chapter_id="",
-                ))
+                all_page_data.append(
+                    PageData(
+                        page_index=idx,
+                        page_width=pw,
+                        page_height=ph,
+                        elements=elements,
+                        raw_text=raw_text,
+                        chapter_id="",
+                    )
+                )
 
             del images, highres_images, layout_results
-            if 'all_ocr_std' in locals():
+            if "all_ocr_std" in locals():
                 del all_ocr_std, all_ocr_hr, ocr_results
-            
+
             gc.collect()
-            torch.cuda.empty_cache() # Xóa cache của PyTorch trên GPU
+            try:
+                import torch
+
+                torch.cuda.empty_cache()  # Xóa cache của PyTorch trên GPU
+            except ImportError:
+                pass
 
         return all_page_data
 
@@ -502,7 +539,9 @@ class StageAParser:
 
         # OCR on the table crop
         try:
-            hr_crop = crop_image_to_bbox(highres_image, pdf_bbox, page_width, page_height)
+            hr_crop = crop_image_to_bbox(
+                highres_image, pdf_bbox, page_width, page_height
+            )
             ocr_results = self.recognition_predictor(
                 [table_crop],
                 det_predictor=self.detection_predictor,
@@ -520,7 +559,11 @@ class StageAParser:
 
         for cell in table_result.cells:
             cell_bbox_in_table = convert_bbox(
-                cell.bbox, crop_w, crop_h, table_pdf_w, table_pdf_h,
+                cell.bbox,
+                crop_w,
+                crop_h,
+                table_pdf_w,
+                table_pdf_h,
             )
             cell_pdf_bbox = offset_bbox(cell_bbox_in_table, table_x0, table_y0)
             cell_pdf_bbox = clamp_bbox(cell_pdf_bbox, page_width, page_height)
@@ -528,16 +571,21 @@ class StageAParser:
             cell_text = ""
             if ocr_result is not None:
                 cell_text = extract_text_for_region(
-                    ocr_result, cell.bbox, crop_w, crop_h,
+                    ocr_result,
+                    cell.bbox,
+                    crop_w,
+                    crop_h,
                 )
 
-            cells.append(CellData(
-                bbox_pdf=cell_pdf_bbox,
-                row_id=cell.row_id if hasattr(cell, "row_id") else 0,
-                col_id=cell.col_id if hasattr(cell, "col_id") else 0,
-                source_text=cell_text,
-                translated_text="",
-            ))
+            cells.append(
+                CellData(
+                    bbox_pdf=cell_pdf_bbox,
+                    row_id=cell.row_id if hasattr(cell, "row_id") else 0,
+                    col_id=cell.col_id if hasattr(cell, "col_id") else 0,
+                    source_text=cell_text,
+                    translated_text="",
+                )
+            )
 
             if cell_text:
                 text_parts.append(cell_text)
