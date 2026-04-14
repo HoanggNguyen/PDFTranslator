@@ -73,11 +73,11 @@ pdf2zh = "pdf2zh.pdf2zh:main"
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I"]
-ignore = ["E203", "E501", "W503"]
+ignore = ["E203", "E501"]
 
 [tool.black]
 line-length = 88
