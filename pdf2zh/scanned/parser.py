@@ -22,7 +22,6 @@ import logging
 from pathlib import Path
 
 import fitz  # PyMuPDF
-import torch
 from PIL import Image
 
 from pdf2zh.scanned.enums import (
@@ -416,7 +415,12 @@ class StageAParser:
                     ocr_results.extend(sub_results)
 
                     # Dọn dẹp ngay lập tức sau mỗi sub-batch
-                    torch.cuda.empty_cache()
+                    try:
+                        import torch
+
+                        torch.cuda.empty_cache()
+                    except ImportError:
+                        pass
 
                 for crop_i, info in enumerate(all_ocr_targets):
                     text = collect_ocr_text(ocr_results[crop_i])
@@ -469,7 +473,12 @@ class StageAParser:
                 del all_ocr_std, all_ocr_hr, ocr_results
 
             gc.collect()
-            torch.cuda.empty_cache()  # Xóa cache của PyTorch trên GPU
+            try:
+                import torch
+
+                torch.cuda.empty_cache()  # Xóa cache của PyTorch trên GPU
+            except ImportError:
+                pass
 
         return all_page_data
 
