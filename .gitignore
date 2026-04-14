@@ -34,3 +34,8 @@ ENV/
 # Logs & temp
 *.log
 *.tmp
+./claude CLAUDE.md
+.claude/
+CLAUDE.md
+claude
+.DS_Store

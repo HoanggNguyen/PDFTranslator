@@ -392,6 +392,12 @@ class StageAParser:
                     # Dọn dẹp ngay lập tức sau mỗi sub-batch
                     torch.cuda.empty_cache()
 
+                for crop_i, info in enumerate(all_ocr_targets):
+                    text = collect_ocr_text(ocr_results[crop_i])
+                    info.source_text = text
+                    if info.category == ElementCategory.EQUATION:
+                        info.latex = "[EQUATION_PLACEHOLDER]"
+
             # ----------------------------------------------------------
             # Phase 3 — TABLE regions (table structure + per-cell OCR)
             # ----------------------------------------------------------
