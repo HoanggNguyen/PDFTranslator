@@ -57,6 +57,7 @@ dev = [
     "pytest",
     "build",
     "bumpver>=2024.1130",
+    "respx",
 ]
 
 [project.urls]
