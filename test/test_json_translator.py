@@ -3,8 +3,6 @@ import re
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from pdf2zh.json_translator import (
     Gateway,
     TranslatorConfig,
