@@ -39,6 +39,7 @@ PROVIDERS: dict[str, dict[str, str]] = {
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class TranslatorConfig:
     source_language: str = ""
@@ -61,7 +62,9 @@ def resolve_provider(cfg: TranslatorConfig) -> None:
     load_dotenv()
     p = PROVIDERS.get(cfg.provider)
     if p is None:
-        raise ValueError(f"Unknown provider '{cfg.provider}'. Choose from {list(PROVIDERS)}.")
+        raise ValueError(
+            f"Unknown provider '{cfg.provider}'. Choose from {list(PROVIDERS)}."
+        )
     if cfg.base_url is None:
         cfg.base_url = p["base_url"]
     if cfg.model is None:
@@ -96,14 +99,16 @@ def is_equation_only(s: str) -> bool:
 
 # ── Task ───────────────────────────────────────────────────────────────────────
 
+
 class Task(NamedTuple):
-    target: dict    # dict to write into (element or cell dict)
+    target: dict  # dict to write into (element or cell dict)
     write_key: str  # key to set on target
     text: str
     id: str
 
 
 # ── Collect translatables ──────────────────────────────────────────────────────
+
 
 def collect_translatables(doc: dict) -> list[Task]:
     tasks: list[Task] = []
@@ -128,6 +133,7 @@ def collect_translatables(doc: dict) -> list[Task]:
 
 # ── Chunking ───────────────────────────────────────────────────────────────────
 
+
 def segments_to_chunks(tasks: list[Task], max_bytes: int) -> list[dict[str, str]]:
     chunks: list[dict[str, str]] = []
     chunk: dict[str, str] = {}
@@ -145,6 +151,7 @@ def segments_to_chunks(tasks: list[Task], max_bytes: int) -> list[dict[str, str]
 
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
+
 
 def build_translation_prompt(
     chunk: dict[str, str],
@@ -209,6 +216,7 @@ def glossary_block_for_chunk(chunk: dict[str, str], glossary: dict[str, str]) ->
 
 # ── Rate limiter ───────────────────────────────────────────────────────────────
 
+
 class RateLimiter:
     def __init__(self, rpm: int | None, tpm: int | None):
         self.rpm = rpm
@@ -245,6 +253,7 @@ class RateLimiter:
         if self.rpm is None and self.tpm is None:
             return
         import time
+
         while True:
             with self._lock:
                 now = time.time()
@@ -326,21 +335,29 @@ class Gateway:
             content = self._merge(accumulated, content) if accumulated else content
             if finish == "length" and cont < _MAX_CONTINUE:
                 return await self._request(
-                    system, user, force_json=force_json,
-                    retry=retry, accumulated=content, cont=cont + 1,
+                    system,
+                    user,
+                    force_json=force_json,
+                    retry=retry,
+                    accumulated=content,
+                    cont=cont + 1,
                 )
             return content
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
                 await asyncio.sleep(5)
             if retry < self._cfg.retry:
-                await asyncio.sleep(0.5 * (2 ** retry))
-                return await self._request(system, user, force_json=force_json, retry=retry + 1)
+                await asyncio.sleep(0.5 * (2**retry))
+                return await self._request(
+                    system, user, force_json=force_json, retry=retry + 1
+                )
             raise
         except Exception:
             if retry < self._cfg.retry:
-                await asyncio.sleep(0.5 * (2 ** retry))
-                return await self._request(system, user, force_json=force_json, retry=retry + 1)
+                await asyncio.sleep(0.5 * (2**retry))
+                return await self._request(
+                    system, user, force_json=force_json, retry=retry + 1
+                )
             raise
 
     @staticmethod
@@ -362,6 +379,7 @@ class Gateway:
 
 # ── Glossary pass ──────────────────────────────────────────────────────────────
 
+
 async def extract_glossary(
     chunks: list[dict[str, str]],
     cfg: TranslatorConfig,
@@ -370,7 +388,9 @@ async def extract_glossary(
     lock = asyncio.Lock()
 
     async def _process(gw: Gateway, chunk: dict[str, str]) -> None:
-        system, user = build_glossary_prompt(chunk, cfg.source_language, cfg.target_language)
+        system, user = build_glossary_prompt(
+            chunk, cfg.source_language, cfg.target_language
+        )
         try:
             raw = await gw.call(system, user)
             parsed = json_repair.loads(raw)
@@ -391,6 +411,7 @@ async def extract_glossary(
 
 # ── Translation pass ───────────────────────────────────────────────────────────
 
+
 async def translate_chunks(
     chunks: list[dict[str, str]],
     glossary: dict[str, str],
@@ -401,7 +422,9 @@ async def translate_chunks(
 
     async def _process(gw: Gateway, chunk: dict[str, str]) -> None:
         block = glossary_block_for_chunk(chunk, glossary)
-        system, user = build_translation_prompt(chunk, cfg.source_language, cfg.target_language, block)
+        system, user = build_translation_prompt(
+            chunk, cfg.source_language, cfg.target_language, block
+        )
         translated = await _translate_one_chunk(gw, system, user, chunk, cfg)
         async with lock:
             results.update(translated)
@@ -442,7 +465,9 @@ async def _translate_one_chunk(
     # Retry for missing ids
     missing = original_ids - set(result.keys())
     if missing:
-        retry_user = user + "\nDo not omit any IDs; every input ID must appear exactly once."
+        retry_user = (
+            user + "\nDo not omit any IDs; every input ID must appear exactly once."
+        )
         retry_result = _parse(await gw.call(system, retry_user))
         for k in missing:
             if k in retry_result:
@@ -459,7 +484,8 @@ async def _translate_one_chunk(
 
     # Length check — retry violators once, then warn-and-keep
     violators = {
-        k for k in original_ids
+        k
+        for k in original_ids
         if _length_violation(result.get(k, ""), chunk[k], cfg.length_tolerance)
     }
     if violators:
@@ -494,6 +520,7 @@ def _length_violation(translation: str, source: str, tol: float) -> bool:
 
 
 # ── Orchestrator ───────────────────────────────────────────────────────────────
+
 
 async def _pipeline(
     tasks: list[Task],
@@ -545,10 +572,13 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Translate PDFTranslator JSON output")
     parser.add_argument("input", help="Input JSON file")
-    parser.add_argument("-o", "--output", help="Output JSON file (default: INPUT.translated.json)")
+    parser.add_argument(
+        "-o", "--output", help="Output JSON file (default: INPUT.translated.json)"
+    )
     parser.add_argument("--src", dest="source_language", default="")
     parser.add_argument("--tgt", dest="target_language", default="")
     parser.add_argument("--provider", default="openrouter", choices=list(PROVIDERS))
@@ -588,6 +618,7 @@ def main() -> None:
     doc = translate_document(doc, cfg)
 
     from pathlib import Path
+
     output = args.output or (str(Path(args.input).with_suffix("")) + ".translated.json")
     with open(output, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, indent=2)
