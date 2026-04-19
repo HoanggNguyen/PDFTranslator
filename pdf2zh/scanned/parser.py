@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import fitz  # PyMuPDF
-from PIL import Image
 import torch
+from PIL import Image
 
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
@@ -20,8 +20,6 @@ from pdf2zh.scanned.enums import (
 from pdf2zh.scanned.models import (
     CellData,
     ElementData,
-    PageData,
-    ParsedDocument,
     EquationBlockResult,
     EquationParseResult,
     LayoutBlockResult,
@@ -29,12 +27,13 @@ from pdf2zh.scanned.models import (
     LayoutParseResult,
     OCRPageResult,
     OCRParseResult,
+    PageData,
+    ParsedDocument,
     TableBlockResult,
     TableParseResult,
     _DocumentContext,
     _TableJob,
 )
-
 from pdf2zh.scanned.utils.bbox import (
     clamp_bbox,
     convert_bbox,
