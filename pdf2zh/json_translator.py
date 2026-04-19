@@ -3,6 +3,9 @@ How to run:
     python -m pdf2zh.json_translator input.json --api-key $KEY
 """
 
+import logging
+import time
+
 from pdf2zh.translation import (  # noqa: F401
     PROVIDERS,
     Gateway,
@@ -23,5 +26,9 @@ from pdf2zh.translation import (  # noqa: F401
 )
 from pdf2zh.translation.cli import main  # noqa: F401
 
+logger = logging.getLogger("json_translator")
+
 if __name__ == "__main__":
+    t0 = time.perf_counter()
     main()
+    logger.info(f"Total time: {time.perf_counter() - t0:.1f}s")
