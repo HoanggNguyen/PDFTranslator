@@ -274,7 +274,9 @@ class TestScannedParser(unittest.TestCase):
         )
         self.parser._detection_predictor = object()
 
-        with patch.object(self.parser, "_prepare_document_context", return_value=context):
+        with patch.object(
+            self.parser, "_prepare_document_context", return_value=context
+        ):
             with patch.object(
                 self.parser,
                 "_load_page_images",
@@ -303,7 +305,9 @@ class TestScannedParser(unittest.TestCase):
         self.assertEqual(len(parsed_doc.pages), 1)
         self.assertEqual(len(parsed_doc.pages[0].elements), 3)
         self.assertEqual(parsed_doc.pages[0].elements[0].source_text, "Body text")
-        self.assertEqual(parsed_doc.pages[0].elements[1].cells[0].source_text, "Table text")
+        self.assertEqual(
+            parsed_doc.pages[0].elements[1].cells[0].source_text, "Table text"
+        )
         self.assertEqual(parsed_doc.pages[0].elements[2].latex, "E=mc^2")
         self.assertEqual(parsed_doc.pages[0].raw_text, "Body text")
 
