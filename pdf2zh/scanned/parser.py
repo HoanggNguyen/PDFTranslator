@@ -586,10 +586,6 @@ class StageAParser:
                 self._parse_ocr_batch(batch_indices, images, highres_images),
             )
 
-        _ = self.layout_predictor
-        _ = self.detection_predictor
-        _ = self.recognition_predictor
-
         with ThreadPoolExecutor(max_workers=self.hardware.parallel_workers) as executor:
             future_layout = executor.submit(self._parse_layout_batch, batch_indices, page_dims, images)
             future_ocr = executor.submit(self._parse_ocr_batch, batch_indices, images, highres_images)
