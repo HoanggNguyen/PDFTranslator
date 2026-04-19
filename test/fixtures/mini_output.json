@@ -1,0 +1,79 @@
+{
+  "source_language": "English",
+  "target_language": "Vietnamese",
+  "pdf_path": "test.pdf",
+  "pages": [
+    {
+      "page_index": 0,
+      "page_width": 612,
+      "page_height": 792,
+      "elements": [
+        {
+          "label": "SectionHeader",
+          "category": "TEXT",
+          "bbox_pdf": [72, 720, 540, 740],
+          "source_text": "Introduction to Machine Learning",
+          "translated_text": "",
+          "latex": "",
+          "cells": []
+        },
+        {
+          "label": "Text",
+          "category": "TEXT",
+          "bbox_pdf": [72, 680, 540, 700],
+          "source_text": "This is a sample paragraph with enough text to be translatable.",
+          "translated_text": "",
+          "latex": "",
+          "cells": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [72, 600, 540, 680],
+          "source_text": "",
+          "translated_text": "",
+          "latex": "",
+          "cells": []
+        },
+        {
+          "label": "Equation",
+          "category": "TEXT",
+          "bbox_pdf": [72, 560, 540, 580],
+          "source_text": "<math>P(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}</math> (1.1)",
+          "translated_text": "",
+          "latex": "",
+          "cells": []
+        },
+        {
+          "label": "Caption",
+          "category": "TEXT",
+          "bbox_pdf": [72, 520, 540, 540],
+          "source_text": "Table showing experimental results",
+          "translated_text": "",
+          "latex": "Result table",
+          "cells": [
+            {"text": "Accuracy", "value": "0.95"},
+            {"text": "42.5"},
+            {"text": ""}
+          ]
+        }
+      ]
+    },
+    {
+      "page_index": 1,
+      "page_width": 612,
+      "page_height": 792,
+      "elements": [
+        {
+          "label": "Text",
+          "category": "TEXT",
+          "bbox_pdf": [72, 720, 540, 740],
+          "source_text": "CeADAR is a research center located in Dublin Ireland.",
+          "translated_text": "",
+          "latex": "",
+          "cells": []
+        }
+      ]
+    }
+  ]
+}

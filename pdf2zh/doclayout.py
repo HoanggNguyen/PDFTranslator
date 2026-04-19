@@ -1,8 +1,8 @@
 import abc
+import ast
 
 import cv2
 import numpy as np
-import ast
 from babeldoc.assets.assets import get_doclayout_onnx_model_path
 
 try:
@@ -15,8 +15,6 @@ except ImportError as e:
             "Download it at https://aka.ms/vs/17/release/vc_redist.x64.exe"
         ) from e
     raise
-
-
 
 
 class DocLayoutModel(abc.ABC):

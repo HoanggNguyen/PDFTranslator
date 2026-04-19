@@ -25,6 +25,7 @@ class ValidationError:
         message: Human-readable error description
         code: Short error code for programmatic handling
     """
+
     path: str
     message: str
     code: str
@@ -38,6 +39,7 @@ class ValidationResult:
         valid: True if no errors were found
         errors: List of ValidationError instances
     """
+
     valid: bool = True
     errors: list[ValidationError] = field(default_factory=list)
 
@@ -105,7 +107,9 @@ def _check_bbox_valid(bbox: list[float], path: str, result: ValidationResult) ->
 
     for i, v in enumerate(bbox):
         if not _is_finite(v):
-            result.add_error(path, f"bbox[{i}] contains NaN or Infinity", "BBOX_INVALID_NUMBER")
+            result.add_error(
+                path, f"bbox[{i}] contains NaN or Infinity", "BBOX_INVALID_NUMBER"
+            )
             return False
 
     x0, y0, x1, y1 = bbox
@@ -124,7 +128,7 @@ def _check_bbox_within_page(
     page_width: float,
     page_height: float,
     path: str,
-    result: ValidationResult
+    result: ValidationResult,
 ) -> None:
     """Verify that a bbox lies within the page boundaries and record violations.
 
@@ -146,19 +150,19 @@ def _check_bbox_within_page(
         result.add_error(
             path,
             f"bbox ({x0}, {y0}, {x1}, {y1}) has negative coordinates",
-            "BBOX_NEGATIVE"
+            "BBOX_NEGATIVE",
         )
     if x1 > page_width + tolerance:
         result.add_error(
             path,
             f"bbox x1 ({x1}) exceeds page_width ({page_width})",
-            "BBOX_EXCEEDS_WIDTH"
+            "BBOX_EXCEEDS_WIDTH",
         )
     if y1 > page_height + tolerance:
         result.add_error(
             path,
             f"bbox y1 ({y1}) exceeds page_height ({page_height})",
-            "BBOX_EXCEEDS_HEIGHT"
+            "BBOX_EXCEEDS_HEIGHT",
         )
 
 
@@ -166,7 +170,7 @@ def _check_cell_within_table(
     cell_bbox: list[float],
     table_bbox: list[float],
     cell_path: str,
-    result: ValidationResult
+    result: ValidationResult,
 ) -> None:
     """Verify that a cell bbox is contained within its parent table bbox.
 
@@ -187,20 +191,18 @@ def _check_cell_within_table(
         result.add_error(
             cell_path,
             f"cell bbox ({cx0}, {cy0}, {cx1}, {cy1}) starts before table bbox ({tx0}, {ty0}, {tx1}, {ty1})",
-            "CELL_OUTSIDE_TABLE"
+            "CELL_OUTSIDE_TABLE",
         )
     if cx1 > tx1 + tolerance or cy1 > ty1 + tolerance:
         result.add_error(
             cell_path,
             f"cell bbox ({cx0}, {cy0}, {cx1}, {cy1}) ends after table bbox ({tx0}, {ty0}, {tx1}, {ty1})",
-            "CELL_OUTSIDE_TABLE"
+            "CELL_OUTSIDE_TABLE",
         )
 
 
 def validate_stage_output(
-    data: dict[str, Any],
-    stage: str = "A",
-    skip_json_schema: bool = False
+    data: dict[str, Any], stage: str = "A", skip_json_schema: bool = False
 ) -> ValidationResult:
     """Validate ParsedDocument output against JSON Schema and runtime invariants.
 
@@ -234,6 +236,7 @@ def validate_stage_output(
     if not skip_json_schema:
         try:
             import jsonschema
+
             schema = _load_schema()
             jsonschema.validate(data, schema)
         except ImportError:
@@ -241,9 +244,7 @@ def validate_stage_output(
             pass
         except jsonschema.ValidationError as e:
             result.add_error(
-                ".".join(str(p) for p in e.absolute_path),
-                e.message,
-                "JSON_SCHEMA"
+                ".".join(str(p) for p in e.absolute_path), e.message, "JSON_SCHEMA"
             )
             # Continue to check other invariants
 
@@ -257,7 +258,9 @@ def validate_stage_output(
 
     # Invariant 11: chapters == [] after Stage A
     if stage == "A" and chapters:
-        result.add_error("chapters", "chapters must be [] after Stage A", "STAGE_A_CHAPTERS")
+        result.add_error(
+            "chapters", "chapters must be [] after Stage A", "STAGE_A_CHAPTERS"
+        )
 
     # Check each page
     for page_idx, page in enumerate(pages):
@@ -268,16 +271,20 @@ def validate_stage_output(
         page_height = page.get("page_height", 0)
 
         if not _is_finite(page_width):
-            result.add_error(f"{page_path}.page_width", "contains NaN or Infinity", "INVALID_NUMBER")
+            result.add_error(
+                f"{page_path}.page_width", "contains NaN or Infinity", "INVALID_NUMBER"
+            )
         if not _is_finite(page_height):
-            result.add_error(f"{page_path}.page_height", "contains NaN or Infinity", "INVALID_NUMBER")
+            result.add_error(
+                f"{page_path}.page_height", "contains NaN or Infinity", "INVALID_NUMBER"
+            )
 
         # Invariant 10: chapter_id == "" after Stage A
         if stage == "A" and page.get("chapter_id", "") != "":
             result.add_error(
                 f"{page_path}.chapter_id",
                 "chapter_id must be '' after Stage A",
-                "STAGE_A_CHAPTER_ID"
+                "STAGE_A_CHAPTER_ID",
             )
 
         # Check each element
@@ -291,7 +298,9 @@ def validate_stage_output(
 
             # Invariant 3: bbox within page bounds
             if bbox_valid and page_width > 0 and page_height > 0:
-                _check_bbox_within_page(bbox, page_width, page_height, f"{elem_path}.bbox_pdf", result)
+                _check_bbox_within_page(
+                    bbox, page_width, page_height, f"{elem_path}.bbox_pdf", result
+                )
 
             category = elem.get("category", "")
             source_text = elem.get("source_text", "")
@@ -302,7 +311,7 @@ def validate_stage_output(
                 result.add_error(
                     f"{elem_path}.source_text",
                     "source_text must be '' for BYPASS category",
-                    "BYPASS_TEXT"
+                    "BYPASS_TEXT",
                 )
 
             # Invariant 5: EQUATION may have source_text (surrounding text
@@ -322,7 +331,7 @@ def validate_stage_output(
                 result.add_error(
                     f"{elem_path}.cells",
                     "cells must not be empty for TABLE category",
-                    "TABLE_NO_CELLS"
+                    "TABLE_NO_CELLS",
                 )
 
             # Invariant 7: non-TABLE -> cells == []
@@ -330,7 +339,7 @@ def validate_stage_output(
                 result.add_error(
                     f"{elem_path}.cells",
                     "cells must be [] for non-TABLE category",
-                    "NON_TABLE_HAS_CELLS"
+                    "NON_TABLE_HAS_CELLS",
                 )
 
             # Check cells
@@ -338,7 +347,9 @@ def validate_stage_output(
                 cell_path = f"{elem_path}.cells[{cell_idx}]"
 
                 cell_bbox = cell.get("bbox_pdf", [])
-                cell_bbox_valid = _check_bbox_valid(cell_bbox, f"{cell_path}.bbox_pdf", result)
+                cell_bbox_valid = _check_bbox_valid(
+                    cell_bbox, f"{cell_path}.bbox_pdf", result
+                )
 
                 # Invariant 8: cell bbox within table bbox
                 if cell_bbox_valid and bbox_valid:
@@ -351,7 +362,7 @@ def validate_stage_output(
                         result.add_error(
                             f"{cell_path}.{field_name}",
                             f"{field_name} contains NaN or Infinity",
-                            "INVALID_NUMBER"
+                            "INVALID_NUMBER",
                         )
 
     # Check chapters (for later stages)
@@ -366,7 +377,7 @@ def validate_stage_output(
             result.add_error(
                 ch_path,
                 f"end_page ({end_page}) must be >= start_page ({start_page})",
-                "CHAPTER_PAGE_ORDER"
+                "CHAPTER_PAGE_ORDER",
             )
 
     return result

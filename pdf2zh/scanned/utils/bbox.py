@@ -35,7 +35,6 @@ Key assumptions:
 from __future__ import annotations
 
 
-
 def convert_bbox(
     surya_bbox: list[float] | tuple[float, ...],
     image_width: float,

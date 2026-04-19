@@ -21,6 +21,7 @@ class ElementCategory(str, Enum):
         EQUATION: source_text contains any surrounding text to translate;
             latex holds a placeholder or recognized LaTeX marking math position
     """
+
     BYPASS = "BYPASS"
     FLOWING_TEXT = "FLOWING_TEXT"
     IN_PLACE = "IN_PLACE"
@@ -33,6 +34,7 @@ class SuryaLabel:
 
     These match the exact strings returned by Surya's LayoutPredictor.
     """
+
     # Text elements -> FLOWING_TEXT
     TEXT = "Text"
     LIST_ITEM = "List-item"
@@ -66,22 +68,18 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     SuryaLabel.LIST_ITEM: ElementCategory.FLOWING_TEXT,
     SuryaLabel.FOOTNOTE: ElementCategory.FLOWING_TEXT,
     SuryaLabel.HANDWRITING: ElementCategory.FLOWING_TEXT,
-
     # IN_PLACE: text that must be rendered at exact position
     SuryaLabel.SECTION_HEADER: ElementCategory.IN_PLACE,
     SuryaLabel.PAGE_HEADER: ElementCategory.IN_PLACE,
     SuryaLabel.PAGE_FOOTER: ElementCategory.IN_PLACE,
     SuryaLabel.CAPTION: ElementCategory.IN_PLACE,
     SuryaLabel.TABLE_OF_CONTENTS: ElementCategory.IN_PLACE,
-
     # BYPASS: graphics that should be copied without modification
     SuryaLabel.PICTURE: ElementCategory.BYPASS,
     SuryaLabel.FIGURE: ElementCategory.BYPASS,
     SuryaLabel.FORM: ElementCategory.BYPASS,
-
     # TABLE: structured data requiring cell-level translation
     SuryaLabel.TABLE: ElementCategory.TABLE,
-
     # EQUATION: math content to be preserved as-is
     SuryaLabel.FORMULA: ElementCategory.EQUATION,
     SuryaLabel.TEXT_INLINE_MATH: ElementCategory.EQUATION,

@@ -1,7 +1,9 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-from pdfminer.layout import LTPage, LTChar, LTLine
+from unittest.mock import MagicMock, Mock, patch
+
+from pdfminer.layout import LTChar, LTLine, LTPage
 from pdfminer.pdfinterp import PDFResourceManager
+
 from pdf2zh.converter import PDFConverterEx, TranslateConverter
 
 

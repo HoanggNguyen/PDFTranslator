@@ -1,21 +1,21 @@
 import logging
 from typing import Any, Dict, Optional, Sequence, Tuple, cast
-import numpy as np
 
+import numpy as np
 from pdfminer import settings
 from pdfminer.pdfcolor import PREDEFINED_COLORSPACE, PDFColorSpace
 from pdfminer.pdfdevice import PDFDevice
+from pdfminer.pdffont import PDFFont
 from pdfminer.pdfinterp import (
-    PDFPageInterpreter,
-    PDFResourceManager,
-    PDFContentParser,
-    PDFInterpreterError,
-    Color,
-    PDFStackT,
     LITERAL_FORM,
     LITERAL_IMAGE,
+    Color,
+    PDFContentParser,
+    PDFInterpreterError,
+    PDFPageInterpreter,
+    PDFResourceManager,
+    PDFStackT,
 )
-from pdfminer.pdffont import PDFFont
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdftypes import (
     PDFObjRef,
@@ -34,8 +34,8 @@ from pdfminer.utils import (
     MATRIX_IDENTITY,
     Matrix,
     Rect,
-    mult_matrix,
     apply_matrix_pt,
+    mult_matrix,
 )
 
 log = logging.getLogger(__name__)
@@ -256,7 +256,7 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
         # log.debug("Processing page: %r", page)
         # print(page.mediabox,page.cropbox)
         # (x0, y0, x1, y1) = page.mediabox
-        (x0, y0, x1, y1) = page.cropbox
+        x0, y0, x1, y1 = page.cropbox
         if page.rotate == 90:
             ctm = (0, -1, 1, 0, -y0, x1)
         elif page.rotate == 180:
@@ -308,7 +308,7 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
             return
         while True:
             try:
-                (_, obj) = parser.nextobject()
+                _, obj = parser.nextobject()
             except PSEOF:
                 break
             if isinstance(obj, PSKeyword):

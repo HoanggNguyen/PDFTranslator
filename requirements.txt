@@ -35,6 +35,8 @@ rich
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 requests
+httpx
+json_repair
 tqdm
 tenacity
 huggingface_hub

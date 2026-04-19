@@ -46,7 +46,9 @@ CATEGORY_COLORS = {
 CELL_COLOR = (0.8, 0.8, 0.0)  # Yellow for table cells
 
 
-def draw_bbox(page: fitz.Page, bbox: list[float], color: tuple, width: float = 2.0) -> None:
+def draw_bbox(
+    page: fitz.Page, bbox: list[float], color: tuple, width: float = 2.0
+) -> None:
     """Draw a rectangle on the page.
 
     Args:
@@ -158,7 +160,9 @@ def verify_pdf(
     logger.info(f"Saved JSON to {json_path}")
 
     # Run schema validation
-    validation = validate_stage_output(parsed_doc.to_dict(), stage="A", skip_json_schema=True)
+    validation = validate_stage_output(
+        parsed_doc.to_dict(), stage="A", skip_json_schema=True
+    )
 
     # Print summary
     print("\nVerification Summary:")
@@ -208,31 +212,27 @@ Examples:
     python scripts/verify_bbox.py --input sample.pdf --output verify.pdf
     python scripts/verify_bbox.py --input sample.pdf --output verify.pdf --pages 0,1,2
     python scripts/verify_bbox.py --input sample.pdf --output verify.pdf --device cpu
-        """
+        """,
     )
 
+    parser.add_argument("--input", "-i", required=True, help="Input PDF file path")
     parser.add_argument(
-        "--input", "-i",
-        required=True,
-        help="Input PDF file path"
+        "--output", "-o", required=True, help="Output verification PDF path"
     )
     parser.add_argument(
-        "--output", "-o",
-        required=True,
-        help="Output verification PDF path"
-    )
-    parser.add_argument(
-        "--pages", "-p",
+        "--pages",
+        "-p",
         type=str,
         default=None,
-        help="Comma-separated list of page indices (0-based)"
+        help="Comma-separated list of page indices (0-based)",
     )
     parser.add_argument(
-        "--device", "-d",
+        "--device",
+        "-d",
         type=str,
         default="auto",
         choices=["auto", "cuda", "mps", "cpu"],
-        help="Device for Surya models (default: auto)"
+        help="Device for Surya models (default: auto)",
     )
 
     args = parser.parse_args()
