@@ -19,7 +19,7 @@ class ElementCategory(str, Enum):
         IN_PLACE: Translate source_text; render at exact bbox position
         TABLE: Translate each cell's source_text; render cell grid
         EQUATION: source_text contains any surrounding text to translate;
-            latex holds "[EQUATION_PLACEHOLDER]" marking math position
+            latex holds a placeholder or recognized LaTeX marking math position
     """
 
     BYPASS = "BYPASS"
