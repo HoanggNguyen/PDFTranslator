@@ -63,6 +63,7 @@ dev = [
     "build",
     "bumpver>=2024.1130",
     "respx",
+    "torch",
 ]
 
 [project.urls]
