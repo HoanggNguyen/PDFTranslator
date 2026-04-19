@@ -32,7 +32,7 @@ from pdf2zh.scanned.models import (
     TableBlockResult,
     TableParseResult,
     _DocumentContext,
-    _TableJob
+    _TableJob,
 )
 
 from pdf2zh.scanned.utils.bbox import (
@@ -106,7 +106,7 @@ class StageAParser:
         _ = self.detection_predictor
         _ = self.layout_predictor
         _ = self.recognition_predictor
-        _ = self.table_predictor 
+        _ = self.table_predictor
 
     @property
     def foundation_predictor(self):
