@@ -742,8 +742,7 @@ class StageAParser:
                             translated_text="",
                         )
                     )
-                    if cell_text:
-                        source_parts.append(cell_text)
+                    source_parts.append(cell_text)
 
                 tables[job.block.block_id] = TableBlockResult(
                     block_id=job.block.block_id,
