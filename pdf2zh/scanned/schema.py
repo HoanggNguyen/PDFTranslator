@@ -323,7 +323,7 @@ def validate_stage_output(
                     result.add_error(
                         f"{elem_path}.latex",
                         "EQUATION latex must be a non-empty string",
-                        "EQUATION_LATEX"
+                        "EQUATION_LATEX",
                     )
 
             # Invariant 6: TABLE -> len(cells) > 0

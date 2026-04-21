@@ -14,7 +14,6 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from PIL import Image
 
 from PIL import Image
 
@@ -393,11 +392,7 @@ class LayoutParseResult:
         return {page.page_index: page for page in self.pages}
 
     def block_map(self) -> dict[str, LayoutBlockResult]:
-        return {
-            block.block_id: block
-            for page in self.pages
-            for block in page.blocks
-        }
+        return {block.block_id: block for page in self.pages for block in page.blocks}
 
 
 @dataclass(slots=True)
