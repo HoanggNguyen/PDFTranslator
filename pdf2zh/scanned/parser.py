@@ -45,7 +45,6 @@ from pdf2zh.scanned.utils.bbox import (
 from pdf2zh.scanned.utils.hardware import configure_surya_settings
 from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
 from pdf2zh.scanned.utils.ocr_text import (
-    collect_ocr_text,
     extract_text_for_region,
     join_raw_text,
     log_toc_hints,
