@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from pdf2zh.scanned.enums import ElementCategory
 
 
@@ -351,3 +353,126 @@ class ParsedDocument:
         """
         path = Path(path)
         return cls.from_json(path.read_text(encoding="utf-8"))
+
+
+@dataclass(slots=True)
+class LayoutBlockResult:
+    """A layout block with stable IDs and coordinates in all required spaces."""
+
+    block_id: str
+    page_index: int
+    position: int
+    label: str
+    category: ElementCategory
+    bbox_layout: list[float]
+    bbox_image: list[float]
+    bbox_pdf: list[float]
+
+
+@dataclass(slots=True)
+class LayoutPageResult:
+    """Layout output for one page."""
+
+    page_index: int
+    page_width: float
+    page_height: float
+    layout_image_bbox: list[float]
+    image_bbox: list[float]
+    blocks: list[LayoutBlockResult] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class LayoutParseResult:
+    """Full layout phase output."""
+
+    pdf_path: str
+    pages: list[LayoutPageResult] = field(default_factory=list)
+
+    def page_map(self) -> dict[int, LayoutPageResult]:
+        return {page.page_index: page for page in self.pages}
+
+    def block_map(self) -> dict[str, LayoutBlockResult]:
+        return {block.block_id: block for page in self.pages for block in page.blocks}
+
+
+@dataclass(slots=True)
+class OCRPageResult:
+    """OCR output for one full page."""
+
+    page_index: int
+    image_bbox: list[float]
+    ocr_result: Any
+
+    @property
+    def image_width(self) -> float:
+        return self.image_bbox[2] - self.image_bbox[0]
+
+    @property
+    def image_height(self) -> float:
+        return self.image_bbox[3] - self.image_bbox[1]
+
+
+@dataclass(slots=True)
+class OCRParseResult:
+    """Full-page OCR phase output."""
+
+    pdf_path: str
+    pages: list[OCRPageResult] = field(default_factory=list)
+
+    def page_map(self) -> dict[int, OCRPageResult]:
+        return {page.page_index: page for page in self.pages}
+
+
+@dataclass(slots=True)
+class TableBlockResult:
+    """Merged table output for one layout table block."""
+
+    block_id: str
+    source_text: str
+    cells: list[CellData] = field(default_factory=list)
+    used_fallback_ocr: bool = False
+
+
+@dataclass(slots=True)
+class TableParseResult:
+    """Table phase output indexed by layout block id."""
+
+    pdf_path: str
+    tables: dict[str, TableBlockResult] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class EquationBlockResult:
+    """Equation phase output for one layout equation block."""
+
+    block_id: str
+    latex: str
+
+
+@dataclass(slots=True)
+class EquationParseResult:
+    """Equation phase output indexed by layout block id."""
+
+    pdf_path: str
+    equations: dict[str, EquationBlockResult] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class _DocumentContext:
+    """Immutable page selection and geometry for one PDF parse request."""
+
+    pdf_path: Path
+    page_indices: list[int]
+    page_dims: dict[int, tuple[float, float]]
+
+
+@dataclass(slots=True)
+class _TableJob:
+    """Bookkeeping for one table crop inside a batch."""
+
+    block: LayoutBlockResult
+    page_width: float
+    page_height: float
+    table_crop: Image.Image
+    highres_crop: Image.Image
+    page_ocr: OCRPageResult | None

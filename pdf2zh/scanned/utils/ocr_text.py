@@ -108,7 +108,7 @@ def collect_ocr_text(ocr_result: Any) -> str:
         if hasattr(line, "text") and line.text:
             lines.append(line.text)
 
-    return clean_ocr_text(" ".join(lines))
+    return " ".join(lines)
 
 
 def extract_text_for_region(
@@ -164,10 +164,11 @@ def extract_text_for_region(
             matching_lines.append((ly0, line.text))
 
     # Sort by vertical position and join
-    matching_lines.sort(key=lambda x: x[0])
+    # matching_lines.sort(key=lambda x: x[0])
+    # Sort with reading order from model.prediction()
     text = " ".join(line_text for _, line_text in matching_lines)
 
-    return clean_ocr_text(text)
+    return text
 
 
 def log_toc_hints(elements: list[Any], page_index: int) -> None:
