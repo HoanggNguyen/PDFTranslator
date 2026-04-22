@@ -816,7 +816,7 @@ class StageAParser:
         )
 
         for block_id, prediction in zip(block_ids, predictions):
-            latex = collect_ocr_text(prediction) or "[EQUATION_PLACEHOLDER]"
+            latex = prediction or "[EQUATION_PLACEHOLDER]"
             equations[block_id] = EquationBlockResult(block_id=block_id, latex=latex)
 
         return EquationParseResult(pdf_path="", equations=equations)
