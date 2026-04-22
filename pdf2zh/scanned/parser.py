@@ -367,7 +367,8 @@ class StageAParser:
                     )
                 )
 
-            elements.sort(key=lambda element: element.bbox_pdf[1])
+            # Don't need sort because surya-ocr return layout with reading order
+            # elements.sort(key=lambda element: element.bbox_pdf[1])
             log_toc_hints(elements, layout_page.page_index)
             pages.append(
                 PageData(
