@@ -598,6 +598,7 @@ class StageAParser:
             recognition_batch_size=self.hardware.ocr_batch_size,
             highres_images=highres_images,
             math_mode=True,
+            sort_lines=True,
         )
 
         return [

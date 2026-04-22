@@ -164,7 +164,8 @@ def extract_text_for_region(
             matching_lines.append((ly0, line.text))
 
     # Sort by vertical position and join
-    matching_lines.sort(key=lambda x: x[0])
+    # matching_lines.sort(key=lambda x: x[0])
+    # Sort with reading order from model.prediction()
     text = " ".join(line_text for _, line_text in matching_lines)
 
     return clean_ocr_text(text)
