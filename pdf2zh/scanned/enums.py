@@ -37,16 +37,15 @@ class SuryaLabel:
 
     # Text elements -> FLOWING_TEXT
     TEXT = "Text"
-    LIST_ITEM = "List-item"
+    LIST_ITEM = "ListItem"
     FOOTNOTE = "Footnote"
-    HANDWRITING = "Handwriting"
 
     # Headers/footers/captions -> IN_PLACE
-    SECTION_HEADER = "Section-header"
-    PAGE_HEADER = "Page-header"
-    PAGE_FOOTER = "Page-footer"
+    SECTION_HEADER = "SectionHeader"
+    PAGE_HEADER = "PageHeader"
+    PAGE_FOOTER = "PageFooter"
     CAPTION = "Caption"
-    TABLE_OF_CONTENTS = "Table-of-contents"
+    TABLE_OF_CONTENTS = "TableOfContents"
 
     # Graphics -> BYPASS
     PICTURE = "Picture"
@@ -57,8 +56,10 @@ class SuryaLabel:
     TABLE = "Table"
 
     # Math -> EQUATION
-    FORMULA = "Formula"
-    TEXT_INLINE_MATH = "Text-inline-math"
+    EQUATION = "Equation"
+
+    # Code
+    CODE = "Code"
 
 
 # Mapping from Surya labels to ElementCategory
@@ -67,7 +68,6 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     SuryaLabel.TEXT: ElementCategory.FLOWING_TEXT,
     SuryaLabel.LIST_ITEM: ElementCategory.FLOWING_TEXT,
     SuryaLabel.FOOTNOTE: ElementCategory.FLOWING_TEXT,
-    SuryaLabel.HANDWRITING: ElementCategory.FLOWING_TEXT,
     # IN_PLACE: text that must be rendered at exact position
     SuryaLabel.SECTION_HEADER: ElementCategory.IN_PLACE,
     SuryaLabel.PAGE_HEADER: ElementCategory.IN_PLACE,
@@ -81,8 +81,9 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     # TABLE: structured data requiring cell-level translation
     SuryaLabel.TABLE: ElementCategory.TABLE,
     # EQUATION: math content to be preserved as-is
-    SuryaLabel.FORMULA: ElementCategory.EQUATION,
-    SuryaLabel.TEXT_INLINE_MATH: ElementCategory.EQUATION,
+    SuryaLabel.EQUATION: ElementCategory.EQUATION,
+    # CODE: programming code blocks (treat as IN_PLACE for now)
+    SuryaLabel.CODE: ElementCategory.BYPASS,
 }
 
 # Default category for unknown Surya labels

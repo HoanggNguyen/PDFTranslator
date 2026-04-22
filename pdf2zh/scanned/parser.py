@@ -354,6 +354,8 @@ class StageAParser:
                             if equation_block is not None
                             else "[EQUATION_PLACEHOLDER]"
                         )
+                    elif block.label == "PageFooter" and source_text.isdigit():
+                        block.category = ElementCategory.BYPASS
 
                 elements.append(
                     ElementData(
