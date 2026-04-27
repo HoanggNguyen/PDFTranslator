@@ -70,8 +70,8 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     SuryaLabel.FOOTNOTE: ElementCategory.FLOWING_TEXT,
     # IN_PLACE: text that must be rendered at exact position
     SuryaLabel.SECTION_HEADER: ElementCategory.IN_PLACE,
-    SuryaLabel.PAGE_HEADER: ElementCategory.IN_PLACE,
-    SuryaLabel.PAGE_FOOTER: ElementCategory.IN_PLACE,
+    SuryaLabel.PAGE_HEADER: ElementCategory.BYPASS,
+    SuryaLabel.PAGE_FOOTER: ElementCategory.BYPASS,
     SuryaLabel.CAPTION: ElementCategory.IN_PLACE,
     SuryaLabel.TABLE_OF_CONTENTS: ElementCategory.IN_PLACE,
     # BYPASS: graphics that should be copied without modification
