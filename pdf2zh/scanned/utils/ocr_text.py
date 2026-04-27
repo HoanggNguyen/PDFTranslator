@@ -118,7 +118,7 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
     if not lines:
         return []
 
-    if hasattr(lines[0], 'polygon'):
+    if hasattr(lines[0], "polygon"):
         heights = []
         for line in lines:
             y_coords = [point[1] for point in line.polygon]
@@ -130,10 +130,10 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
         tolerance = 15
 
     def get_coords(line):
-        if hasattr(line, 'bbox') and line.bbox:
+        if hasattr(line, "bbox") and line.bbox:
             return line.bbox[0], line.bbox[1]
 
-        if hasattr(line, 'polygon'):
+        if hasattr(line, "polygon"):
             x_coords = [point[0] for point in line.polygon]
             y_coords = [point[1] for point in line.polygon]
             return min(x_coords), min(y_coords)
