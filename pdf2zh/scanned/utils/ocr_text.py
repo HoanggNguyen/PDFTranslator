@@ -118,47 +118,58 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
     if not lines:
         return []
 
-    if hasattr(lines[0], "polygon"):
-        heights = []
-        for line in lines:
-            y_coords = [point[1] for point in line.polygon]
-            heights.append(max(y_coords) - min(y_coords))
+    first_line = lines[0]
+    if hasattr(first_line, "bbox") and first_line.bbox:
 
-        avg_height = sum(heights) / len(heights)
-        tolerance = avg_height * 0.5
+        def get_full_bbox(line):
+            b = line.bbox
+            return b[0], b[1], b[2], b[3]
+
+    elif hasattr(first_line, "polygon"):
+
+        def get_full_bbox(line):
+            poly = line.polygon
+            xs = [p[0] for p in poly]
+            ys = [p[1] for p in poly]
+            return min(xs), min(ys), max(xs), max(ys)
+
     else:
-        tolerance = 15
+        return lines
 
-    def get_coords(line):
-        if hasattr(line, "bbox") and line.bbox:
-            return line.bbox[0], line.bbox[1]
-
-        if hasattr(line, "polygon"):
-            x_coords = [point[0] for point in line.polygon]
-            y_coords = [point[1] for point in line.polygon]
-            return min(x_coords), min(y_coords)
-
-        return 0, 0
-
-    vertical_groups = {}
+    boxes = []
     for line in lines:
-        x_min, y_min = get_coords(line)
+        x_min, y_min, x_max, y_max = get_full_bbox(line)
+        y_center = (y_min + y_max) / 2.0
 
-        group_key = round(y_min / tolerance) * tolerance
+        boxes.append((y_min, y_center, x_min, y_max, line))
 
-        if group_key not in vertical_groups:
-            vertical_groups[group_key] = []
+    boxes.sort()
 
-        vertical_groups[group_key].append((x_min, line))
+    rows = []
+    current_row = []
+    anchor_y_center = None
+
+    for box in boxes:
+        y_min, y_center, x_min, y_max, line = box
+
+        if not current_row:
+            current_row.append((x_min, line))
+            anchor_y_center = y_center
+        else:
+            if y_min <= anchor_y_center <= y_max:
+                current_row.append((x_min, line))
+            else:
+                rows.append(current_row)
+                current_row = [(x_min, line)]
+                anchor_y_center = y_center
+
+    if current_row:
+        rows.append(current_row)
 
     sorted_lines = []
-
-    for key in sorted(vertical_groups.keys()):
-        group = vertical_groups[key]
-
-        group.sort(key=lambda item: item[0])
-
-        for _, line in group:
+    for row in rows:
+        row.sort()
+        for _, line in row:
             sorted_lines.append(line)
 
     return sorted_lines

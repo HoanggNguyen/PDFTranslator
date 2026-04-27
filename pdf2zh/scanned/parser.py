@@ -630,7 +630,7 @@ class StageAParser:
             detection_batch_size=self.hardware.detection_batch_size,
             recognition_batch_size=self.hardware.ocr_batch_size,
             highres_images=highres_images,
-            math_mode=True,
+            math_mode=False,
             sort_lines=False,
         )
 
