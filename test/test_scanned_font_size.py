@@ -54,7 +54,7 @@ class TestScannedFontSize(unittest.TestCase):
         )
         self.assertEqual(
             normalize_font_size_bucket(
-                6.8, profile, category=ElementCategory.IN_PLACE, label="Section-header"
+                6.8, profile, category=ElementCategory.IN_PLACE, label="SectionHeader"
             ),
             "sm",
         )
@@ -80,7 +80,7 @@ class TestScannedFontSize(unittest.TestCase):
                             block_id="0:0",
                             page_index=0,
                             position=0,
-                            label="Section-header",
+                            label="SectionHeader",
                             category=ElementCategory.IN_PLACE,
                             bbox_layout=[0, 0, 200, 30],
                             bbox_image=[0, 0, 200, 30],
