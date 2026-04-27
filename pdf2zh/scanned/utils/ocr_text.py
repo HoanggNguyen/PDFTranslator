@@ -111,6 +111,66 @@ def collect_ocr_text(ocr_result: Any) -> str:
     return " ".join(lines)
 
 
+def sort_text_lines(lines: list[Any]) -> list[Any]:
+    """
+    Sort OCR text lines in reading order (top-to-bottom, left-to-right).
+    """
+    if not lines:
+        return []
+
+    if hasattr(lines[0], 'polygon'):
+        heights = []
+        for line in lines:
+            y_coords = [point[1] for point in line.polygon]
+            heights.append(max(y_coords) - min(y_coords))
+
+        avg_height = sum(heights) / len(heights)
+        tolerance = avg_height * 0.5
+    else:
+        tolerance = 15
+
+    def get_coords(line):
+        if hasattr(line, 'bbox') and line.bbox:
+            return line.bbox[0], line.bbox[1]
+
+        if hasattr(line, 'polygon'):
+            x_coords = [point[0] for point in line.polygon]
+            y_coords = [point[1] for point in line.polygon]
+            return min(x_coords), min(y_coords)
+
+        return 0, 0
+
+    vertical_groups = {}
+    for line in lines:
+        x_min, y_min = get_coords(line)
+
+        group_key = round(y_min / tolerance) * tolerance
+
+        if group_key not in vertical_groups:
+            vertical_groups[group_key] = []
+
+        vertical_groups[group_key].append((x_min, line))
+
+    sorted_lines = []
+
+    for key in sorted(vertical_groups.keys()):
+        group = vertical_groups[key]
+
+        group.sort(key=lambda item: item[0])
+
+        for _, line in group:
+            sorted_lines.append(line)
+
+    return sorted_lines
+
+
+def sort_text_lines_batch(batch_predictions: list[Any]) -> list[Any]:
+    for prediction in batch_predictions:
+        prediction.text_lines = sort_text_lines(prediction.text_lines)
+
+    return batch_predictions
+
+
 def extract_text_for_region(
     ocr_result: Any,
     region_bbox: list[float],

@@ -48,6 +48,7 @@ from pdf2zh.scanned.utils.ocr_text import (
     extract_text_for_region,
     join_raw_text,
     log_toc_hints,
+    sort_text_lines_batch,
 )
 
 logger = logging.getLogger(__name__)
@@ -598,8 +599,10 @@ class StageAParser:
             recognition_batch_size=self.hardware.ocr_batch_size,
             highres_images=highres_images,
             math_mode=True,
-            sort_lines=True,
+            sort_lines=False,
         )
+
+        ocr_predictions = sort_text_lines_batch(ocr_predictions)
 
         return [
             OCRPageResult(
