@@ -6,6 +6,7 @@ import gc
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from statistics import median
 from typing import Any, Iterable
 
 import fitz  # PyMuPDF
@@ -41,6 +42,15 @@ from pdf2zh.scanned.utils.bbox import (
     is_degenerate,
     offset_bbox,
     polygon_to_bbox,
+)
+from pdf2zh.scanned.utils.font_size import (
+    build_font_size_profile,
+    clamp_font_size,
+    compute_line_height_pt,
+    estimate_raw_font_size,
+    extract_text_lines_for_region,
+    filter_valid_line_heights,
+    normalize_font_size_bucket,
 )
 from pdf2zh.scanned.utils.hardware import configure_surya_settings
 from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
@@ -316,11 +326,16 @@ class StageAParser:
         for layout_page in layout_result.pages:
             page_ocr = ocr_page_map.get(layout_page.page_index)
             elements: list[ElementData] = []
+            block_lines_by_id: dict[str, list[Any]] = {}
 
             for block in layout_page.blocks:
                 source_text = ""
                 latex = ""
                 cells: list[CellData] = []
+                block_lines = self._extract_text_lines_for_region(
+                    page_ocr, block.bbox_image
+                )
+                block_lines_by_id[block.block_id] = block_lines
 
                 if block.category == ElementCategory.BYPASS:
                     pass
@@ -367,6 +382,21 @@ class StageAParser:
                     )
                 )
 
+            body_font_size_pt, font_size_profile = self._estimate_page_font_profile(
+                layout_page,
+                elements,
+                block_lines_by_id,
+                page_ocr,
+            )
+            self._assign_element_font_sizes(
+                layout_page,
+                elements,
+                block_lines_by_id,
+                page_ocr,
+                body_font_size_pt,
+                font_size_profile,
+            )
+
             # Don't need sort because surya-ocr return layout with reading order
             # elements.sort(key=lambda element: element.bbox_pdf[1])
             log_toc_hints(elements, layout_page.page_index)
@@ -377,6 +407,8 @@ class StageAParser:
                     page_height=layout_page.page_height,
                     elements=elements,
                     raw_text=join_raw_text(elements),
+                    font_size_profile=font_size_profile,
+                    body_font_size_pt=body_font_size_pt,
                     chapter_id="",
                 )
             )
@@ -934,6 +966,170 @@ class StageAParser:
             page_ocr.image_width,
             page_ocr.image_height,
         )
+
+    def _extract_text_lines_for_region(
+        self,
+        page_ocr: OCRPageResult | None,
+        bbox_image: list[float],
+    ) -> list[Any]:
+        if page_ocr is None:
+            return []
+        return extract_text_lines_for_region(page_ocr.ocr_result, bbox_image)
+
+    def _compute_line_height_pt(
+        self,
+        line: Any,
+        page_ocr: OCRPageResult | None,
+        page_height_pt: float,
+    ) -> float:
+        if page_ocr is None or not hasattr(line, "bbox"):
+            return 0.0
+        return compute_line_height_pt(
+            line.bbox,
+            page_ocr.image_height,
+            page_height_pt,
+        )
+
+    def _estimate_page_font_profile(
+        self,
+        layout_page: LayoutPageResult,
+        elements: list[ElementData],
+        block_lines_by_id: dict[str, list[Any]],
+        page_ocr: OCRPageResult | None,
+    ) -> tuple[float, dict[str, float]]:
+        page_line_heights: list[float] = []
+        per_element_heights: dict[int, list[float]] = {}
+
+        for element, block in zip(elements, layout_page.blocks):
+            lines = block_lines_by_id.get(block.block_id, [])
+            heights = []
+            for line in lines:
+                text = getattr(line, "text", "")
+                if not isinstance(text, str) or not text.strip():
+                    continue
+                height_pt = self._compute_line_height_pt(
+                    line,
+                    page_ocr,
+                    layout_page.page_height,
+                )
+                if height_pt > 0:
+                    heights.append(height_pt)
+                    page_line_heights.append(height_pt)
+            per_element_heights[id(element)] = heights
+
+        valid_page_heights = filter_valid_line_heights(page_line_heights)
+        flowing_raw_sizes: list[float] = []
+        all_sizes: list[float] = []
+
+        for element, block in zip(elements, layout_page.blocks):
+            heights = per_element_heights.get(id(element), [])
+            filtered_heights = [
+                height
+                for height in heights
+                if not valid_page_heights or height in valid_page_heights
+            ]
+            raw_size = estimate_raw_font_size(filtered_heights)
+            if raw_size is None:
+                continue
+            all_sizes.append(raw_size)
+            if (
+                block.category == ElementCategory.FLOWING_TEXT
+                and len(filtered_heights) >= 2
+            ):
+                flowing_raw_sizes.append(raw_size)
+
+        if flowing_raw_sizes:
+            body_font_size_pt = float(median(flowing_raw_sizes))
+        else:
+            body_font_size_pt = float(median(all_sizes)) if all_sizes else 10.5
+
+        body_font_size_pt = clamp_font_size(body_font_size_pt)
+        return body_font_size_pt, build_font_size_profile(body_font_size_pt)
+
+    def _assign_element_font_sizes(
+        self,
+        layout_page: LayoutPageResult,
+        elements: list[ElementData],
+        block_lines_by_id: dict[str, list[Any]],
+        page_ocr: OCRPageResult | None,
+        body_font_size_pt: float,
+        font_size_profile: dict[str, float],
+    ) -> None:
+        page_line_heights: list[float] = []
+        element_heights_by_idx: dict[int, list[float]] = {}
+        flowing_candidates: list[tuple[float, float]] = []
+
+        for idx, (element, block) in enumerate(zip(elements, layout_page.blocks)):
+            heights: list[float] = []
+            for line in block_lines_by_id.get(block.block_id, []):
+                text = getattr(line, "text", "")
+                if not isinstance(text, str) or not text.strip():
+                    continue
+                height_pt = self._compute_line_height_pt(
+                    line,
+                    page_ocr,
+                    layout_page.page_height,
+                )
+                if height_pt > 0:
+                    heights.append(height_pt)
+                    page_line_heights.append(height_pt)
+            element_heights_by_idx[idx] = heights
+            if block.category == ElementCategory.FLOWING_TEXT and heights:
+                center_y = (block.bbox_pdf[1] + block.bbox_pdf[3]) / 2.0
+                raw_size = estimate_raw_font_size(heights)
+                if raw_size is not None:
+                    flowing_candidates.append((center_y, raw_size))
+
+        valid_page_heights = filter_valid_line_heights(page_line_heights)
+
+        for idx, (element, block) in enumerate(zip(elements, layout_page.blocks)):
+            if block.category == ElementCategory.BYPASS:
+                element.font_size_pt = 0.0
+                element.font_size_bucket = ""
+                continue
+
+            raw_heights = element_heights_by_idx.get(idx, [])
+            heights = [
+                height
+                for height in raw_heights
+                if not valid_page_heights or height in valid_page_heights
+            ]
+            raw_size = estimate_raw_font_size(heights)
+
+            if raw_size is None:
+                if block.category == ElementCategory.EQUATION and flowing_candidates:
+                    block_center_y = (block.bbox_pdf[1] + block.bbox_pdf[3]) / 2.0
+                    nearest = min(
+                        flowing_candidates,
+                        key=lambda item: abs(item[0] - block_center_y),
+                    )
+                    raw_size = nearest[1]
+                else:
+                    raw_size = body_font_size_pt
+
+            raw_size = clamp_font_size(raw_size)
+            bucket = normalize_font_size_bucket(
+                raw_size,
+                font_size_profile,
+                category=block.category,
+                label=block.label,
+            )
+
+            if (
+                block.category == ElementCategory.TABLE
+                and raw_size <= font_size_profile["lg"]
+            ):
+                bucket = "md"
+
+            if (
+                block.label
+                in {"Page-header", "Section-header", "Caption", "Table-of-contents"}
+                and bucket == "xs"
+            ):
+                bucket = "sm"
+
+            element.font_size_bucket = bucket
+            element.font_size_pt = font_size_profile[bucket]
 
     def _release_batch(self, *objects: Any) -> None:
         for obj in objects:

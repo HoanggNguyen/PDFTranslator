@@ -9,6 +9,7 @@ Main exports:
 """
 
 from pdf2zh.scanned.detector import PDFTypeDetector
+from pdf2zh.scanned.parser import StageAParser
 
 __all__ = [
     # Detector

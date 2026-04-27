@@ -81,10 +81,12 @@ class ElementData:
         label: Raw Surya label (e.g., "Text", "Section-header", "Table")
         category: One of the 5 ElementCategory values determining handling
         bbox_pdf: [x0, y0, x1, y1] in PDF points; x0 < x1, y0 < y1
-        source_text: OCR text; always "" for BYPASS and EQUATION categories
+        source_text: OCR text; always "" for BYPASS and optional for EQUATION
         translated_text: Empty string after Stage A; filled by Stage C
-        latex: "[EQUATION_PLACEHOLDER]" for EQUATION category; "" otherwise
+        latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
+        font_size_pt: Normalized point size to use for downstream rendering
+        font_size_bucket: Stable size bucket label (xs/sm/md/lg/xl)
     """
 
     label: str
@@ -94,6 +96,8 @@ class ElementData:
     translated_text: str = ""
     latex: str = ""
     cells: list[CellData] = field(default_factory=list)
+    font_size_pt: float = 0.0
+    font_size_bucket: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary.
@@ -103,7 +107,8 @@ class ElementData:
 
         Returns:
             Dict with keys ``label``, ``category``, ``bbox_pdf``,
-            ``source_text``, ``translated_text``, ``latex``, and ``cells``.
+            ``source_text``, ``translated_text``, ``latex``, ``cells``,
+            ``font_size_pt``, and ``font_size_bucket``.
         """
         return {
             "label": self.label,
@@ -117,6 +122,8 @@ class ElementData:
             "translated_text": self.translated_text,
             "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
+            "font_size_pt": self.font_size_pt,
+            "font_size_bucket": self.font_size_bucket,
         }
 
     @classmethod
@@ -125,8 +132,9 @@ class ElementData:
 
         Args:
             data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``translated_text``, ``latex``, and ``cells`` default to
-                  ``""``, ``""``, and ``[]`` respectively.
+                  ``translated_text``, ``latex``, ``cells``, ``font_size_pt``,
+                  and ``font_size_bucket`` default to ``""``, ``""``, ``[]``,
+                  ``0.0``, and ``""`` respectively.
 
         Returns:
             New :class:`ElementData` instance.
@@ -139,6 +147,8 @@ class ElementData:
             translated_text=data.get("translated_text", ""),
             latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
+            font_size_pt=float(data.get("font_size_pt", 0.0) or 0.0),
+            font_size_bucket=data.get("font_size_bucket", ""),
         )
 
 
@@ -152,6 +162,8 @@ class PageData:
         page_height: Height in PDF points (from page.rect.height)
         elements: Layout elements in top-to-bottom reading order
         raw_text: Joined source_text of FLOWING_TEXT and IN_PLACE elements
+        font_size_profile: Stable font-size buckets for the page
+        body_font_size_pt: Primary normalized body font size for the page
         chapter_id: Empty string after Stage A; filled by Stage B
     """
 
@@ -160,6 +172,8 @@ class PageData:
     page_height: float
     elements: list[ElementData] = field(default_factory=list)
     raw_text: str = ""
+    font_size_profile: dict[str, float] = field(default_factory=dict)
+    body_font_size_pt: float = 0.0
     chapter_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -167,7 +181,8 @@ class PageData:
 
         Returns:
             Dict with keys ``page_index``, ``page_width``, ``page_height``,
-            ``elements``, ``raw_text``, and ``chapter_id``.
+            ``elements``, ``raw_text``, ``font_size_profile``,
+            ``body_font_size_pt``, and ``chapter_id``.
         """
         return {
             "page_index": self.page_index,
@@ -175,6 +190,8 @@ class PageData:
             "page_height": self.page_height,
             "elements": [e.to_dict() for e in self.elements],
             "raw_text": self.raw_text,
+            "font_size_profile": self.font_size_profile,
+            "body_font_size_pt": self.body_font_size_pt,
             "chapter_id": self.chapter_id,
         }
 
@@ -184,8 +201,9 @@ class PageData:
 
         Args:
             data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``elements``, ``raw_text``, and ``chapter_id`` default to
-                  ``[]``, ``""``, and ``""`` respectively.
+                  ``elements``, ``raw_text``, ``font_size_profile``,
+                  ``body_font_size_pt``, and ``chapter_id`` default to
+                  ``[]``, ``""``, ``{}``, ``0.0``, and ``""`` respectively.
 
         Returns:
             New :class:`PageData` instance.
@@ -196,6 +214,11 @@ class PageData:
             page_height=data["page_height"],
             elements=[ElementData.from_dict(e) for e in data.get("elements", [])],
             raw_text=data.get("raw_text", ""),
+            font_size_profile={
+                key: float(value)
+                for key, value in data.get("font_size_profile", {}).items()
+            },
+            body_font_size_pt=float(data.get("body_font_size_pt", 0.0) or 0.0),
             chapter_id=data.get("chapter_id", ""),
         )
 
