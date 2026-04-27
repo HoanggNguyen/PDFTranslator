@@ -220,7 +220,7 @@ def validate_stage_output(
         3. Element bboxes fit within [0, 0, page_width, page_height]
         4. category == "BYPASS" -> source_text == ""
         5. category == "EQUATION" -> source_text may contain surrounding text
-           that needs translation; latex holds "[EQUATION_PLACEHOLDER]"
+           that needs translation; latex holds a placeholder or recognized LaTeX
         6. category == "TABLE" -> len(cells) > 0
         7. category != "TABLE" -> cells == []
         8. Cell bboxes contained within parent TABLE bbox
@@ -287,6 +287,38 @@ def validate_stage_output(
                 "STAGE_A_CHAPTER_ID",
             )
 
+        font_size_profile = page.get("font_size_profile", {})
+        body_font_size_pt = page.get("body_font_size_pt", 0.0)
+
+        if not isinstance(font_size_profile, dict):
+            result.add_error(
+                f"{page_path}.font_size_profile",
+                "font_size_profile must be an object",
+                "FONT_PROFILE",
+            )
+            font_size_profile = {}
+
+        if not _is_finite(body_font_size_pt):
+            result.add_error(
+                f"{page_path}.body_font_size_pt",
+                "contains NaN or Infinity",
+                "INVALID_NUMBER",
+            )
+
+        for bucket_name, bucket_value in font_size_profile.items():
+            if bucket_name not in ("xs", "sm", "md", "lg", "xl"):
+                result.add_error(
+                    f"{page_path}.font_size_profile.{bucket_name}",
+                    f"Unexpected font-size bucket '{bucket_name}'",
+                    "FONT_PROFILE",
+                )
+            elif not _is_finite(bucket_value):
+                result.add_error(
+                    f"{page_path}.font_size_profile.{bucket_name}",
+                    "contains NaN or Infinity",
+                    "INVALID_NUMBER",
+                )
+
         # Check each element
         elements = page.get("elements", [])
         for elem_idx, elem in enumerate(elements):
@@ -305,6 +337,22 @@ def validate_stage_output(
             category = elem.get("category", "")
             source_text = elem.get("source_text", "")
             cells = elem.get("cells", [])
+            font_size_pt = elem.get("font_size_pt", 0.0)
+            font_size_bucket = elem.get("font_size_bucket", "")
+
+            if not _is_finite(font_size_pt):
+                result.add_error(
+                    f"{elem_path}.font_size_pt",
+                    "font_size_pt contains NaN or Infinity",
+                    "INVALID_NUMBER",
+                )
+
+            if font_size_bucket not in ("", "xs", "sm", "md", "lg", "xl"):
+                result.add_error(
+                    f"{elem_path}.font_size_bucket",
+                    f"Invalid font_size_bucket '{font_size_bucket}'",
+                    "FONT_BUCKET",
+                )
 
             # Invariant 4: BYPASS -> source_text == ""
             if category == "BYPASS" and source_text != "":
@@ -313,16 +361,22 @@ def validate_stage_output(
                     "source_text must be '' for BYPASS category",
                     "BYPASS_TEXT",
                 )
+            if category == "BYPASS" and (font_size_pt != 0 or font_size_bucket != ""):
+                result.add_error(
+                    elem_path,
+                    "BYPASS elements must keep font_size_pt=0 and font_size_bucket=''",
+                    "BYPASS_FONT",
+                )
 
             # Invariant 5: EQUATION may have source_text (surrounding text
-            # that needs translation).  No validation constraint on the text
-            # itself — but latex must be "[EQUATION_PLACEHOLDER]".
+            # that needs translation). The latex field must be present and
+            # non-empty, either as a placeholder or actual recognized LaTeX.
             if category == "EQUATION":
                 latex = elem.get("latex", "")
-                if latex != "[EQUATION_PLACEHOLDER]":
+                if not isinstance(latex, str) or not latex.strip():
                     result.add_error(
                         f"{elem_path}.latex",
-                        f"EQUATION latex must be '[EQUATION_PLACEHOLDER]', got '{latex}'",
+                        "EQUATION latex must be a non-empty string",
                         "EQUATION_LATEX",
                     )
 

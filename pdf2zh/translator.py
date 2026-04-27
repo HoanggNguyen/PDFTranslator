@@ -854,8 +854,9 @@ class ArgosTranslator(BaseTranslator):
         try:
             available_package = list(
                 filter(
-                    lambda x: x.from_code == self.lang_in
-                    and x.to_code == self.lang_out,
+                    lambda x: (
+                        x.from_code == self.lang_in and x.to_code == self.lang_out
+                    ),
                     available_packages,
                 )
             )[0]

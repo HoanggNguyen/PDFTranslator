@@ -365,11 +365,9 @@ def translate(
                 parser = StageAParser(device="auto")
                 output_dir = Path(output) if output else Path(file).parent
                 cache_path = output_dir / f"{filename}_stage_a.json"
-                parsed_doc = parser.parse_pdf(
-                    file,
-                    cache_path=cache_path,
-                    pages=pages,
-                )
+                parsed_doc = parser.parse_pdf(file, pages=pages)
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                parsed_doc.save(cache_path)
                 logger.info(f"Stage A complete: {len(parsed_doc.pages)} pages parsed")
                 # For now, return the cache path as placeholder
                 # Full translation pipeline (Stages B, C, D) will be added later

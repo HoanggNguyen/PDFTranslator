@@ -108,7 +108,78 @@ def collect_ocr_text(ocr_result: Any) -> str:
         if hasattr(line, "text") and line.text:
             lines.append(line.text)
 
-    return clean_ocr_text(" ".join(lines))
+    return " ".join(lines)
+
+
+def sort_text_lines(lines: list[Any]) -> list[Any]:
+    """
+    Sort OCR text lines in reading order (top-to-bottom, left-to-right).
+    """
+    if not lines:
+        return []
+
+    first_line = lines[0]
+    if hasattr(first_line, "bbox") and first_line.bbox:
+
+        def get_full_bbox(line):
+            b = line.bbox
+            return b[0], b[1], b[2], b[3]
+
+    elif hasattr(first_line, "polygon"):
+
+        def get_full_bbox(line):
+            poly = line.polygon
+            xs = [p[0] for p in poly]
+            ys = [p[1] for p in poly]
+            return min(xs), min(ys), max(xs), max(ys)
+
+    else:
+        return lines
+
+    boxes = []
+    for line in lines:
+        x_min, y_min, x_max, y_max = get_full_bbox(line)
+        y_center = (y_min + y_max) / 2.0
+
+        boxes.append((y_min, y_center, x_min, y_max, line))
+
+    boxes.sort()
+
+    rows = []
+    current_row = []
+    anchor_y_center = None
+
+    for box in boxes:
+        y_min, y_center, x_min, y_max, line = box
+
+        if not current_row:
+            current_row.append((x_min, line))
+            anchor_y_center = y_center
+        else:
+            if y_min <= anchor_y_center <= y_max:
+                current_row.append((x_min, line))
+            else:
+                rows.append(current_row)
+                current_row = [(x_min, line)]
+                anchor_y_center = y_center
+
+    if current_row:
+        rows.append(current_row)
+
+    sorted_lines = []
+    for row in rows:
+        row.sort()
+        for _, line in row:
+            sorted_lines.append(line)
+
+    return sorted_lines
+
+
+def sort_text_lines_batch(batch_predictions: list[Any]) -> list[Any]:
+    for prediction in batch_predictions:
+        prediction.text_lines = sort_text_lines(prediction.text_lines)
+
+    return batch_predictions
 
 
 def extract_text_for_region(
@@ -164,10 +235,11 @@ def extract_text_for_region(
             matching_lines.append((ly0, line.text))
 
     # Sort by vertical position and join
-    matching_lines.sort(key=lambda x: x[0])
+    # matching_lines.sort(key=lambda x: x[0])
+    # Sort with reading order from model.prediction()
     text = " ".join(line_text for _, line_text in matching_lines)
 
-    return clean_ocr_text(text)
+    return text
 
 
 def log_toc_hints(elements: list[Any], page_index: int) -> None:
