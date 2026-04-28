@@ -6,6 +6,7 @@ import gc
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from statistics import median
 from typing import Any, Iterable
 
 import fitz  # PyMuPDF
@@ -48,7 +49,6 @@ from pdf2zh.scanned.utils.ocr_text import (
     extract_text_for_region,
     join_raw_text,
     log_toc_hints,
-    sort_text_lines_batch,
 )
 
 logger = logging.getLogger(__name__)
@@ -327,7 +327,7 @@ class StageAParser:
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
-                        fallback_text = self._extract_block_text(
+                        fallback_text, fallback_font_size = self._extract_block_text(
                             page_ocr, block.bbox_image
                         )
                         table_block = TableBlockResult(
@@ -336,17 +336,29 @@ class StageAParser:
                             cells=[
                                 CellData(
                                     bbox_pdf=block.bbox_pdf,
-                                    row_id=0,
-                                    col_id=0,
                                     source_text=fallback_text,
                                     translated_text="",
+                                    cell_font_size=fallback_font_size,
                                 )
                             ],
                         )
                     source_text = table_block.source_text
                     cells = table_block.cells
+                    font_size = (
+                        median(
+                            [
+                                cells[i].cell_font_size
+                                for i in range(len(cells))
+                                if cells[i].cell_font_size > 0
+                            ]
+                        )
+                        if cells
+                        else 0.0
+                    )
                 else:
-                    source_text = self._extract_block_text(page_ocr, block.bbox_image)
+                    source_text, font_size = self._extract_block_text(
+                        page_ocr, block.bbox_image
+                    )
                     if block.category == ElementCategory.EQUATION:
                         equation_block = equation_map.get(block.block_id)
                         latex = (
@@ -364,6 +376,7 @@ class StageAParser:
                         translated_text="",
                         latex=latex,
                         cells=cells,
+                        font_size=font_size,
                     )
                 )
 
@@ -602,8 +615,6 @@ class StageAParser:
             sort_lines=False,
         )
 
-        ocr_predictions = sort_text_lines_batch(ocr_predictions)
-
         return [
             OCRPageResult(
                 page_index=page_index,
@@ -735,7 +746,7 @@ class StageAParser:
                 current_table = tables[job.block.block_id]
 
                 for cell, cell_bbox in zip(current_table.cells, cell_bboxes):
-                    cell_text = extract_text_for_region(
+                    cell_text, cell_font_size = extract_text_for_region(
                         fallback_prediction,
                         cell_bbox,
                         job.table_crop.size[0],
@@ -744,10 +755,9 @@ class StageAParser:
                     updated_cells.append(
                         CellData(
                             bbox_pdf=cell.bbox_pdf,
-                            row_id=cell.row_id,
-                            col_id=cell.col_id,
                             source_text=cell_text,
                             translated_text="",
+                            cell_font_size=cell_font_size,
                         )
                     )
                     source_parts.append(cell_text)
@@ -861,15 +871,16 @@ class StageAParser:
                 job.page_width,
                 job.page_height,
             )
-            cell_text = self._extract_block_text(job.page_ocr, cell_bbox_image)
+            cell_text, font_size_cell = self._extract_block_text(
+                job.page_ocr, cell_bbox_image
+            )
 
             cells.append(
                 CellData(
                     bbox_pdf=cell_bbox_pdf,
-                    row_id=getattr(raw_cell, "row_id", 0),
-                    col_id=getattr(raw_cell, "col_id", 0),
                     source_text=cell_text,
                     translated_text="",
+                    font_size=font_size_cell,
                 )
             )
             source_parts.append(cell_text)
@@ -884,17 +895,18 @@ class StageAParser:
         )
 
     def _synthesize_table_result(self, job: _TableJob) -> TableBlockResult:
-        fallback_text = self._extract_block_text(job.page_ocr, job.block.bbox_image)
+        fallback_text, fallback_font_size = self._extract_block_text(
+            job.page_ocr, job.block.bbox_image
+        )
         return TableBlockResult(
             block_id=job.block.block_id,
             source_text=fallback_text,
             cells=[
                 CellData(
                     bbox_pdf=job.block.bbox_pdf,
-                    row_id=0,
-                    col_id=0,
                     source_text=fallback_text,
                     translated_text="",
+                    font_size=fallback_font_size,
                 )
             ],
         )
@@ -925,9 +937,9 @@ class StageAParser:
         self,
         page_ocr: OCRPageResult | None,
         bbox_image: list[float],
-    ) -> str:
+    ) -> tuple[str, float]:
         if page_ocr is None:
-            return ""
+            return "", 0.0
         return extract_text_for_region(
             page_ocr.ocr_result,
             bbox_image,

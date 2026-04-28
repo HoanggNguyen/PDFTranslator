@@ -33,24 +33,21 @@ class CellData:
     """
 
     bbox_pdf: list[float]
-    row_id: int
-    col_id: int
     source_text: str
     translated_text: str = ""
+    cell_font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this cell to a JSON-compatible dictionary.
 
         Returns:
-            Dict with keys ``bbox_pdf``, ``row_id``, ``col_id``,
-            ``source_text``, and ``translated_text``.
+            Dict with keys ``bbox_pdf``, ``source_text``, and ``translated_text``.
         """
         return {
             "bbox_pdf": self.bbox_pdf,
-            "row_id": self.row_id,
-            "col_id": self.col_id,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
+            "cell_font_size": self.cell_font_size,
         }
 
     @classmethod
@@ -66,10 +63,9 @@ class CellData:
         """
         return cls(
             bbox_pdf=data["bbox_pdf"],
-            row_id=data["row_id"],
-            col_id=data["col_id"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
+            cell_font_size=data.get("cell_font_size", 0.0),
         )
 
 
@@ -85,8 +81,7 @@ class ElementData:
         translated_text: Empty string after Stage A; filled by Stage C
         latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
-        font_size_pt: Normalized point size to use for downstream rendering
-        font_size_bucket: Stable size bucket label (xs/sm/md/lg/xl)
+        font_size: Estimated font size for text elements; 0.0 if not computed or non-text
     """
 
     label: str
@@ -96,8 +91,7 @@ class ElementData:
     translated_text: str = ""
     latex: str = ""
     cells: list[CellData] = field(default_factory=list)
-    font_size_pt: float = 0.0
-    font_size_bucket: str = ""
+    font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary.
@@ -109,6 +103,7 @@ class ElementData:
             Dict with keys ``label``, ``category``, ``bbox_pdf``,
             ``source_text``, ``translated_text``, ``latex`` and ``cells``.
         """
+
         return {
             "label": self.label,
             "category": (
@@ -121,6 +116,7 @@ class ElementData:
             "translated_text": self.translated_text,
             "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
+            "font_size": self.font_size,
         }
 
     @classmethod
@@ -142,6 +138,7 @@ class ElementData:
             translated_text=data.get("translated_text", ""),
             latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
+            font_size=data.get("font_size", 0.0),
         )
 
 
