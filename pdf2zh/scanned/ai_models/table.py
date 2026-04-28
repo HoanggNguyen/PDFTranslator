@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from base import BaseModel
+from .base import BaseModel
 
 logger = logging.getLogger(__name__)
 
