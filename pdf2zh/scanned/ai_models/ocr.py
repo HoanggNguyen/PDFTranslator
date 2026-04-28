@@ -98,7 +98,6 @@ class SuryaOCRModel(BaseModel):
         if not math_mode:
             logger.info("Running OCR with detection + recognition")
             kwargs: dict = dict(
-                images,
                 det_predictor=self._detection,
                 detection_batch_size=self.hardware.detection_batch_size,
                 recognition_batch_size=self.hardware.ocr_batch_size,
@@ -108,7 +107,6 @@ class SuryaOCRModel(BaseModel):
         else:  # Set math_mode to True, use Latex
             logger.info("Running OCR in math mode (LaTex recognition)")
             kwargs: dict = dict(
-                images,
                 recognition_batch_size=self.hardware.equation_batch_size,
                 math_mode=math_mode,
             )

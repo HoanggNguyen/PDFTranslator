@@ -106,7 +106,7 @@ def verify_pdf(
 
     # Parse the PDF through explicit Stage A phases
     parser = StageAParser(device=device)
-    parsed_doc = parser.parse_pdf(input_path, pages=pages)
+    parsed_doc = parser.parse_pdf(input_path, pages=pages, enable_latex=True)
 
     logger.info(f"Found {len(parsed_doc.pages)} pages")
 

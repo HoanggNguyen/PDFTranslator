@@ -51,6 +51,7 @@ from pdf2zh.scanned.utils.bbox import (
 from pdf2zh.scanned.utils.hardware import configure_surya_settings
 from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
 from pdf2zh.scanned.utils.ocr_text import (
+    collect_ocr_text,
     extract_text_for_region,
     join_raw_text,
     log_toc_hints,
@@ -254,6 +255,7 @@ class StageAParser:
                 cells: list[CellData] = []
 
                 if block.category == ElementCategory.BYPASS:
+                    font_size = 0.0
                     pass
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
@@ -739,7 +741,8 @@ class StageAParser:
         )
 
         for block_id, prediction in zip(block_ids, predictions):
-            latex = prediction or "[EQUATION_PLACEHOLDER]"
+            latex_content = collect_ocr_text(prediction)
+            latex = latex_content if latex_content else "[EQUATION_PLACEHOLDER]"
             equations[block_id] = EquationBlockResult(block_id=block_id, latex=latex)
 
         return EquationParseResult(pdf_path="", equations=equations)
@@ -784,7 +787,7 @@ class StageAParser:
                 job.page_width,
                 job.page_height,
             )
-            cell_text, font_size_cell = self._extract_block_text(
+            cell_text, cell_font_size = self._extract_block_text(
                 job.page_ocr, cell_bbox_image
             )
 
@@ -793,7 +796,7 @@ class StageAParser:
                     bbox_pdf=cell_bbox_pdf,
                     source_text=cell_text,
                     translated_text="",
-                    font_size=font_size_cell,
+                    cell_font_size=cell_font_size,
                 )
             )
             source_parts.append(cell_text)
