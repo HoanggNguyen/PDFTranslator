@@ -13,6 +13,11 @@ import fitz  # PyMuPDF
 import torch
 from PIL import Image
 
+from pdf2zh.scanned.ai_models import (
+    SuryaLayoutModel,
+    SuryaOCRModel,
+    SuryaTableModel,
+)
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
     SURYA_LABEL_MAP,
@@ -87,83 +92,9 @@ class StageAParser:
             parallel_workers=parallel_workers,
         )
 
-        self._foundation_predictor = None
-        self._layout_foundation_predictor = None
-        self._detection_predictor = None
-        self._layout_predictor = None
-        self._recognition_predictor = None
-        self._table_predictor = None
-
-        self.preload_models()
-
-    def preload_models(self) -> None:
-        """Preload all Surya predictors to reduce first-run latency."""
-        logger.info("Preloading Surya predictors")
-        _ = self.foundation_predictor
-        _ = self.layout_foundation_predictor
-        _ = self.detection_predictor
-        _ = self.layout_predictor
-        _ = self.recognition_predictor
-        _ = self.table_predictor
-
-    @property
-    def foundation_predictor(self):
-        if self._foundation_predictor is None:
-            from surya.foundation import FoundationPredictor
-
-            self._foundation_predictor = FoundationPredictor()
-            logger.info("Loaded FoundationPredictor (OCR)")
-        return self._foundation_predictor
-
-    @property
-    def layout_foundation_predictor(self):
-        if self._layout_foundation_predictor is None:
-            from surya.foundation import FoundationPredictor
-            from surya.settings import settings
-
-            self._layout_foundation_predictor = FoundationPredictor(
-                checkpoint=settings.LAYOUT_MODEL_CHECKPOINT,
-            )
-            logger.info("Loaded FoundationPredictor (layout)")
-        return self._layout_foundation_predictor
-
-    @property
-    def detection_predictor(self):
-        if self._detection_predictor is None:
-            from surya.detection import DetectionPredictor
-
-            self._detection_predictor = DetectionPredictor()
-            logger.info("Loaded DetectionPredictor")
-        return self._detection_predictor
-
-    @property
-    def layout_predictor(self):
-        if self._layout_predictor is None:
-            from surya.layout import LayoutPredictor
-
-            self._layout_predictor = LayoutPredictor(self.layout_foundation_predictor)
-            logger.info("Loaded LayoutPredictor")
-        return self._layout_predictor
-
-    @property
-    def recognition_predictor(self):
-        if self._recognition_predictor is None:
-            from surya.recognition import RecognitionPredictor
-
-            self._recognition_predictor = RecognitionPredictor(
-                self.foundation_predictor
-            )
-            logger.info("Loaded RecognitionPredictor")
-        return self._recognition_predictor
-
-    @property
-    def table_predictor(self):
-        if self._table_predictor is None:
-            from surya.table_rec import TableRecPredictor
-
-            self._table_predictor = TableRecPredictor()
-            logger.info("Loaded TableRecPredictor")
-        return self._table_predictor
+        self.layout_model = SuryaLayoutModel(self.hardware)
+        self.ocr_model = SuryaOCRModel(self.hardware)
+        self.table_model = SuryaTableModel(self.hardware)
 
     def parse_layout(
         self,
@@ -532,10 +463,7 @@ class StageAParser:
         page_dims: dict[int, tuple[float, float]],
         images: list[Image.Image],
     ) -> list[LayoutPageResult]:
-        layout_predictions = self.layout_predictor(
-            images,
-            batch_size=self.hardware.layout_batch_size,
-        )
+        layout_predictions = self.layout_model.predict(images)
         layout_pages: list[LayoutPageResult] = []
 
         for seq, page_index in enumerate(batch_indices):
@@ -605,14 +533,10 @@ class StageAParser:
         images: list[Image.Image],
         highres_images: list[Image.Image] | None,
     ) -> list[OCRPageResult]:
-        ocr_predictions = self.recognition_predictor(
+        ocr_predictions = self.ocr_model.predict(
             images,
-            det_predictor=self.detection_predictor,
-            detection_batch_size=self.hardware.detection_batch_size,
-            recognition_batch_size=self.hardware.ocr_batch_size,
             highres_images=highres_images,
             math_mode=False,
-            sort_lines=False,
         )
 
         return [
@@ -644,10 +568,6 @@ class StageAParser:
                 self._parse_layout_batch(batch_indices, page_dims, images),
                 self._parse_ocr_batch(batch_indices, images, highres_images),
             )
-
-        _ = self.layout_predictor
-        _ = self.detection_predictor
-        _ = self.recognition_predictor
 
         with ThreadPoolExecutor(max_workers=self.hardware.parallel_workers) as executor:
             future_layout = executor.submit(
@@ -703,10 +623,7 @@ class StageAParser:
             return TableParseResult(pdf_path="", tables={})
 
         try:
-            table_predictions = self.table_predictor(
-                table_crops,
-                batch_size=self.hardware.table_batch_size,
-            )
+            table_predictions = self.table_model.predict(table_crops)
         except Exception:
             logger.exception("Table recognition failed for current batch")
             table_predictions = [None] * len(table_jobs)
@@ -728,11 +645,8 @@ class StageAParser:
                 )
 
         if fallback_jobs:
-            fallback_predictions = self.recognition_predictor(
+            fallback_predictions = self.ocr_model.predict(
                 [job.table_crop for job in fallback_jobs],
-                det_predictor=self.detection_predictor,
-                detection_batch_size=self.hardware.detection_batch_size,
-                recognition_batch_size=self.hardware.ocr_batch_size,
                 highres_images=[job.highres_crop for job in fallback_jobs],
             )
 
@@ -764,7 +678,7 @@ class StageAParser:
 
                 tables[job.block.block_id] = TableBlockResult(
                     block_id=job.block.block_id,
-                    source_text="| " + " | ".join(source_parts) + " |",
+                    source_text=" | ".join(source_parts),
                     cells=updated_cells,
                     used_fallback_ocr=True,
                 )
@@ -817,11 +731,10 @@ class StageAParser:
             task_names.append(TaskNames.block_without_boxes)
             block_ids.append(block.block_id)
 
-        predictions = self.recognition_predictor(
+        predictions = self.ocr_model.predict(
             equation_crops,
             task_names=task_names,
             bboxes=[[[0, 0, crop.size[0], crop.size[1]]] for crop in equation_crops],
-            recognition_batch_size=self.hardware.equation_batch_size,
             math_mode=True,
         )
 
