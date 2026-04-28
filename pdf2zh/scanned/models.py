@@ -33,24 +33,21 @@ class CellData:
     """
 
     bbox_pdf: list[float]
-    row_id: int
-    col_id: int
     source_text: str
     translated_text: str = ""
+    cell_font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this cell to a JSON-compatible dictionary.
 
         Returns:
-            Dict with keys ``bbox_pdf``, ``row_id``, ``col_id``,
-            ``source_text``, and ``translated_text``.
+            Dict with keys ``bbox_pdf``, ``source_text``, and ``translated_text``.
         """
         return {
             "bbox_pdf": self.bbox_pdf,
-            "row_id": self.row_id,
-            "col_id": self.col_id,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
+            "cell_font_size": self.cell_font_size,
         }
 
     @classmethod
@@ -66,10 +63,9 @@ class CellData:
         """
         return cls(
             bbox_pdf=data["bbox_pdf"],
-            row_id=data["row_id"],
-            col_id=data["col_id"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
+            cell_font_size=data.get("cell_font_size", 0.0),
         )
 
 
@@ -85,8 +81,7 @@ class ElementData:
         translated_text: Empty string after Stage A; filled by Stage C
         latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
-        font_size_pt: Normalized point size to use for downstream rendering
-        font_size_bucket: Stable size bucket label (xs/sm/md/lg/xl)
+        font_size: Estimated font size for text elements; 0.0 if not computed or non-text
     """
 
     label: str
@@ -96,8 +91,7 @@ class ElementData:
     translated_text: str = ""
     latex: str = ""
     cells: list[CellData] = field(default_factory=list)
-    font_size_pt: float = 0.0
-    font_size_bucket: str = ""
+    font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary.
@@ -107,9 +101,9 @@ class ElementData:
 
         Returns:
             Dict with keys ``label``, ``category``, ``bbox_pdf``,
-            ``source_text``, ``translated_text``, ``latex``, ``cells``,
-            ``font_size_pt``, and ``font_size_bucket``.
+            ``source_text``, ``translated_text``, ``latex`` and ``cells``.
         """
+
         return {
             "label": self.label,
             "category": (
@@ -122,8 +116,7 @@ class ElementData:
             "translated_text": self.translated_text,
             "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
-            "font_size_pt": self.font_size_pt,
-            "font_size_bucket": self.font_size_bucket,
+            "font_size": self.font_size,
         }
 
     @classmethod
@@ -132,9 +125,7 @@ class ElementData:
 
         Args:
             data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``translated_text``, ``latex``, ``cells``, ``font_size_pt``,
-                  and ``font_size_bucket`` default to ``""``, ``""``, ``[]``,
-                  ``0.0``, and ``""`` respectively.
+                  ``translated_text``, ``latex``, ``cells`` default to ``""``, ``""`` and ``[]`` respectively.
 
         Returns:
             New :class:`ElementData` instance.
@@ -147,8 +138,7 @@ class ElementData:
             translated_text=data.get("translated_text", ""),
             latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
-            font_size_pt=float(data.get("font_size_pt", 0.0) or 0.0),
-            font_size_bucket=data.get("font_size_bucket", ""),
+            font_size=data.get("font_size", 0.0),
         )
 
 
@@ -162,8 +152,6 @@ class PageData:
         page_height: Height in PDF points (from page.rect.height)
         elements: Layout elements in top-to-bottom reading order
         raw_text: Joined source_text of FLOWING_TEXT and IN_PLACE elements
-        font_size_profile: Stable font-size buckets for the page
-        body_font_size_pt: Primary normalized body font size for the page
         chapter_id: Empty string after Stage A; filled by Stage B
     """
 
@@ -172,8 +160,6 @@ class PageData:
     page_height: float
     elements: list[ElementData] = field(default_factory=list)
     raw_text: str = ""
-    font_size_profile: dict[str, float] = field(default_factory=dict)
-    body_font_size_pt: float = 0.0
     chapter_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -181,8 +167,7 @@ class PageData:
 
         Returns:
             Dict with keys ``page_index``, ``page_width``, ``page_height``,
-            ``elements``, ``raw_text``, ``font_size_profile``,
-            ``body_font_size_pt``, and ``chapter_id``.
+            ``elements``, ``raw_text``, and ``chapter_id``.
         """
         return {
             "page_index": self.page_index,
@@ -190,8 +175,6 @@ class PageData:
             "page_height": self.page_height,
             "elements": [e.to_dict() for e in self.elements],
             "raw_text": self.raw_text,
-            "font_size_profile": self.font_size_profile,
-            "body_font_size_pt": self.body_font_size_pt,
             "chapter_id": self.chapter_id,
         }
 
@@ -201,9 +184,8 @@ class PageData:
 
         Args:
             data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``elements``, ``raw_text``, ``font_size_profile``,
-                  ``body_font_size_pt``, and ``chapter_id`` default to
-                  ``[]``, ``""``, ``{}``, ``0.0``, and ``""`` respectively.
+                  ``elements``, ``raw_text``, and ``chapter_id`` default to
+                  ``[]``, ``""``, and ``""`` respectively.
 
         Returns:
             New :class:`PageData` instance.
@@ -214,11 +196,6 @@ class PageData:
             page_height=data["page_height"],
             elements=[ElementData.from_dict(e) for e in data.get("elements", [])],
             raw_text=data.get("raw_text", ""),
-            font_size_profile={
-                key: float(value)
-                for key, value in data.get("font_size_profile", {}).items()
-            },
-            body_font_size_pt=float(data.get("body_font_size_pt", 0.0) or 0.0),
             chapter_id=data.get("chapter_id", ""),
         )
 
