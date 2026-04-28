@@ -60,8 +60,7 @@
     "ElementData": {
       "type": "object",
       "required": ["label", "category", "bbox_pdf", "source_text",
-                   "translated_text", "latex", "cells",
-                   "font_size_pt", "font_size_bucket"],
+                   "translated_text", "latex", "cells", "font_size"],
       "additionalProperties": false,
       "properties": {
         "label":             { "type": "string", "minLength": 1 },
@@ -75,7 +74,8 @@
         "cells": {
           "type": "array",
           "items": { "$ref": "#/$defs/CellData" }
-        }
+        },
+        "font_size": { "type": "number", "minimum": 0 }
       }
     },
 

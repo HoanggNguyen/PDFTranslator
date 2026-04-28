@@ -33,24 +33,21 @@ class CellData:
     """
 
     bbox_pdf: list[float]
-    row_id: int
-    col_id: int
     source_text: str
     translated_text: str = ""
+    cell_font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this cell to a JSON-compatible dictionary.
 
         Returns:
-            Dict with keys ``bbox_pdf``, ``row_id``, ``col_id``,
-            ``source_text``, and ``translated_text``.
+            Dict with keys ``bbox_pdf``, ``source_text``, and ``translated_text``.
         """
         return {
             "bbox_pdf": self.bbox_pdf,
-            "row_id": self.row_id,
-            "col_id": self.col_id,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
+            "cell_font_size": self.cell_font_size,
         }
 
     @classmethod
@@ -66,10 +63,9 @@ class CellData:
         """
         return cls(
             bbox_pdf=data["bbox_pdf"],
-            row_id=data["row_id"],
-            col_id=data["col_id"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
+            cell_font_size=data.get("cell_font_size", 0.0),
         )
 
 
@@ -77,16 +73,20 @@ class CellData:
 class ElementData:
     """A layout element detected by Surya.
 
-    Attributes:
-        label: Raw Surya label (e.g., "Text", "Section-header", "Table")
-        category: One of the 5 ElementCategory values determining handling
-        bbox_pdf: [x0, y0, x1, y1] in PDF points; x0 < x1, y0 < y1
-        source_text: OCR text; always "" for BYPASS and optional for EQUATION
-        translated_text: Empty string after Stage A; filled by Stage C
-        latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
-        cells: Non-empty only for TABLE category; empty list otherwise
-        font_size_pt: Normalized point size to use for downstream rendering
-        font_size_bucket: Stable size bucket label (xs/sm/md/lg/xl)
+        Attributes:
+            label: Raw Surya label (e.g., "Text", "Section-header", "Table")
+            category: One of the 5 ElementCategory values determining handling
+            bbox_pdf: [x0, y0, x1, y1] in PDF points; x0 < x1, y0 < y1
+            source_text: OCR text; always "" for BYPASS and optional for EQUATION
+            translated_text: Empty string after Stage A; filled by Stage C
+            latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
+            cells: Non-empty only for TABLE category; empty list otherwise
+    <<<<<<< HEAD
+            font_size_pt: Normalized point size to use for downstream rendering
+            font_size_bucket: Stable size bucket label (xs/sm/md/lg/xl)
+    =======
+            font_size: Estimated font size for text elements; 0.0 if not computed or non-text
+    >>>>>>> feat/hoang-test-ggcolab
     """
 
     label: str
@@ -96,8 +96,7 @@ class ElementData:
     translated_text: str = ""
     latex: str = ""
     cells: list[CellData] = field(default_factory=list)
-    font_size_pt: float = 0.0
-    font_size_bucket: str = ""
+    font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary.
@@ -107,9 +106,9 @@ class ElementData:
 
         Returns:
             Dict with keys ``label``, ``category``, ``bbox_pdf``,
-            ``source_text``, ``translated_text``, ``latex``, ``cells``,
-            ``font_size_pt``, and ``font_size_bucket``.
+            ``source_text``, ``translated_text``, ``latex`` and ``cells``.
         """
+
         return {
             "label": self.label,
             "category": (
@@ -122,8 +121,7 @@ class ElementData:
             "translated_text": self.translated_text,
             "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
-            "font_size_pt": self.font_size_pt,
-            "font_size_bucket": self.font_size_bucket,
+            "font_size": self.font_size,
         }
 
     @classmethod
@@ -132,9 +130,7 @@ class ElementData:
 
         Args:
             data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``translated_text``, ``latex``, ``cells``, ``font_size_pt``,
-                  and ``font_size_bucket`` default to ``""``, ``""``, ``[]``,
-                  ``0.0``, and ``""`` respectively.
+                  ``translated_text``, ``latex``, ``cells`` default to ``""``, ``""`` and ``[]`` respectively.
 
         Returns:
             New :class:`ElementData` instance.
@@ -147,8 +143,7 @@ class ElementData:
             translated_text=data.get("translated_text", ""),
             latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
-            font_size_pt=float(data.get("font_size_pt", 0.0) or 0.0),
-            font_size_bucket=data.get("font_size_bucket", ""),
+            font_size=data.get("font_size", 0.0),
         )
 
 

@@ -13,6 +13,11 @@ import fitz  # PyMuPDF
 import torch
 from PIL import Image
 
+from pdf2zh.scanned.ai_models import (
+    SuryaLayoutModel,
+    SuryaOCRModel,
+    SuryaTableModel,
+)
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
     SURYA_LABEL_MAP,
@@ -43,22 +48,13 @@ from pdf2zh.scanned.utils.bbox import (
     offset_bbox,
     polygon_to_bbox,
 )
-from pdf2zh.scanned.utils.font_size import (
-    build_font_size_profile,
-    clamp_font_size,
-    compute_line_height_pt,
-    estimate_raw_font_size,
-    extract_text_lines_for_region,
-    filter_valid_line_heights,
-    normalize_font_size_bucket,
-)
 from pdf2zh.scanned.utils.hardware import configure_surya_settings
 from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
 from pdf2zh.scanned.utils.ocr_text import (
+    collect_ocr_text,
     extract_text_for_region,
     join_raw_text,
     log_toc_hints,
-    sort_text_lines_batch,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,83 +93,9 @@ class StageAParser:
             parallel_workers=parallel_workers,
         )
 
-        self._foundation_predictor = None
-        self._layout_foundation_predictor = None
-        self._detection_predictor = None
-        self._layout_predictor = None
-        self._recognition_predictor = None
-        self._table_predictor = None
-
-        self.preload_models()
-
-    def preload_models(self) -> None:
-        """Preload all Surya predictors to reduce first-run latency."""
-        logger.info("Preloading Surya predictors")
-        _ = self.foundation_predictor
-        _ = self.layout_foundation_predictor
-        _ = self.detection_predictor
-        _ = self.layout_predictor
-        _ = self.recognition_predictor
-        _ = self.table_predictor
-
-    @property
-    def foundation_predictor(self):
-        if self._foundation_predictor is None:
-            from surya.foundation import FoundationPredictor
-
-            self._foundation_predictor = FoundationPredictor()
-            logger.info("Loaded FoundationPredictor (OCR)")
-        return self._foundation_predictor
-
-    @property
-    def layout_foundation_predictor(self):
-        if self._layout_foundation_predictor is None:
-            from surya.foundation import FoundationPredictor
-            from surya.settings import settings
-
-            self._layout_foundation_predictor = FoundationPredictor(
-                checkpoint=settings.LAYOUT_MODEL_CHECKPOINT,
-            )
-            logger.info("Loaded FoundationPredictor (layout)")
-        return self._layout_foundation_predictor
-
-    @property
-    def detection_predictor(self):
-        if self._detection_predictor is None:
-            from surya.detection import DetectionPredictor
-
-            self._detection_predictor = DetectionPredictor()
-            logger.info("Loaded DetectionPredictor")
-        return self._detection_predictor
-
-    @property
-    def layout_predictor(self):
-        if self._layout_predictor is None:
-            from surya.layout import LayoutPredictor
-
-            self._layout_predictor = LayoutPredictor(self.layout_foundation_predictor)
-            logger.info("Loaded LayoutPredictor")
-        return self._layout_predictor
-
-    @property
-    def recognition_predictor(self):
-        if self._recognition_predictor is None:
-            from surya.recognition import RecognitionPredictor
-
-            self._recognition_predictor = RecognitionPredictor(
-                self.foundation_predictor
-            )
-            logger.info("Loaded RecognitionPredictor")
-        return self._recognition_predictor
-
-    @property
-    def table_predictor(self):
-        if self._table_predictor is None:
-            from surya.table_rec import TableRecPredictor
-
-            self._table_predictor = TableRecPredictor()
-            logger.info("Loaded TableRecPredictor")
-        return self._table_predictor
+        self.layout_model = SuryaLayoutModel(self.hardware)
+        self.ocr_model = SuryaOCRModel(self.hardware)
+        self.table_model = SuryaTableModel(self.hardware)
 
     def parse_layout(
         self,
@@ -326,23 +248,19 @@ class StageAParser:
         for layout_page in layout_result.pages:
             page_ocr = ocr_page_map.get(layout_page.page_index)
             elements: list[ElementData] = []
-            block_lines_by_id: dict[str, list[Any]] = {}
 
             for block in layout_page.blocks:
                 source_text = ""
                 latex = ""
                 cells: list[CellData] = []
-                block_lines = self._extract_text_lines_for_region(
-                    page_ocr, block.bbox_image
-                )
-                block_lines_by_id[block.block_id] = block_lines
 
                 if block.category == ElementCategory.BYPASS:
+                    font_size = 0.0
                     pass
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
-                        fallback_text = self._extract_block_text(
+                        fallback_text, fallback_font_size = self._extract_block_text(
                             page_ocr, block.bbox_image
                         )
                         table_block = TableBlockResult(
@@ -351,17 +269,29 @@ class StageAParser:
                             cells=[
                                 CellData(
                                     bbox_pdf=block.bbox_pdf,
-                                    row_id=0,
-                                    col_id=0,
                                     source_text=fallback_text,
                                     translated_text="",
+                                    cell_font_size=fallback_font_size,
                                 )
                             ],
                         )
                     source_text = table_block.source_text
                     cells = table_block.cells
+                    font_size = (
+                        median(
+                            [
+                                cells[i].cell_font_size
+                                for i in range(len(cells))
+                                if cells[i].cell_font_size > 0
+                            ]
+                        )
+                        if cells
+                        else 0.0
+                    )
                 else:
-                    source_text = self._extract_block_text(page_ocr, block.bbox_image)
+                    source_text, font_size = self._extract_block_text(
+                        page_ocr, block.bbox_image
+                    )
                     if block.category == ElementCategory.EQUATION:
                         equation_block = equation_map.get(block.block_id)
                         latex = (
@@ -379,23 +309,9 @@ class StageAParser:
                         translated_text="",
                         latex=latex,
                         cells=cells,
+                        font_size=font_size,
                     )
                 )
-
-            body_font_size_pt, font_size_profile = self._estimate_page_font_profile(
-                layout_page,
-                elements,
-                block_lines_by_id,
-                page_ocr,
-            )
-            self._assign_element_font_sizes(
-                layout_page,
-                elements,
-                block_lines_by_id,
-                page_ocr,
-                body_font_size_pt,
-                font_size_profile,
-            )
 
             # Don't need sort because surya-ocr return layout with reading order
             # elements.sort(key=lambda element: element.bbox_pdf[1])
@@ -407,8 +323,6 @@ class StageAParser:
                     page_height=layout_page.page_height,
                     elements=elements,
                     raw_text=join_raw_text(elements),
-                    font_size_profile=font_size_profile,
-                    body_font_size_pt=body_font_size_pt,
                     chapter_id="",
                 )
             )
@@ -551,10 +465,7 @@ class StageAParser:
         page_dims: dict[int, tuple[float, float]],
         images: list[Image.Image],
     ) -> list[LayoutPageResult]:
-        layout_predictions = self.layout_predictor(
-            images,
-            batch_size=self.hardware.layout_batch_size,
-        )
+        layout_predictions = self.layout_model.predict(images)
         layout_pages: list[LayoutPageResult] = []
 
         for seq, page_index in enumerate(batch_indices):
@@ -624,17 +535,11 @@ class StageAParser:
         images: list[Image.Image],
         highres_images: list[Image.Image] | None,
     ) -> list[OCRPageResult]:
-        ocr_predictions = self.recognition_predictor(
+        ocr_predictions = self.ocr_model.predict(
             images,
-            det_predictor=self.detection_predictor,
-            detection_batch_size=self.hardware.detection_batch_size,
-            recognition_batch_size=self.hardware.ocr_batch_size,
             highres_images=highres_images,
             math_mode=False,
-            sort_lines=False,
         )
-
-        ocr_predictions = sort_text_lines_batch(ocr_predictions)
 
         return [
             OCRPageResult(
@@ -665,10 +570,6 @@ class StageAParser:
                 self._parse_layout_batch(batch_indices, page_dims, images),
                 self._parse_ocr_batch(batch_indices, images, highres_images),
             )
-
-        _ = self.layout_predictor
-        _ = self.detection_predictor
-        _ = self.recognition_predictor
 
         with ThreadPoolExecutor(max_workers=self.hardware.parallel_workers) as executor:
             future_layout = executor.submit(
@@ -724,10 +625,7 @@ class StageAParser:
             return TableParseResult(pdf_path="", tables={})
 
         try:
-            table_predictions = self.table_predictor(
-                table_crops,
-                batch_size=self.hardware.table_batch_size,
-            )
+            table_predictions = self.table_model.predict(table_crops)
         except Exception:
             logger.exception("Table recognition failed for current batch")
             table_predictions = [None] * len(table_jobs)
@@ -749,11 +647,8 @@ class StageAParser:
                 )
 
         if fallback_jobs:
-            fallback_predictions = self.recognition_predictor(
+            fallback_predictions = self.ocr_model.predict(
                 [job.table_crop for job in fallback_jobs],
-                det_predictor=self.detection_predictor,
-                detection_batch_size=self.hardware.detection_batch_size,
-                recognition_batch_size=self.hardware.ocr_batch_size,
                 highres_images=[job.highres_crop for job in fallback_jobs],
             )
 
@@ -767,7 +662,7 @@ class StageAParser:
                 current_table = tables[job.block.block_id]
 
                 for cell, cell_bbox in zip(current_table.cells, cell_bboxes):
-                    cell_text = extract_text_for_region(
+                    cell_text, cell_font_size = extract_text_for_region(
                         fallback_prediction,
                         cell_bbox,
                         job.table_crop.size[0],
@@ -776,10 +671,9 @@ class StageAParser:
                     updated_cells.append(
                         CellData(
                             bbox_pdf=cell.bbox_pdf,
-                            row_id=cell.row_id,
-                            col_id=cell.col_id,
                             source_text=cell_text,
                             translated_text="",
+                            cell_font_size=cell_font_size,
                         )
                     )
                     source_parts.append(cell_text)
@@ -839,16 +733,16 @@ class StageAParser:
             task_names.append(TaskNames.block_without_boxes)
             block_ids.append(block.block_id)
 
-        predictions = self.recognition_predictor(
+        predictions = self.ocr_model.predict(
             equation_crops,
             task_names=task_names,
             bboxes=[[[0, 0, crop.size[0], crop.size[1]]] for crop in equation_crops],
-            recognition_batch_size=self.hardware.equation_batch_size,
             math_mode=True,
         )
 
         for block_id, prediction in zip(block_ids, predictions):
-            latex = prediction or "[EQUATION_PLACEHOLDER]"
+            latex_content = collect_ocr_text(prediction)
+            latex = latex_content if latex_content else "[EQUATION_PLACEHOLDER]"
             equations[block_id] = EquationBlockResult(block_id=block_id, latex=latex)
 
         return EquationParseResult(pdf_path="", equations=equations)
@@ -893,15 +787,16 @@ class StageAParser:
                 job.page_width,
                 job.page_height,
             )
-            cell_text = self._extract_block_text(job.page_ocr, cell_bbox_image)
+            cell_text, cell_font_size = self._extract_block_text(
+                job.page_ocr, cell_bbox_image
+            )
 
             cells.append(
                 CellData(
                     bbox_pdf=cell_bbox_pdf,
-                    row_id=getattr(raw_cell, "row_id", 0),
-                    col_id=getattr(raw_cell, "col_id", 0),
                     source_text=cell_text,
                     translated_text="",
+                    cell_font_size=cell_font_size,
                 )
             )
             source_parts.append(cell_text)
@@ -916,17 +811,18 @@ class StageAParser:
         )
 
     def _synthesize_table_result(self, job: _TableJob) -> TableBlockResult:
-        fallback_text = self._extract_block_text(job.page_ocr, job.block.bbox_image)
+        fallback_text, fallback_font_size = self._extract_block_text(
+            job.page_ocr, job.block.bbox_image
+        )
         return TableBlockResult(
             block_id=job.block.block_id,
             source_text=fallback_text,
             cells=[
                 CellData(
                     bbox_pdf=job.block.bbox_pdf,
-                    row_id=0,
-                    col_id=0,
                     source_text=fallback_text,
                     translated_text="",
+                    font_size=fallback_font_size,
                 )
             ],
         )
@@ -957,179 +853,15 @@ class StageAParser:
         self,
         page_ocr: OCRPageResult | None,
         bbox_image: list[float],
-    ) -> str:
+    ) -> tuple[str, float]:
         if page_ocr is None:
-            return ""
+            return "", 0.0
         return extract_text_for_region(
             page_ocr.ocr_result,
             bbox_image,
             page_ocr.image_width,
             page_ocr.image_height,
         )
-
-    def _extract_text_lines_for_region(
-        self,
-        page_ocr: OCRPageResult | None,
-        bbox_image: list[float],
-    ) -> list[Any]:
-        if page_ocr is None:
-            return []
-        return extract_text_lines_for_region(page_ocr.ocr_result, bbox_image)
-
-    def _compute_line_height_pt(
-        self,
-        line: Any,
-        page_ocr: OCRPageResult | None,
-        page_height_pt: float,
-    ) -> float:
-        if page_ocr is None or not hasattr(line, "bbox"):
-            return 0.0
-        return compute_line_height_pt(
-            line.bbox,
-            page_ocr.image_height,
-            page_height_pt,
-        )
-
-    def _estimate_page_font_profile(
-        self,
-        layout_page: LayoutPageResult,
-        elements: list[ElementData],
-        block_lines_by_id: dict[str, list[Any]],
-        page_ocr: OCRPageResult | None,
-    ) -> tuple[float, dict[str, float]]:
-        page_line_heights: list[float] = []
-        per_element_heights: dict[int, list[float]] = {}
-
-        for element, block in zip(elements, layout_page.blocks):
-            lines = block_lines_by_id.get(block.block_id, [])
-            heights = []
-            for line in lines:
-                text = getattr(line, "text", "")
-                if not isinstance(text, str) or not text.strip():
-                    continue
-                height_pt = self._compute_line_height_pt(
-                    line,
-                    page_ocr,
-                    layout_page.page_height,
-                )
-                if height_pt > 0:
-                    heights.append(height_pt)
-                    page_line_heights.append(height_pt)
-            per_element_heights[id(element)] = heights
-
-        valid_page_heights = filter_valid_line_heights(page_line_heights)
-        flowing_raw_sizes: list[float] = []
-        all_sizes: list[float] = []
-
-        for element, block in zip(elements, layout_page.blocks):
-            heights = per_element_heights.get(id(element), [])
-            filtered_heights = [
-                height
-                for height in heights
-                if not valid_page_heights or height in valid_page_heights
-            ]
-            raw_size = estimate_raw_font_size(filtered_heights)
-            if raw_size is None:
-                continue
-            all_sizes.append(raw_size)
-            if (
-                block.category == ElementCategory.FLOWING_TEXT
-                and len(filtered_heights) >= 2
-            ):
-                flowing_raw_sizes.append(raw_size)
-
-        if flowing_raw_sizes:
-            body_font_size_pt = float(median(flowing_raw_sizes))
-        else:
-            body_font_size_pt = float(median(all_sizes)) if all_sizes else 10.5
-
-        body_font_size_pt = clamp_font_size(body_font_size_pt)
-        return body_font_size_pt, build_font_size_profile(body_font_size_pt)
-
-    def _assign_element_font_sizes(
-        self,
-        layout_page: LayoutPageResult,
-        elements: list[ElementData],
-        block_lines_by_id: dict[str, list[Any]],
-        page_ocr: OCRPageResult | None,
-        body_font_size_pt: float,
-        font_size_profile: dict[str, float],
-    ) -> None:
-        page_line_heights: list[float] = []
-        element_heights_by_idx: dict[int, list[float]] = {}
-        flowing_candidates: list[tuple[float, float]] = []
-
-        for idx, (element, block) in enumerate(zip(elements, layout_page.blocks)):
-            heights: list[float] = []
-            for line in block_lines_by_id.get(block.block_id, []):
-                text = getattr(line, "text", "")
-                if not isinstance(text, str) or not text.strip():
-                    continue
-                height_pt = self._compute_line_height_pt(
-                    line,
-                    page_ocr,
-                    layout_page.page_height,
-                )
-                if height_pt > 0:
-                    heights.append(height_pt)
-                    page_line_heights.append(height_pt)
-            element_heights_by_idx[idx] = heights
-            if block.category == ElementCategory.FLOWING_TEXT and heights:
-                center_y = (block.bbox_pdf[1] + block.bbox_pdf[3]) / 2.0
-                raw_size = estimate_raw_font_size(heights)
-                if raw_size is not None:
-                    flowing_candidates.append((center_y, raw_size))
-
-        valid_page_heights = filter_valid_line_heights(page_line_heights)
-
-        for idx, (element, block) in enumerate(zip(elements, layout_page.blocks)):
-            if block.category == ElementCategory.BYPASS:
-                element.font_size_pt = 0.0
-                element.font_size_bucket = ""
-                continue
-
-            raw_heights = element_heights_by_idx.get(idx, [])
-            heights = [
-                height
-                for height in raw_heights
-                if not valid_page_heights or height in valid_page_heights
-            ]
-            raw_size = estimate_raw_font_size(heights)
-
-            if raw_size is None:
-                if block.category == ElementCategory.EQUATION and flowing_candidates:
-                    block_center_y = (block.bbox_pdf[1] + block.bbox_pdf[3]) / 2.0
-                    nearest = min(
-                        flowing_candidates,
-                        key=lambda item: abs(item[0] - block_center_y),
-                    )
-                    raw_size = nearest[1]
-                else:
-                    raw_size = body_font_size_pt
-
-            raw_size = clamp_font_size(raw_size)
-            bucket = normalize_font_size_bucket(
-                raw_size,
-                font_size_profile,
-                category=block.category,
-                label=block.label,
-            )
-
-            if (
-                block.category == ElementCategory.TABLE
-                and raw_size <= font_size_profile["lg"]
-            ):
-                bucket = "md"
-
-            if (
-                block.label
-                in {"Page-header", "Section-header", "Caption", "Table-of-contents"}
-                and bucket == "xs"
-            ):
-                bucket = "sm"
-
-            element.font_size_bucket = bucket
-            element.font_size_pt = font_size_profile[bucket]
 
     def _release_batch(self, *objects: Any) -> None:
         for obj in objects:
