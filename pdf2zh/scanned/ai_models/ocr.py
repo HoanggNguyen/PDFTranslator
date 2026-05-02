@@ -3,116 +3,103 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Tuple
 
-from .base import BaseModel
+from PIL import Image
+
+from pdf2zh.scanned.ai_models.base import BaseImageToTextModel
 
 logger = logging.getLogger(__name__)
 
 
-class SuryaOCRModel(BaseModel):
+class SuryaOCRModel(BaseImageToTextModel):
     """
-    Wraps Surya's ``DetectionPredictor`` + ``RecognitionPredictor``.
-
-    Both predictors share the same ``FoundationPredictor`` backbone which is
-    loaded once and reused, mirroring the original lazy-init pattern.
+    Wraps Surya's DetectionPredictor + RecognitionPredictor.
+    Models are loaded immediately upon initialization.
     """
 
     model_name = "SuryaOCR"
 
     def __init__(self, hardware: Any) -> None:
+        """Initialize hardware config and load all Surya predictors immediately."""
         super().__init__(hardware)
-        self._foundation_predictor: Any = None
-        self._detection_predictor: Any = None
-        self._recognition_predictor: Any = None
 
-    @property
-    def _foundation(self) -> Any:
-        if self._foundation_predictor is None:
-            from surya.foundation import FoundationPredictor
+        logger.info(
+            "Initializing %s and loading models into memory...", self.model_name
+        )
 
-            self._foundation_predictor = FoundationPredictor()
-            logger.info("Loaded FoundationPredictor (OCR backbone)")
-        return self._foundation_predictor
+        from surya.detection import DetectionPredictor
+        from surya.foundation import FoundationPredictor
+        from surya.recognition import RecognitionPredictor
 
-    @property
-    def _detection(self) -> Any:
-        if self._detection_predictor is None:
-            from surya.detection import DetectionPredictor
+        # 1. Load backbone
+        self.foundation_predictor = FoundationPredictor()
+        logger.info("Loaded FoundationPredictor (OCR backbone)")
 
-            self._detection_predictor = DetectionPredictor()
-            logger.info("Loaded DetectionPredictor")
-        return self._detection_predictor
+        # 2. Load detection
+        self.detection_predictor = DetectionPredictor()
+        logger.info("Loaded DetectionPredictor")
 
-    @property
-    def _recognition(self) -> Any:
-        if self._recognition_predictor is None:
-            from surya.recognition import RecognitionPredictor
+        # 3. Load recognition (requires foundation)
+        self.recognition_predictor = RecognitionPredictor(self.foundation_predictor)
+        logger.info("Loaded RecognitionPredictor")
 
-            self._recognition_predictor = RecognitionPredictor(self._foundation)
-            logger.info("Loaded RecognitionPredictor")
-        return self._recognition_predictor
-
-    def _load(self) -> Any:
-        # Trigger lazy init of all three sub-predictors.
-        _ = self._foundation
-        _ = self._detection
-        _ = self._recognition
-        return self  # predictor IS this instance
-
-    @property
-    def predictor(self) -> "SuryaOCRModel":
-        """Returns self after ensuring all sub-predictors are loaded."""
-        if not self.is_loaded:
-            self._load()
-            self._predictor = True  # sentinel — sub-predictors are the real handles
-        return self
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._recognition_predictor is not None
+    def prepare(
+        self, images: list[Image.Image], highres_images: list[Image.Image]
+    ) -> Tuple[list[Image.Image], list[Image.Image]]:
+        """
+        Preprocess raw images before inference.
+        Surya models accept raw PIL images directly, so we just pass them through.
+        """
+        # Add any standard image preprocessing here if needed in the future
+        return images, highres_images
 
     def predict(
         self,
-        images,
+        images: list[Image.Image],
         *,
-        highres_images=None,
+        highres_images: list[Image.Image] | None = None,
         math_mode: bool = False,
-        task_names=None,
-        bboxes=None,
+        task_names: list[Any] | None = None,
+        bboxes: list[Any] | None = None,
     ) -> list[Any]:
         """
-        Run full-page OCR (detection → recognition).
-
-        Args:
-            images: List of PIL images at standard DPI.
-            highres_images: Optional list of the same pages at high DPI.
-            math_mode: Enable math/LaTeX recognition mode.
-            sort_lines: Sort detected lines by reading order.
-            task_names: Optional per-image task overrides (Surya TaskNames).
-            bboxes: Optional pre-computed bounding boxes per image.
-
-        Returns:
-            List of Surya OCR result objects, one per input image.
+        Run full-page OCR (detection -> recognition) on prepared images.
         """
+        run_kwargs: dict[str, Any] = {"math_mode": math_mode}
+
+        images, highres_images = self.prepare(images, highres_images)
+
         if not math_mode:
             logger.info("Running OCR with detection + recognition")
-            kwargs: dict = dict(
-                det_predictor=self._detection,
-                detection_batch_size=self.hardware.detection_batch_size,
-                recognition_batch_size=self.hardware.ocr_batch_size,
-                highres_images=highres_images,
-                math_mode=math_mode,
+            run_kwargs.update(
+                {
+                    "det_predictor": self.detection_predictor,
+                    "detection_batch_size": self.hardware.detection_batch_size,
+                    "recognition_batch_size": self.hardware.ocr_batch_size,
+                    "highres_images": highres_images,
+                }
             )
-        else:  # Set math_mode to True, use Latex
-            logger.info("Running OCR in math mode (LaTex recognition)")
-            kwargs: dict = dict(
-                recognition_batch_size=self.hardware.equation_batch_size,
-                math_mode=math_mode,
+        else:
+            logger.info("Running OCR in math mode (LaTeX recognition)")
+            run_kwargs.update(
+                {
+                    "recognition_batch_size": self.hardware.equation_batch_size,
+                }
             )
-        if task_names is not None:
-            kwargs["task_names"] = task_names
-        if bboxes is not None:
-            kwargs["bboxes"] = bboxes
 
-        return self._recognition(images, **kwargs)
+        if task_names is not None:
+            run_kwargs["task_names"] = task_names
+        if bboxes is not None:
+            run_kwargs["bboxes"] = bboxes
+
+        # Raw inference using the Surya RecognitionPredictor
+        raw_results = self.recognition_predictor(images, **run_kwargs)
+
+        return self.postprocess(raw_results)
+
+    def postprocess(self, raw_results: list[Any]) -> list[Any]:
+        """
+        Format raw Surya outputs into the final desired structure.
+        """
+        return raw_results

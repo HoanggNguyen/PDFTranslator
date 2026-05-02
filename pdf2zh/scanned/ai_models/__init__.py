@@ -1,13 +1,14 @@
 """AI model wrappers for Stage A parsing."""
 
-from .base import BaseModel
+from .base import BaseImageToTextModel
 from .layout import SuryaLayoutModel
 from .ocr import SuryaOCRModel
-from .table import SuryaTableModel
+from .table import PaddleCellTableModule, SuryaTableModel
 
 __all__ = [
-    "BaseModel",
+    "BaseImageToTextModel",
     "SuryaLayoutModel",
     "SuryaOCRModel",
     "SuryaTableModel",
+    "PaddleCellTableModule",
 ]
