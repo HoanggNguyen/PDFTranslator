@@ -20,10 +20,11 @@ class BaseImageToTextModel(ABC):
         self.model: Any = None  # Stores the loaded model instance
 
     @abstractmethod
-    def prepare(
-        self, images: list[Image.Image], *args: Any, **kwargs: Any
-    ) -> list[Image.Image]:
-        """Preprocess raw images (e.g., resize, format) before inference."""
+    def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> Any:
+        """
+        Preprocess raw images. 
+        Returns the format required by the specific model (PIL, Numpy, or Tensor).
+        """
         pass
 
     @abstractmethod

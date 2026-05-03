@@ -199,8 +199,6 @@ def compute_font_size(lines: list[Any]) -> float:
 def extract_text_for_region(
     ocr_result: Any,
     region_bbox: list[float],
-    image_width: float,
-    image_height: float,
     overlap_threshold: float = 0.5,
 ) -> tuple[str, float]:
     """Extract OCR text that falls within a region.

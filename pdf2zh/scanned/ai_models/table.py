@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+import numpy as np
 
 from PIL import Image
 
@@ -88,9 +89,12 @@ class PaddleCellTableModule(BaseImageToTextModel):
         self.model = TableCellsDetection(model_name="RT-DETR-L_wireless_table_cell_det")
         logger.info("Loaded TableCellsDetection")
 
-    def prepare(self, images: list[Image.Image]) -> list[Image.Image]:
-        """Preprocess a batch of cropped table images."""
-        return images
+    def prepare(self, images: list[Image.Image]) -> list[np.ndarray]:
+        """
+        Convert PIL images to numpy arrays to satisfy PaddleOCR requirements.
+        """
+        # Chuyển đổi từng ảnh PIL trong list sang định dạng NumPy ndarray
+        return [np.array(img.convert("RGB")) for img in images]
 
     def predict(self, images: list[Image.Image], threshold: float = 0.3) -> list[Any]:
         """

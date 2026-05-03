@@ -39,3 +39,7 @@ ENV/
 CLAUDE.md
 claude
 .DS_Store
+
+# File
+output.json
+*.pdf

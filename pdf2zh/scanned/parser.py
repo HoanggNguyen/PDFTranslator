@@ -263,7 +263,7 @@ class StageAParser:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
                         fallback_text, fallback_font_size = extract_text_for_region(
-                            page_ocr, block.bbox_image
+                            page_ocr.ocr_result, block.bbox_image
                         )
                         table_block = TableBlockResult(
                             block_id=block.block_id,
@@ -280,19 +280,13 @@ class StageAParser:
                     source_text = table_block.source_text
                     cells = table_block.cells
                     font_size = (
-                        median(
-                            [
-                                cells[i].cell_font_size
-                                for i in range(len(cells))
-                                if cells[i].cell_font_size > 0
-                            ]
-                        )
-                        if cells
+                        median([c.cell_font_size for c in cells if c.cell_font_size > 0])
+                        if any(c.cell_font_size > 0 for c in cells) 
                         else 0.0
                     )
                 else:
                     source_text, font_size = extract_text_for_region(
-                        page_ocr, block.bbox_image
+                        page_ocr.ocr_result, block.bbox_image
                     )
                     if block.category == ElementCategory.EQUATION:
                         equation_block = equation_map.get(block.block_id)
@@ -765,6 +759,7 @@ class StageAParser:
         for cell_bbox in prediction:
 
             if len(cell_bbox) != 4:
+                print("hello")
                 continue
 
             cell_bbox_image = offset_bbox(
@@ -782,7 +777,7 @@ class StageAParser:
                 job.page_height,
             )
             cell_text, cell_font_size = extract_text_for_region(
-                job.page_ocr, cell_bbox_image
+                job.page_ocr.ocr_result, cell_bbox_image
             )
 
             cells.append(
@@ -806,7 +801,7 @@ class StageAParser:
 
     def _synthesize_table_result(self, job: _TableJob) -> TableBlockResult:
         fallback_text, fallback_font_size = extract_text_for_region(
-            job.page_ocr, job.block.bbox_image
+            job.page_ocr.ocr_result, job.block.bbox_image
         )
         return TableBlockResult(
             block_id=job.block.block_id,
