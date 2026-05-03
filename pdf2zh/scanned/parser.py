@@ -14,9 +14,9 @@ import torch
 from PIL import Image
 
 from pdf2zh.scanned.ai_models import (
+    PaddleCellTableModule,
     SuryaLayoutModel,
     SuryaOCRModel,
-    SuryaTableModel,
 )
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
@@ -77,7 +77,7 @@ class StageAParser:
         allow_parallel_phases: bool | None = None,
         parallel_workers: int | None = None,
     ) -> None:
-        """Configure Surya settings and initialize lazy predictors."""
+        """Configure Surya settings and initialize predictors."""
 
         self.hardware = configure_surya_settings(
             device=device,
@@ -95,7 +95,8 @@ class StageAParser:
 
         self.layout_model = SuryaLayoutModel(self.hardware)
         self.ocr_model = SuryaOCRModel(self.hardware)
-        self.table_model = SuryaTableModel(self.hardware)
+        # self.table_model = SuryaTableModel(self.hardware)
+        self.table_model = PaddleCellTableModule(self.hardware)
 
     def parse_layout(
         self,
@@ -260,8 +261,8 @@ class StageAParser:
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
-                        fallback_text, fallback_font_size = self._extract_block_text(
-                            page_ocr, block.bbox_image
+                        fallback_text, fallback_font_size = extract_text_for_region(
+                            page_ocr.ocr_result, block.bbox_image
                         )
                         table_block = TableBlockResult(
                             block_id=block.block_id,
@@ -279,18 +280,14 @@ class StageAParser:
                     cells = table_block.cells
                     font_size = (
                         median(
-                            [
-                                cells[i].cell_font_size
-                                for i in range(len(cells))
-                                if cells[i].cell_font_size > 0
-                            ]
+                            [c.cell_font_size for c in cells if c.cell_font_size > 0]
                         )
-                        if cells
+                        if any(c.cell_font_size > 0 for c in cells)
                         else 0.0
                     )
                 else:
-                    source_text, font_size = self._extract_block_text(
-                        page_ocr, block.bbox_image
+                    source_text, font_size = extract_text_for_region(
+                        page_ocr.ocr_result, block.bbox_image
                     )
                     if block.category == ElementCategory.EQUATION:
                         equation_block = equation_map.get(block.block_id)
@@ -624,11 +621,7 @@ class StageAParser:
         if not table_jobs:
             return TableParseResult(pdf_path="", tables={})
 
-        try:
-            table_predictions = self.table_model.predict(table_crops)
-        except Exception:
-            logger.exception("Table recognition failed for current batch")
-            table_predictions = [None] * len(table_jobs)
+        table_predictions = self.table_model.predict(table_crops)
 
         tables: dict[str, TableBlockResult] = {}
         fallback_jobs: list[_TableJob] = []
@@ -750,7 +743,7 @@ class StageAParser:
     def _table_prediction_to_cells(
         self,
         job: _TableJob,
-        prediction: Any,
+        prediction: list,
     ) -> TableBlockResult:
         crop_w, crop_h = job.table_crop.size
         block_image_w = job.block.bbox_image[2] - job.block.bbox_image[0]
@@ -758,19 +751,16 @@ class StageAParser:
         block_pdf_w = job.block.bbox_pdf[2] - job.block.bbox_pdf[0]
         block_pdf_h = job.block.bbox_pdf[3] - job.block.bbox_pdf[1]
 
-        raw_cells = []
-        if prediction is not None:
-            raw_cells = list(getattr(prediction, "cells", []) or [])
-
-        if not raw_cells:
+        if not prediction:
             return self._synthesize_table_result(job)
 
         cells: list[CellData] = []
         source_parts: list[str] = []
 
-        for raw_cell in raw_cells:
-            cell_bbox = list(getattr(raw_cell, "bbox", []))
+        for cell_bbox in prediction:
+
             if len(cell_bbox) != 4:
+                print("hello")
                 continue
 
             cell_bbox_image = offset_bbox(
@@ -787,8 +777,8 @@ class StageAParser:
                 job.page_width,
                 job.page_height,
             )
-            cell_text, cell_font_size = self._extract_block_text(
-                job.page_ocr, cell_bbox_image
+            cell_text, cell_font_size = extract_text_for_region(
+                job.page_ocr.ocr_result, cell_bbox_image
             )
 
             cells.append(
@@ -811,8 +801,8 @@ class StageAParser:
         )
 
     def _synthesize_table_result(self, job: _TableJob) -> TableBlockResult:
-        fallback_text, fallback_font_size = self._extract_block_text(
-            job.page_ocr, job.block.bbox_image
+        fallback_text, fallback_font_size = extract_text_for_region(
+            job.page_ocr.ocr_result, job.block.bbox_image
         )
         return TableBlockResult(
             block_id=job.block.block_id,
@@ -848,20 +838,6 @@ class StageAParser:
                 convert_bbox(local_pdf_bbox, block_pdf_w, block_pdf_h, crop_w, crop_h)
             )
         return bboxes
-
-    def _extract_block_text(
-        self,
-        page_ocr: OCRPageResult | None,
-        bbox_image: list[float],
-    ) -> tuple[str, float]:
-        if page_ocr is None:
-            return "", 0.0
-        return extract_text_for_region(
-            page_ocr.ocr_result,
-            bbox_image,
-            page_ocr.image_width,
-            page_ocr.image_height,
-        )
 
     def _release_batch(self, *objects: Any) -> None:
         for obj in objects:

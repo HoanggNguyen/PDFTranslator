@@ -69,8 +69,6 @@
         "source_text":       { "type": "string" },
         "translated_text":   { "type": "string" },
         "latex":             { "type": "string" },
-        "font_size_pt":      { "type": "number", "minimum": 0 },
-        "font_size_bucket":  { "type": "string", "enum": ["", "xs", "sm", "md", "lg", "xl"] },
         "cells": {
           "type": "array",
           "items": { "$ref": "#/$defs/CellData" }
@@ -82,8 +80,7 @@
     "PageData": {
       "type": "object",
       "required": ["page_index", "page_width", "page_height",
-                   "elements", "raw_text", "font_size_profile",
-                   "body_font_size_pt", "chapter_id"],
+                   "elements", "raw_text", "chapter_id"],
       "additionalProperties": false,
       "properties": {
         "page_index":   { "type": "integer", "minimum": 0 },
@@ -94,11 +91,6 @@
           "items": { "$ref": "#/$defs/ElementData" }
         },
         "raw_text":     { "type": "string" },
-        "font_size_profile": {
-          "type": "object",
-          "additionalProperties": { "type": "number", "minimum": 0 }
-        },
-        "body_font_size_pt": { "type": "number", "minimum": 0 },
         "chapter_id":   { "type": "string" }
       }
     },
