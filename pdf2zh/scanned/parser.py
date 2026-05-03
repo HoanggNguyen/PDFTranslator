@@ -280,8 +280,10 @@ class StageAParser:
                     source_text = table_block.source_text
                     cells = table_block.cells
                     font_size = (
-                        median([c.cell_font_size for c in cells if c.cell_font_size > 0])
-                        if any(c.cell_font_size > 0 for c in cells) 
+                        median(
+                            [c.cell_font_size for c in cells if c.cell_font_size > 0]
+                        )
+                        if any(c.cell_font_size > 0 for c in cells)
                         else 0.0
                     )
                 else:

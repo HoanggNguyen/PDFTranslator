@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-import numpy as np
 
+import numpy as np
 from PIL import Image
 
 from pdf2zh.scanned.ai_models.base import BaseImageToTextModel

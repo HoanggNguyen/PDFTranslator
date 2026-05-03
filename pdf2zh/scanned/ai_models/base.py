@@ -22,7 +22,7 @@ class BaseImageToTextModel(ABC):
     @abstractmethod
     def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> Any:
         """
-        Preprocess raw images. 
+        Preprocess raw images.
         Returns the format required by the specific model (PIL, Numpy, or Tensor).
         """
         pass
