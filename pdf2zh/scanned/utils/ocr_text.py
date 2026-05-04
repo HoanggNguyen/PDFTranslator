@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
+from statistics import median
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -175,20 +176,31 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
     return sorted_lines
 
 
-def sort_text_lines_batch(batch_predictions: list[Any]) -> list[Any]:
-    for prediction in batch_predictions:
-        prediction.text_lines = sort_text_lines(prediction.text_lines)
+def compute_font_size(lines: list[Any]) -> float:
+    """Compute an estimated font size from OCR text lines.
 
-    return batch_predictions
+    Uses the median height of text line bounding boxes as a proxy for font size.
+    """
+    if not lines:
+        return 0.0
+
+    heights = []
+    for line in lines:
+        if hasattr(line, "bbox") and line.bbox:
+            x0, y0, x1, y1 = line.bbox
+            heights.append(y1 - y0)
+
+    if not heights:
+        return 0.0
+
+    return median(heights)
 
 
 def extract_text_for_region(
     ocr_result: Any,
     region_bbox: list[float],
-    image_width: float,
-    image_height: float,
     overlap_threshold: float = 0.5,
-) -> str:
+) -> tuple[str, float]:
     """Extract OCR text that falls within a region.
 
     Finds all text lines from the OCR result that overlap significantly
@@ -202,10 +214,10 @@ def extract_text_for_region(
         overlap_threshold: Minimum overlap ratio to include a line
 
     Returns:
-        Concatenated text from overlapping lines
+        Concatenated text from overlapping lines and estimated font size
     """
     if not hasattr(ocr_result, "text_lines"):
-        return ""
+        return "", 0.0
 
     rx0, ry0, rx1, ry1 = region_bbox
 
@@ -232,14 +244,16 @@ def extract_text_for_region(
         # Check if enough of the line is within the region
         line_overlap = intersection_area / line_area
         if line_overlap >= overlap_threshold:
-            matching_lines.append((ly0, line.text))
+            matching_lines.append(line)
 
     # Sort by vertical position and join
     # matching_lines.sort(key=lambda x: x[0])
     # Sort with reading order from model.prediction()
-    text = " ".join(line_text for _, line_text in matching_lines)
+    matching_lines = sort_text_lines(matching_lines)
+    font_size = compute_font_size(matching_lines)
+    text = " ".join(line.text for line in matching_lines)
 
-    return text
+    return text, font_size
 
 
 def log_toc_hints(elements: list[Any], page_index: int) -> None:

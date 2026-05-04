@@ -21,6 +21,13 @@ opencv-python-headless
 pillow
 numpy
 
+# ── Table recognition ───────────────────────────────────────
+--extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu130/
+paddlepaddle-gpu==3.3.1
+paddleocr
+langchain-community
+
+
 # ── Layout & document parsing ─────────────────────────────────────────────────
 babeldoc>=0.1.22,<0.3.0
 onnx
