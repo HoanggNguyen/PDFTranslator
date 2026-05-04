@@ -33,7 +33,7 @@ class CellData:
     """
 
     bbox_pdf: list[float]
-    source_text: str
+    source_text: str = ""
     translated_text: str = ""
     cell_font_size: float = 0.0
 
@@ -422,15 +422,13 @@ class OCRParseResult:
     def page_map(self) -> dict[int, OCRPageResult]:
         return {page.page_index: page for page in self.pages}
 
-
 @dataclass(slots=True)
 class TableBlockResult:
     """Merged table output for one layout table block."""
 
     block_id: str
-    source_text: str
-    cells: list[CellData] = field(default_factory=list)
-    used_fallback_ocr: bool = False
+    cells_bbox: list[list[float]]
+    crop_size: tuple[float, float]
 
 
 @dataclass(slots=True)
@@ -474,5 +472,3 @@ class _TableJob:
     page_width: float
     page_height: float
     table_crop: Image.Image
-    highres_crop: Image.Image
-    page_ocr: OCRPageResult | None

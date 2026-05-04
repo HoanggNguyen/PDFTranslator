@@ -127,7 +127,6 @@ class PaddleCellTableModule(BaseImageToTextModel):
 
             # Check both 'boxes' and 'coordinate' attributes
             raw_cells = result["boxes"]
-            print(raw_cells)
 
             boxes = []
             for cell in raw_cells:

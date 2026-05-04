@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
+import gc
+import torch
 
 from PIL import Image
 
@@ -36,3 +38,9 @@ class BaseImageToTextModel(ABC):
     def postprocess(self, *args: Any, **kwargs: Any) -> Any:
         """Format raw model outputs into the final desired structure."""
         pass
+
+    def release_memory(self):
+        gc.collect()
+        if self.hardware.device == "cuda" and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
