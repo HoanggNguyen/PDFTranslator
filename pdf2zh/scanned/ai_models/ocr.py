@@ -15,14 +15,21 @@ logger = logging.getLogger(__name__)
 class SuryaOCRModel(BaseImageToTextModel):
     """
     Wraps Surya's DetectionPredictor + RecognitionPredictor.
-    Models are loaded immediately upon initialization.
+    Models are loaded lazily upon first inference call.
     """
 
     model_name = "SuryaOCR"
 
     def __init__(self) -> None:
-        """Initialize Surya predictors immediately."""
+        """Initialize empty state to defer model loading."""
+        super().__init__()
+        # Khai báo các predictor cụ thể của OCR
+        self.foundation_predictor: Any = None
+        self.detection_predictor: Any = None
+        self.recognition_predictor: Any = None
 
+    def load_model(self) -> None:
+        """Thực hiện tải các mô hình vào VRAM khi được yêu cầu."""
         logger.info(
             "Initializing %s and loading models into memory...", self.model_name
         )
@@ -43,33 +50,56 @@ class SuryaOCRModel(BaseImageToTextModel):
         self.recognition_predictor = RecognitionPredictor(self.foundation_predictor)
         logger.info("Loaded RecognitionPredictor")
 
+        # Gán self.model để Base class nhận diện là model đã được load thành công
+        self.model = self.recognition_predictor
+
+    def unload_model(self) -> None:
+        """Override lại hàm dọn dẹp để xóa tận gốc cả 3 predictors."""
+        if self.model is not None:
+            import torch
+            logger.info("Unloading all %s predictors from VRAM...", self.model_name)
+            
+            # Xóa tham chiếu tới các mô hình con
+            del self.foundation_predictor
+            del self.detection_predictor
+            del self.recognition_predictor
+            del self.model
+
+            self.foundation_predictor = None
+            self.detection_predictor = None
+            self.recognition_predictor = None
+            self.model = None
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
     def prepare(
-        self, images: list[Image.Image], highres_images: list[Image.Image]
-    ) -> Tuple[list[Image.Image], list[Image.Image]]:
+        self, images: list[Image.Image], highres_images: list[Image.Image] | None = None, *args: Any, **kwargs: Any
+    ) -> Tuple[list[Image.Image], list[Image.Image] | None]:
         """
         Preprocess raw images before inference.
-        Surya models accept raw PIL images directly, so we just pass them through.
         """
-        # Add any standard image preprocessing here if needed in the future
         return images, highres_images
 
     def predict(
         self,
-        images: list[Image.Image],
-        *,
-        highres_images: list[Image.Image] | None = None,
+        prepared_inputs: Tuple[list[Image.Image], list[Image.Image] | None],
+        *args: Any,
         math_mode: bool = False,
         task_names: list[Any] | None = None,
         bboxes: list[Any] | None = None,
-        detection_batch_size: int | None,
-        ocr_batch_size: int | None,
+        detection_batch_size: int | None = None,
+        ocr_batch_size: int | None = None,
+        **kwargs: Any,
     ) -> list[Any]:
         """
         Run full-page OCR (detection -> recognition) on prepared images.
+        Lưu ý: prepared_inputs là kết quả trả về từ hàm prepare() trong Pipeline của class Base.
         """
-        run_kwargs: dict[str, Any] = {"math_mode": math_mode}
+        # Giải nén dữ liệu từ bước prepare
+        images, highres_images = prepared_inputs
 
-        images, highres_images = self.prepare(images, highres_images)
+        run_kwargs: dict[str, Any] = {"math_mode": math_mode}
 
         if not math_mode:
             logger.info("Running OCR with detection + recognition")
@@ -94,12 +124,13 @@ class SuryaOCRModel(BaseImageToTextModel):
         if bboxes is not None:
             run_kwargs["bboxes"] = bboxes
 
-        # Raw inference using the Surya RecognitionPredictor
+        # Raw inference
         raw_results = self.recognition_predictor(images, **run_kwargs)
 
-        return self.postprocess(raw_results)
+        # Trả về raw_results để hàm __call__ của Base tự động đưa vào postprocess()
+        return raw_results
 
-    def postprocess(self, raw_results: list[Any]) -> list[Any]:
+    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[Any]:
         """
         Format raw Surya outputs into the final desired structure.
         """

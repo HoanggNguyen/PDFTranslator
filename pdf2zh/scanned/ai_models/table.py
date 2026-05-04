@@ -19,12 +19,17 @@ class SuryaTableModel(BaseImageToTextModel):
 
     Identifies row/column structure and cell bounding boxes within a cropped
     table image. Text extraction is handled separately.
+    Models are loaded lazily upon first inference call.
     """
 
     model_name = "SuryaTable"
 
     def __init__(self) -> None:
-        """Initialize Surya model immediately."""
+        """Initialize empty state to defer model loading."""
+        super().__init__()
+
+    def load_model(self) -> None:
+        """Load Surya model into VRAM."""
         logger.info("Initializing %s...", self.model_name)
 
         from surya.table_rec import TableRecPredictor
@@ -32,30 +37,32 @@ class SuryaTableModel(BaseImageToTextModel):
         self.model = TableRecPredictor()
         logger.info("Loaded TableRecPredictor")
 
-    def prepare(self, images: list[Image.Image]) -> list[Image.Image]:
+    def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> list[Image.Image]:
         """Preprocess a batch of cropped table images."""
         # Surya models accept raw PIL images directly
         return images
 
-    def predict(self, images: list[Image.Image], batch_size: int | None) -> list[Any]:
+    def predict(
+        self, prepared_inputs: list[Image.Image], batch_size: int | None = None, *args: Any, **kwargs: Any
+    ) -> list[Any]:
         """
         Recognize table structure for a batch of prepared table images.
         """
         try:
-            # self.model is the callable TableRecPredictor instantiated in __init__
+            # self.model is guaranteed to be loaded by the Base class
             raw_results = self.model(
-                images,
+                prepared_inputs,
                 batch_size=batch_size,
             )
-            return self.postprocess(raw_results)
+            return raw_results
         except Exception:
             logger.exception(
                 "Table recognition failed for batch of %d crops — returning nulls.",
-                len(images),
+                len(prepared_inputs),
             )
-            return [None] * len(images)
+            return [None] * len(prepared_inputs)
 
-    def postprocess(self, raw_results: list[Any]) -> list[list[list[float]]]:
+    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[list[list[float]]]:
         """Convert objects into a simple list of bounding boxes."""
         batch_boxes = []
         for result in raw_results:
@@ -74,12 +81,17 @@ class SuryaTableModel(BaseImageToTextModel):
 class PaddleCellTableModule(BaseImageToTextModel):
     """
     Wraps Paddle's Table Cell Detection Module.
+    Models are loaded lazily upon first inference call.
     """
 
     model_name = "PaddleCellTableModule"
 
     def __init__(self) -> None:
-        """Initialize Paddle model immediately."""
+        """Initialize empty state to defer model loading."""
+        super().__init__()
+
+    def load_model(self) -> None:
+        """Load Paddle model into memory/VRAM."""
         logger.info("Initializing %s...", self.model_name)
 
         from paddleocr import TableCellsDetection
@@ -87,37 +99,33 @@ class PaddleCellTableModule(BaseImageToTextModel):
         self.model = TableCellsDetection(model_name="RT-DETR-L_wireless_table_cell_det")
         logger.info("Loaded TableCellsDetection")
 
-    def prepare(self, images: list[Image.Image]) -> list[np.ndarray]:
+    def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> list[np.ndarray]:
         """
         Convert PIL images to numpy arrays to satisfy PaddleOCR requirements.
         """
-        # Chuyển đổi từng ảnh PIL trong list sang định dạng NumPy ndarray
         return [np.array(img.convert("RGB")) for img in images]
 
     def predict(
-        self, images: list[Image.Image], batch_size: int | None, threshold: float = 0.3
+        self, prepared_inputs: list[np.ndarray], batch_size: int | None = None, threshold: float = 0.3, *args: Any, **kwargs: Any
     ) -> list[Any]:
         """
         Recognize cell detection for a batch of prepared table images.
         """
         try:
-            images = self.prepare(images)
-
             raw_results = self.model.predict(
-                images,
+                prepared_inputs,
                 threshold=threshold,
                 batch_size=batch_size,
             )
-
-            return self.postprocess(raw_results)
+            return raw_results
         except Exception:
             logger.exception(
                 "Paddle table cell detection failed for batch of %d crops — returning nulls.",
-                len(images),
+                len(prepared_inputs),
             )
-            return [None] * len(images)
+            return [None] * len(prepared_inputs)
 
-    def postprocess(self, raw_results: list[Any]) -> list[list[list[float]]]:
+    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[list[list[float]]]:
         """Normalize Paddle output into simple bbox lists."""
         batch_boxes = []
         for result in raw_results:
@@ -126,11 +134,11 @@ class PaddleCellTableModule(BaseImageToTextModel):
                 continue
 
             # Check both 'boxes' and 'coordinate' attributes
-            raw_cells = result["boxes"]
+            raw_cells = result.get("boxes", [])
 
             boxes = []
             for cell in raw_cells:
-                coords = cell["coordinate"]
+                coords = cell.get("coordinate")
                 if coords:
                     boxes.append([float(x) for x in coords])
 

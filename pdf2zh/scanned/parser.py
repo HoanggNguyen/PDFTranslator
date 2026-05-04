@@ -72,14 +72,9 @@ class StageAParser:
         table_batch_size: int | None = None,
         equation_batch_size: int | None = None,
         enable_latex: bool = False,
-        gpu_memory_utilization: float = 0.9,
+        gpu_memory_utilization: float = 0.8,
     ) -> None:
         """Configure settings and initialize predictors."""
-
-        self.layout_model = SuryaLayoutModel()
-        self.ocr_model = SuryaOCRModel()
-        # self.table_model = SuryaTableModel(self.hardware)
-        self.table_model = PaddleCellTableModule()
 
         self.hardware = configure_settings(
             device=device,
@@ -93,6 +88,10 @@ class StageAParser:
             enable_latex=enable_latex,
             gpu_memory_utilization=gpu_memory_utilization,
         )
+        self.layout_model = SuryaLayoutModel()
+        self.ocr_model = SuryaOCRModel()
+        # self.table_model = SuryaTableModel(self.hardware)
+        self.table_model = PaddleCellTableModule()
 
     def parse_layout(
         self,
