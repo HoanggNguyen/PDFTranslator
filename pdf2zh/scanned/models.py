@@ -422,6 +422,7 @@ class OCRParseResult:
     def page_map(self) -> dict[int, OCRPageResult]:
         return {page.page_index: page for page in self.pages}
 
+
 @dataclass(slots=True)
 class TableBlockResult:
     """Merged table output for one layout table block."""

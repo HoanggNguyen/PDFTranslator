@@ -23,9 +23,8 @@ class SuryaTableModel(BaseImageToTextModel):
 
     model_name = "SuryaTable"
 
-    def __init__(self, hardware: Any) -> None:
-        """Initialize hardware config and load Surya model immediately."""
-        super().__init__(hardware)
+    def __init__(self) -> None:
+        """Initialize Surya model immediately."""
         logger.info("Initializing %s...", self.model_name)
 
         from surya.table_rec import TableRecPredictor
@@ -38,7 +37,7 @@ class SuryaTableModel(BaseImageToTextModel):
         # Surya models accept raw PIL images directly
         return images
 
-    def predict(self, images: list[Image.Image]) -> list[Any]:
+    def predict(self, images: list[Image.Image], batch_size: int | None) -> list[Any]:
         """
         Recognize table structure for a batch of prepared table images.
         """
@@ -46,7 +45,7 @@ class SuryaTableModel(BaseImageToTextModel):
             # self.model is the callable TableRecPredictor instantiated in __init__
             raw_results = self.model(
                 images,
-                batch_size=self.hardware.table_batch_size,
+                batch_size=batch_size,
             )
             return self.postprocess(raw_results)
         except Exception:
@@ -79,9 +78,8 @@ class PaddleCellTableModule(BaseImageToTextModel):
 
     model_name = "PaddleCellTableModule"
 
-    def __init__(self, hardware: Any) -> None:
-        """Initialize hardware config and load Paddle model immediately."""
-        super().__init__(hardware)
+    def __init__(self) -> None:
+        """Initialize Paddle model immediately."""
         logger.info("Initializing %s...", self.model_name)
 
         from paddleocr import TableCellsDetection
@@ -96,7 +94,9 @@ class PaddleCellTableModule(BaseImageToTextModel):
         # Chuyển đổi từng ảnh PIL trong list sang định dạng NumPy ndarray
         return [np.array(img.convert("RGB")) for img in images]
 
-    def predict(self, images: list[Image.Image], threshold: float = 0.3) -> list[Any]:
+    def predict(
+        self, images: list[Image.Image], batch_size: int | None, threshold: float = 0.3
+    ) -> list[Any]:
         """
         Recognize cell detection for a batch of prepared table images.
         """
@@ -106,7 +106,7 @@ class PaddleCellTableModule(BaseImageToTextModel):
             raw_results = self.model.predict(
                 images,
                 threshold=threshold,
-                batch_size=self.hardware.table_batch_size,
+                batch_size=batch_size,
             )
 
             return self.postprocess(raw_results)

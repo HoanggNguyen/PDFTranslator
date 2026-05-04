@@ -60,7 +60,7 @@ class HardwareConfig:
     table_batch_size: int
     equation_batch_size: int
     enable_latex: bool = False
-    gpu_memory_utilization: int = 0.8
+    gpu_memory_utilization: int
 
 
 # Backward-compatible alias for older imports.
@@ -140,13 +140,15 @@ def configure_settings(
     table_batch_size: int | None = None,
     equation_batch_size: int | None = None,
     enable_latex: bool = False,
-    gpu_memory_utilization: int = 0.8,
+    gpu_memory_utilization: int = 0.9,
 ) -> HardwareConfig:
     """Resolve and apply settings using local hardware heuristics."""
 
     resolved_device = _detect_device() if device == "auto" else device
     free_vram_mb = get_gpu_memory_mb(resolved_device)
-    usable_vram_mb = int(free_vram_mb * gpu_memory_utilization) if free_vram_mb is not None else None
+    usable_vram_mb = (
+        int(free_vram_mb * gpu_memory_utilization) if free_vram_mb is not None else None
+    )
 
     resolved_layout_batch = _estimate_phase_batch(
         resolved_device, "layout", usable_vram_mb, layout_batch_size
@@ -170,7 +172,6 @@ def configure_settings(
     if resolved_page_batch is None:
         resolved_page_batch = min(resolved_layout_batch, resolved_detection_batch)
     resolved_page_batch = max(1, resolved_page_batch)
-
 
     config = HardwareConfig(
         device=resolved_device,

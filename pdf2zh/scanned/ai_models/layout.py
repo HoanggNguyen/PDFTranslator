@@ -22,9 +22,8 @@ class SuryaLayoutModel(BaseImageToTextModel):
 
     model_name = "SuryaLayout"
 
-    def __init__(self, hardware: Any) -> None:
-        """Initialize hardware config and load Surya layout models immediately."""
-        super().__init__(hardware)
+    def __init__(self) -> None:
+        """Initialize Surya layout models immediately."""
         logger.info("Initializing %s...", self.model_name)
 
         from surya.foundation import FoundationPredictor
@@ -46,7 +45,7 @@ class SuryaLayoutModel(BaseImageToTextModel):
         # Surya models accept raw PIL images directly
         return images
 
-    def predict(self, images: list[Image.Image]) -> list[Any]:
+    def predict(self, images: list[Image.Image], batch_size: int | None) -> list[Any]:
         """
         Detect layout regions for a batch of prepared page images.
         """
@@ -55,7 +54,7 @@ class SuryaLayoutModel(BaseImageToTextModel):
 
             raw_results = self.model(
                 images,
-                batch_size=self.hardware.layout_batch_size,
+                batch_size=batch_size,
             )
             return self.postprocess(raw_results)
 

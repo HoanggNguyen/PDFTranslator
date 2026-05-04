@@ -20,9 +20,8 @@ class SuryaOCRModel(BaseImageToTextModel):
 
     model_name = "SuryaOCR"
 
-    def __init__(self, hardware: Any) -> None:
-        """Initialize hardware config and load all Surya predictors immediately."""
-        super().__init__(hardware)
+    def __init__(self) -> None:
+        """Initialize Surya predictors immediately."""
 
         logger.info(
             "Initializing %s and loading models into memory...", self.model_name
@@ -62,6 +61,8 @@ class SuryaOCRModel(BaseImageToTextModel):
         math_mode: bool = False,
         task_names: list[Any] | None = None,
         bboxes: list[Any] | None = None,
+        detection_batch_size: int | None,
+        ocr_batch_size: int | None,
     ) -> list[Any]:
         """
         Run full-page OCR (detection -> recognition) on prepared images.
@@ -75,8 +76,8 @@ class SuryaOCRModel(BaseImageToTextModel):
             run_kwargs.update(
                 {
                     "det_predictor": self.detection_predictor,
-                    "detection_batch_size": self.hardware.detection_batch_size,
-                    "recognition_batch_size": self.hardware.ocr_batch_size,
+                    "detection_batch_size": detection_batch_size,
+                    "recognition_batch_size": ocr_batch_size,
                     "highres_images": highres_images,
                 }
             )
@@ -84,7 +85,7 @@ class SuryaOCRModel(BaseImageToTextModel):
             logger.info("Running OCR in math mode (LaTeX recognition)")
             run_kwargs.update(
                 {
-                    "recognition_batch_size": self.hardware.equation_batch_size,
+                    "recognition_batch_size": ocr_batch_size,
                 }
             )
 
