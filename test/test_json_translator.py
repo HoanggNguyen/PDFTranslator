@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-
 from pdf2zh.json_translator import (
     Gateway,
     TranslatorConfig,
@@ -50,18 +49,11 @@ def _echo_translations(system: str, user: str, *, force_json: bool = False) -> s
 
 # ── 1. is_plain_text ────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
 def test_is_plain_text():
     assert is_plain_text("when a = b") is True
     assert is_plain_text("Introduction to Machine Learning") is True
     assert is_plain_text("a = b") is False  # no run of ≥2 letters
-=======
-def test_is_plain_text():
-    assert is_plain_text("when a = b") is True
-    assert is_plain_text("Introduction to Machine Learning") is True
-    assert is_plain_text("a = b") is False          # no run of ≥2 letters
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
     assert is_plain_text("42.5") is False
     assert is_plain_text("<math>x</math>") is False
     assert is_plain_text("<math>x</math> where x is the count") is True
@@ -70,28 +62,18 @@ def test_is_plain_text():
 
 # ── 2. is_equation_only ─────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_is_equation_only():
     assert is_equation_only("<math>P(x)</math> (1.1)") is True
     assert is_equation_only("<math>P(x)</math>") is True
     assert is_equation_only("<math>P(x)</math> where P is") is False
     assert is_equation_only("Some plain text") is False
-<<<<<<< HEAD
     assert is_equation_only("") is True  # empty → only whitespace after strip
-=======
-    assert is_equation_only("") is True   # empty → only whitespace after strip
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 
 
 # ── 3. segments_to_chunks ───────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_chunking():
     doc = load_fixture()
     tasks = collect_translatables(doc)
@@ -116,10 +98,7 @@ def test_chunking():
 
 # ── 4. collect_translatables ─────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_collect_translatables_on_sample():
     doc = load_fixture()
     tasks = collect_translatables(doc)
@@ -163,10 +142,7 @@ def test_collect_translatables_on_sample():
 
 # ── 5. end-to-end with mocked Gateway.call ──────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_translate_document_end_to_end_mocked():
     doc = load_fixture()
     cfg = _mock_cfg()
@@ -181,7 +157,6 @@ def test_translate_document_end_to_end_mocked():
 
     # Eligible source_text fields are translated
     assert elems0[0]["translated_text"] == "<TR:Introduction to Machine Learning>"
-<<<<<<< HEAD
     assert (
         elems0[1]["translated_text"]
         == "<TR:This is a sample paragraph with enough text to be translatable.>"
@@ -191,11 +166,6 @@ def test_translate_document_end_to_end_mocked():
         elems1[0]["translated_text"]
         == "<TR:CeADAR is a research center located in Dublin Ireland.>"
     )
-=======
-    assert elems0[1]["translated_text"] == "<TR:This is a sample paragraph with enough text to be translatable.>"
-    assert elems0[4]["translated_text"] == "<TR:Table showing experimental results>"
-    assert elems1[0]["translated_text"] == "<TR:CeADAR is a research center located in Dublin Ireland.>"
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 
     # translated_latex added as new sibling
     assert elems0[4]["translated_latex"] == "<TR:Result table>"
@@ -226,23 +196,16 @@ def test_translate_document_end_to_end_mocked():
 
 # ── 6. length violation retry ────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_length_violation_retry():
     cfg = _mock_cfg()
     cfg.chunk_bytes = 10000
     cfg.length_tolerance = 0.15
 
     source = "This is a long enough source string for length checking"
-<<<<<<< HEAD
     too_long = (
         source + " extra extra extra extra extra extra extra extra extra extra extra"
     )
-=======
-    too_long = source + " extra extra extra extra extra extra extra extra extra extra extra"
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
     correct = "Đây là một chuỗi nguồn đủ dài để kiểm tra độ dài"
 
     call_count = 0
@@ -263,7 +226,6 @@ def test_length_violation_retry():
         "source_language": "English",
         "target_language": "Vietnamese",
         "pdf_path": "t.pdf",
-<<<<<<< HEAD
         "pages": [
             {
                 "page_index": 0,
@@ -282,22 +244,6 @@ def test_length_violation_retry():
                 ],
             }
         ],
-=======
-        "pages": [{
-            "page_index": 0,
-            "page_width": 612,
-            "page_height": 792,
-            "elements": [{
-                "label": "Text",
-                "category": "TEXT",
-                "bbox_pdf": [0, 0, 100, 10],
-                "source_text": source,
-                "translated_text": "",
-                "latex": "",
-                "cells": [],
-            }],
-        }],
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
     }
 
     mock_call = AsyncMock(side_effect=_side_effect)
@@ -311,10 +257,7 @@ def test_length_violation_retry():
 
 # ── 7. glossary injection ────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 0bc6405 ((core): implement translation phase for scanned pdf)
 def test_glossary_injection():
     glossary = {"ceadar": "CEADAR"}
 
