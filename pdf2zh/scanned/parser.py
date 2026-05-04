@@ -76,10 +76,10 @@ class StageAParser:
     ) -> None:
         """Configure settings and initialize predictors."""
 
-        self.layout_model = SuryaLayoutModel(self.hardware)
-        self.ocr_model = SuryaOCRModel(self.hardware)
+        self.layout_model = SuryaLayoutModel()
+        self.ocr_model = SuryaOCRModel()
         # self.table_model = SuryaTableModel(self.hardware)
-        self.table_model = PaddleCellTableModule(self.hardware)
+        self.table_model = PaddleCellTableModule()
 
         self.hardware = configure_settings(
             device=device,
@@ -378,9 +378,6 @@ class StageAParser:
                 context.page_dims,
                 images,
             )
-            batch_ocr_pages = self._parse_ocr_batch(
-                batch_indices, images, highres_images
-            )
 
             batch_tables = self._parse_tables_batch(
                 batch_layout_pages,
@@ -390,6 +387,9 @@ class StageAParser:
                 batch_layout_pages,
                 highres_images,
                 enable_latex=enable_latex,
+            )
+            batch_ocr_pages = self._parse_ocr_batch(
+                batch_indices, images, highres_images
             )
 
             layout_pages.extend(batch_layout_pages)

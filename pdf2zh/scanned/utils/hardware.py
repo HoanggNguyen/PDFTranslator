@@ -59,8 +59,8 @@ class HardwareConfig:
     ocr_batch_size: int
     table_batch_size: int
     equation_batch_size: int
+    gpu_memory_utilization: float
     enable_latex: bool = False
-    gpu_memory_utilization: int
 
 
 # Backward-compatible alias for older imports.
@@ -140,7 +140,7 @@ def configure_settings(
     table_batch_size: int | None = None,
     equation_batch_size: int | None = None,
     enable_latex: bool = False,
-    gpu_memory_utilization: int = 0.9,
+    gpu_memory_utilization: float = 0.9,
 ) -> HardwareConfig:
     """Resolve and apply settings using local hardware heuristics."""
 
