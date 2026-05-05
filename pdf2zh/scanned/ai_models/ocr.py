@@ -21,15 +21,12 @@ class SuryaOCRModel(BaseImageToTextModel):
     model_name = "SuryaOCR"
 
     def __init__(self) -> None:
-        """Initialize empty state to defer model loading."""
         super().__init__()
-        # Khai báo các predictor cụ thể của OCR
         self.foundation_predictor: Any = None
         self.detection_predictor: Any = None
         self.recognition_predictor: Any = None
 
     def load_model(self) -> None:
-        """Thực hiện tải các mô hình vào VRAM khi được yêu cầu."""
         logger.info(
             "Initializing %s and loading models into memory...", self.model_name
         )
@@ -38,28 +35,23 @@ class SuryaOCRModel(BaseImageToTextModel):
         from surya.foundation import FoundationPredictor
         from surya.recognition import RecognitionPredictor
 
-        # 1. Load backbone
         self.foundation_predictor = FoundationPredictor()
         logger.info("Loaded FoundationPredictor (OCR backbone)")
 
-        # 2. Load detection
         self.detection_predictor = DetectionPredictor()
         logger.info("Loaded DetectionPredictor")
 
-        # 3. Load recognition (requires foundation)
         self.recognition_predictor = RecognitionPredictor(self.foundation_predictor)
         logger.info("Loaded RecognitionPredictor")
 
-        # Gán self.model để Base class nhận diện là model đã được load thành công
         self.model = self.recognition_predictor
 
     def unload_model(self) -> None:
-        """Override lại hàm dọn dẹp để xóa tận gốc cả 3 predictors."""
         if self.model is not None:
             import torch
+
             logger.info("Unloading all %s predictors from VRAM...", self.model_name)
-            
-            # Xóa tham chiếu tới các mô hình con
+
             del self.foundation_predictor
             del self.detection_predictor
             del self.recognition_predictor
@@ -74,7 +66,11 @@ class SuryaOCRModel(BaseImageToTextModel):
                 torch.cuda.empty_cache()
 
     def prepare(
-        self, images: list[Image.Image], highres_images: list[Image.Image] | None = None, *args: Any, **kwargs: Any
+        self,
+        images: list[Image.Image],
+        highres_images: list[Image.Image] | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> Tuple[list[Image.Image], list[Image.Image] | None]:
         """
         Preprocess raw images before inference.
@@ -94,9 +90,7 @@ class SuryaOCRModel(BaseImageToTextModel):
     ) -> list[Any]:
         """
         Run full-page OCR (detection -> recognition) on prepared images.
-        Lưu ý: prepared_inputs là kết quả trả về từ hàm prepare() trong Pipeline của class Base.
         """
-        # Giải nén dữ liệu từ bước prepare
         images, highres_images = prepared_inputs
 
         run_kwargs: dict[str, Any] = {"math_mode": math_mode}
@@ -124,13 +118,13 @@ class SuryaOCRModel(BaseImageToTextModel):
         if bboxes is not None:
             run_kwargs["bboxes"] = bboxes
 
-        # Raw inference
         raw_results = self.recognition_predictor(images, **run_kwargs)
 
-        # Trả về raw_results để hàm __call__ của Base tự động đưa vào postprocess()
         return raw_results
 
-    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[Any]:
+    def postprocess(
+        self, raw_results: list[Any], *args: Any, **kwargs: Any
+    ) -> list[Any]:
         """
         Format raw Surya outputs into the final desired structure.
         """

@@ -17,10 +17,8 @@ class SuryaLayoutModel(BaseImageToTextModel):
 
     def __init__(self) -> None:
         super().__init__()
-        # KHÔNG import hay khởi tạo FoundationPredictor ở đây nữa
 
     def load_model(self) -> None:
-        """Override hàm load_model để lazy load Surya."""
         logger.info("Initializing %s into VRAM...", self.model_name)
         from surya.foundation import FoundationPredictor
         from surya.layout import LayoutPredictor
@@ -32,12 +30,21 @@ class SuryaLayoutModel(BaseImageToTextModel):
         self.model = LayoutPredictor(self.layout_foundation_predictor)
         logger.info("Loaded LayoutPredictor successfully.")
 
-    def prepare(self, images: list[Image.Image]) -> list[Image.Image]:
+    def prepare(
+        self, images: list[Image.Image], *args: Any, **kwargs: Any
+    ) -> list[Image.Image]:
         return images
 
-    def predict(self, images: list[Image.Image], batch_size: int | None = None) -> list[Any]:
-        # Tự tin gọi self.model vì hàm __call__ của class cha đã đảm bảo nó được load
-        return self.model(images, batch_size=batch_size)
+    def predict(
+        self,
+        prepared_inputs: list[Image.Image],
+        batch_size: int | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> list[Any]:
+        return self.model(prepared_inputs, batch_size=batch_size)
 
-    def postprocess(self, raw_results: list[Any]) -> list[Any]:
+    def postprocess(
+        self, raw_results: list[Any], *args: Any, **kwargs: Any
+    ) -> list[Any]:
         return raw_results

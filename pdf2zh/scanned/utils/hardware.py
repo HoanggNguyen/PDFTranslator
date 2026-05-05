@@ -25,7 +25,7 @@ _DEFAULT_BATCHES = {
     "cuda": {
         "layout": 32,
         "detection": 36,
-        "recognition": 256,
+        "recognition": 128,
         "table": 32,
         "equation": 256,
     },
@@ -92,7 +92,7 @@ def set_torch_device_env(device: str) -> None:
     os.environ["TORCH_DEVICE"] = device
 
 
-def get_gpu_memory_mb(device: str | None = None) -> int | None:
+def get_gpu_memory_mb(device: str | None = None) -> tuple[int, int] | tuple[None, None]:
     """Return available GPU memory in MB when it can be detected."""
 
     try:
@@ -101,7 +101,7 @@ def get_gpu_memory_mb(device: str | None = None) -> int | None:
         device = device or _detect_device()
         if device == "cuda" and torch.cuda.is_available():
             free_bytes, _total_bytes = torch.cuda.mem_get_info()
-            return int(free_bytes / (1024 * 1024))
+            return int(free_bytes / (1024 * 1024)), int(_total_bytes / (1024 * 1024))
         if device == "mps" and torch.backends.mps.is_available():
             return None
     except Exception:
@@ -145,7 +145,7 @@ def configure_settings(
     """Resolve and apply settings using local hardware heuristics."""
 
     resolved_device = _detect_device() if device == "auto" else device
-    free_vram_mb = get_gpu_memory_mb(resolved_device)
+    free_vram_mb, total_vram_mb = get_gpu_memory_mb(resolved_device)
     usable_vram_mb = (
         int(free_vram_mb * gpu_memory_utilization) if free_vram_mb is not None else None
     )
@@ -156,9 +156,6 @@ def configure_settings(
     resolved_detection_batch = _estimate_phase_batch(
         resolved_device, "detection", usable_vram_mb, detection_batch_size
     )
-    resolved_ocr_batch = _estimate_phase_batch(
-        resolved_device, "recognition", usable_vram_mb, ocr_batch_size
-    )
     resolved_table_batch = _estimate_phase_batch(
         resolved_device, "table", usable_vram_mb, table_batch_size
     )
@@ -166,11 +163,24 @@ def configure_settings(
         resolved_device, "equation", usable_vram_mb, equation_batch_size
     )
 
+    THRESHOLD_20GB_MB = 20 * 1024
+
+    resolved_ocr_batch = _estimate_phase_batch(
+        resolved_device, "recognition", usable_vram_mb, ocr_batch_size
+    )
+
+    if total_vram_mb <= THRESHOLD_20GB_MB:
+        resolved_ocr_batch = min(
+            resolved_ocr_batch, _DEFAULT_BATCHES[device]["recognition"]
+        )
+    elif total_vram_mb > THRESHOLD_20GB_MB:
+        resolved_ocr_batch = 256
+
     resolved_page_batch = page_batch_size
     if resolved_page_batch is None:
         resolved_page_batch = batch_size
     if resolved_page_batch is None:
-        resolved_page_batch = min(resolved_layout_batch, resolved_detection_batch)
+        resolved_page_batch = max(resolved_layout_batch, resolved_detection_batch)
     resolved_page_batch = max(1, resolved_page_batch)
 
     config = HardwareConfig(

@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import gc
 import logging
 from pathlib import Path
 from statistics import median
 from typing import Any, Iterable
 
 import fitz  # PyMuPDF
-import torch
 from PIL import Image
 
 from pdf2zh.scanned.ai_models import (
@@ -395,7 +393,7 @@ class StageAParser:
             ocr_pages.extend(batch_ocr_pages)
             tables.update(batch_tables.tables)
             equations.update(batch_equations.equations)
-            self._release_batch(images, highres_images)
+            self._release_obj(images, highres_images)
 
         parsed_doc = self.merge_results(
             context.pdf_path,
@@ -468,8 +466,8 @@ class StageAParser:
         page_dims: dict[int, tuple[float, float]],
         images: list[Image.Image],
     ) -> list[LayoutPageResult]:
-        layout_predictions = self.layout_model.predict(
-            images, batch_size=self.hardware.layout_batch_size
+        layout_predictions = self.layout_model(
+            images, batch_size=self.hardware.layout_batch_size, auto_unload=True
         )
 
         layout_pages: list[LayoutPageResult] = []
@@ -541,12 +539,13 @@ class StageAParser:
         images: list[Image.Image],
         highres_images: list[Image.Image] | None,
     ) -> list[OCRPageResult]:
-        ocr_predictions = self.ocr_model.predict(
+        ocr_predictions = self.ocr_model(
             images,
             highres_images=highres_images,
             math_mode=False,
             detection_batch_size=self.hardware.detection_batch_size,
             ocr_batch_size=self.hardware.ocr_batch_size,
+            auto_unload=True,
         )
 
         return [
@@ -598,8 +597,8 @@ class StageAParser:
         if not table_jobs:
             return TableParseResult(pdf_path="", tables={})
 
-        table_predictions = self.table_model.predict(
-            table_crops, batch_size=self.hardware.table_batch_size
+        table_predictions = self.table_model(
+            table_crops, batch_size=self.hardware.table_batch_size, auto_unload=True
         )
 
         tables: dict[str, TableBlockResult] = {}
@@ -660,12 +659,13 @@ class StageAParser:
             task_names.append(TaskNames.block_without_boxes)
             block_ids.append(block.block_id)
 
-        predictions = self.ocr_model.predict(
+        predictions = self.ocr_model(
             equation_crops,
             task_names=task_names,
             bboxes=[[[0, 0, crop.size[0], crop.size[1]]] for crop in equation_crops],
             math_mode=True,
             ocr_batch_size=self.hardware.equation_batch_size,
+            auto_unload=True,
         )
 
         for block_id, prediction in zip(block_ids, predictions):
@@ -681,15 +681,11 @@ class StageAParser:
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
         return pdf_path
 
-    def _release_batch(self, *objects: Any) -> None:
+    def _release_obj(self, *objects: Any) -> None:
         for obj in objects:
             if obj is None:
                 continue
             del obj
-
-        gc.collect()
-        if self.hardware.device == "cuda" and torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
     def _chunked(self, items: list[Any], size: int) -> Iterable[list[Any]]:
         for start in range(0, len(items), size):

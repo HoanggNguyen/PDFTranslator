@@ -37,13 +37,19 @@ class SuryaTableModel(BaseImageToTextModel):
         self.model = TableRecPredictor()
         logger.info("Loaded TableRecPredictor")
 
-    def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> list[Image.Image]:
+    def prepare(
+        self, images: list[Image.Image], *args: Any, **kwargs: Any
+    ) -> list[Image.Image]:
         """Preprocess a batch of cropped table images."""
         # Surya models accept raw PIL images directly
         return images
 
     def predict(
-        self, prepared_inputs: list[Image.Image], batch_size: int | None = None, *args: Any, **kwargs: Any
+        self,
+        prepared_inputs: list[Image.Image],
+        batch_size: int | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[Any]:
         """
         Recognize table structure for a batch of prepared table images.
@@ -62,7 +68,9 @@ class SuryaTableModel(BaseImageToTextModel):
             )
             return [None] * len(prepared_inputs)
 
-    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[list[list[float]]]:
+    def postprocess(
+        self, raw_results: list[Any], *args: Any, **kwargs: Any
+    ) -> list[list[list[float]]]:
         """Convert objects into a simple list of bounding boxes."""
         batch_boxes = []
         for result in raw_results:
@@ -99,14 +107,21 @@ class PaddleCellTableModule(BaseImageToTextModel):
         self.model = TableCellsDetection(model_name="RT-DETR-L_wireless_table_cell_det")
         logger.info("Loaded TableCellsDetection")
 
-    def prepare(self, images: list[Image.Image], *args: Any, **kwargs: Any) -> list[np.ndarray]:
+    def prepare(
+        self, images: list[Image.Image], *args: Any, **kwargs: Any
+    ) -> list[np.ndarray]:
         """
         Convert PIL images to numpy arrays to satisfy PaddleOCR requirements.
         """
         return [np.array(img.convert("RGB")) for img in images]
 
     def predict(
-        self, prepared_inputs: list[np.ndarray], batch_size: int | None = None, threshold: float = 0.3, *args: Any, **kwargs: Any
+        self,
+        prepared_inputs: list[np.ndarray],
+        batch_size: int | None = None,
+        threshold: float = 0.3,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[Any]:
         """
         Recognize cell detection for a batch of prepared table images.
@@ -125,7 +140,9 @@ class PaddleCellTableModule(BaseImageToTextModel):
             )
             return [None] * len(prepared_inputs)
 
-    def postprocess(self, raw_results: list[Any], *args: Any, **kwargs: Any) -> list[list[list[float]]]:
+    def postprocess(
+        self, raw_results: list[Any], *args: Any, **kwargs: Any
+    ) -> list[list[list[float]]]:
         """Normalize Paddle output into simple bbox lists."""
         batch_boxes = []
         for result in raw_results:
