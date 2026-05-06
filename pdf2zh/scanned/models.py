@@ -35,7 +35,6 @@ class CellData:
     bbox_pdf: list[float]
     source_text: str = ""
     translated_text: str = ""
-    cell_font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this cell to a JSON-compatible dictionary.
@@ -47,7 +46,6 @@ class CellData:
             "bbox_pdf": self.bbox_pdf,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
-            "cell_font_size": self.cell_font_size,
         }
 
     @classmethod
@@ -65,7 +63,6 @@ class CellData:
             bbox_pdf=data["bbox_pdf"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
-            cell_font_size=data.get("cell_font_size", 0.0),
         )
 
 
@@ -91,7 +88,6 @@ class ElementData:
     translated_text: str = ""
     latex: str = ""
     cells: list[CellData] = field(default_factory=list)
-    font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary.
@@ -116,7 +112,6 @@ class ElementData:
             "translated_text": self.translated_text,
             "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
-            "font_size": self.font_size,
         }
 
     @classmethod
@@ -138,7 +133,6 @@ class ElementData:
             translated_text=data.get("translated_text", ""),
             latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
-            font_size=data.get("font_size", 0.0),
         )
 
 

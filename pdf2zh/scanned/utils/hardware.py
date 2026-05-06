@@ -103,11 +103,11 @@ def get_gpu_memory_mb(device: str | None = None) -> tuple[int, int] | tuple[None
             free_bytes, _total_bytes = torch.cuda.mem_get_info()
             return int(free_bytes / (1024 * 1024)), int(_total_bytes / (1024 * 1024))
         if device == "mps" and torch.backends.mps.is_available():
-            return None
+            return None, None
     except Exception:
         logger.debug("Could not query GPU memory", exc_info=True)
 
-    return None
+    return None, None
 
 
 def _estimate_phase_batch(
@@ -164,17 +164,21 @@ def configure_settings(
     )
 
     THRESHOLD_20GB_MB = 20 * 1024
+    THRESHOLD_40GB_MB = 40 * 1024
 
     resolved_ocr_batch = _estimate_phase_batch(
         resolved_device, "recognition", usable_vram_mb, ocr_batch_size
     )
 
-    if total_vram_mb <= THRESHOLD_20GB_MB:
-        resolved_ocr_batch = min(
-            resolved_ocr_batch, _DEFAULT_BATCHES[device]["recognition"]
-        )
-    elif total_vram_mb > THRESHOLD_20GB_MB:
-        resolved_ocr_batch = 256
+    if total_vram_mb:
+        if total_vram_mb <= THRESHOLD_20GB_MB:
+            resolved_ocr_batch = min(
+                resolved_ocr_batch, _DEFAULT_BATCHES[resolved_device]["recognition"]
+            )
+        elif total_vram_mb >= THRESHOLD_40GB_MB:
+            resolved_ocr_batch = 512
+        else:
+            resolved_ocr_batch = 256
 
     resolved_page_batch = page_batch_size
     if resolved_page_batch is None:

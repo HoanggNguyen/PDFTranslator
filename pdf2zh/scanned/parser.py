@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from statistics import median
 from typing import Any, Iterable
 
 import fitz  # PyMuPDF
@@ -225,6 +224,10 @@ class StageAParser:
         pages: list[PageData] = []
         for layout_page in layout_result.pages:
             page_ocr = ocr_page_map.get(layout_page.page_index)
+            if page_ocr is None:
+                raise ValueError(
+                    f"ocr_result is missing page {layout_page.page_index}"
+                )
             elements: list[ElementData] = []
 
             for block in layout_page.blocks:
@@ -233,65 +236,68 @@ class StageAParser:
                 cells: list[CellData] = []
 
                 if block.category == ElementCategory.BYPASS:
-                    font_size = 0.0
                     pass
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
-                    crop_w, crop_h = table_block.crop_size
-                    block_image_w = block.bbox_image[2] - block.bbox_image[0]
-                    block_image_h = block.bbox_image[3] - block.bbox_image[1]
-                    block_pdf_w = block.bbox_pdf[2] - block.bbox_pdf[0]
-                    block_pdf_h = block.bbox_pdf[3] - block.bbox_pdf[1]
-
-                    source_parts: list[str] = []
-                    cells: list[CellData] = []
-
-                    for cell_bbox in table_block.cells_bbox:
-                        cell_bbox_image = offset_bbox(
-                            convert_bbox(
-                                cell_bbox, crop_w, crop_h, block_image_w, block_image_h
-                            ),
-                            block.bbox_image[0],
-                            block.bbox_image[1],
+                    if table_block is None:
+                        source_text = extract_text_for_region(
+                            page_ocr.ocr_result, block.bbox_image
                         )
-                        cell_bbox_pdf = clamp_bbox(
-                            offset_bbox(
+                    else:
+                        crop_w, crop_h = table_block.crop_size
+                        block_image_w = block.bbox_image[2] - block.bbox_image[0]
+                        block_image_h = block.bbox_image[3] - block.bbox_image[1]
+                        block_pdf_w = block.bbox_pdf[2] - block.bbox_pdf[0]
+                        block_pdf_h = block.bbox_pdf[3] - block.bbox_pdf[1]
+
+                        source_parts: list[str] = []
+                        cells: list[CellData] = []
+
+                        for cell_bbox in table_block.cells_bbox:
+                            cell_bbox_image = offset_bbox(
                                 convert_bbox(
-                                    cell_bbox, crop_w, crop_h, block_pdf_w, block_pdf_h
+                                    cell_bbox, crop_w, crop_h, block_image_w, block_image_h
                                 ),
-                                block.bbox_pdf[0],
-                                block.bbox_pdf[1],
-                            ),
-                            layout_page.page_width,
-                            layout_page.page_height,
-                        )
-                        cell_text, cell_font_size = extract_text_for_region(
-                            page_ocr.ocr_result, cell_bbox_image
-                        )
-                        cells.append(
-                            CellData(
-                                bbox_pdf=cell_bbox_pdf,
-                                source_text=cell_text,
-                                translated_text="",
-                                cell_font_size=cell_font_size,
+                                block.bbox_image[0],
+                                block.bbox_image[1],
                             )
-                        )
-                        source_parts.append(cell_text)
+                            cell_bbox_pdf = clamp_bbox(
+                                offset_bbox(
+                                    convert_bbox(
+                                        cell_bbox, crop_w, crop_h, block_pdf_w, block_pdf_h
+                                    ),
+                                    block.bbox_pdf[0],
+                                    block.bbox_pdf[1],
+                                ),
+                                layout_page.page_width,
+                                layout_page.page_height,
+                            )
+                            cell_text = extract_text_for_region(
+                                page_ocr.ocr_result, cell_bbox_image
+                            )
+                            cells.append(
+                                CellData(
+                                    bbox_pdf=cell_bbox_pdf,
+                                    source_text=cell_text,
+                                    translated_text="",
+                                )
+                            )
+                            source_parts.append(cell_text)
+
+                        source_text = " | ".join(source_parts)
+
+                        if not cells:
+                            source_text = extract_text_for_region(
+                                page_ocr.ocr_result, block.bbox_image
+                            )
 
                     source_text = " | ".join(source_parts)
-                    font_size = (
-                        median(
-                            [c.cell_font_size for c in cells if c.cell_font_size > 0]
-                        )
-                        if any(c.cell_font_size > 0 for c in cells)
-                        else 0.0
-                    )
                     if not cells:
-                        source_text, font_size = extract_text_for_region(
+                        source_text = extract_text_for_region(
                             page_ocr.ocr_result, block.bbox_image
                         )
                 else:
-                    source_text, font_size = extract_text_for_region(
+                    source_text = extract_text_for_region(
                         page_ocr.ocr_result, block.bbox_image
                     )
                     if block.category == ElementCategory.EQUATION:
@@ -311,7 +317,6 @@ class StageAParser:
                         translated_text="",
                         latex=latex,
                         cells=cells,
-                        font_size=font_size,
                     )
                 )
 
