@@ -174,6 +174,7 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
 
     return sorted_lines
 
+
 def extract_text_for_region(
     ocr_result: Any,
     region_bbox: list[float],

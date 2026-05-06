@@ -24,7 +24,7 @@ _PHASE_MEMORY_MB = {
 _DEFAULT_BATCHES = {
     "cuda": {
         "layout": 32,
-        "detection": 36,
+        "detection": 32,
         "recognition": 128,
         "table": 32,
         "equation": 256,
@@ -138,7 +138,6 @@ def configure_settings(
     detection_batch_size: int | None = None,
     ocr_batch_size: int | None = None,
     table_batch_size: int | None = None,
-    equation_batch_size: int | None = None,
     enable_latex: bool = False,
     gpu_memory_utilization: float = 0.9,
 ) -> HardwareConfig:
@@ -150,21 +149,28 @@ def configure_settings(
         int(free_vram_mb * gpu_memory_utilization) if free_vram_mb is not None else None
     )
 
-    resolved_layout_batch = _estimate_phase_batch(
-        resolved_device, "layout", usable_vram_mb, layout_batch_size
+    resolved_layout_batch = min(
+        _estimate_phase_batch(
+            resolved_device, "layout", usable_vram_mb, layout_batch_size
+        ),
+        _DEFAULT_BATCHES[resolved_device]["layout"],
     )
-    resolved_detection_batch = _estimate_phase_batch(
-        resolved_device, "detection", usable_vram_mb, detection_batch_size
+
+    resolved_detection_batch = min(
+        _estimate_phase_batch(
+            resolved_device, "detection", usable_vram_mb, detection_batch_size
+        ),
+        _DEFAULT_BATCHES[resolved_device]["detection"],
     )
-    resolved_table_batch = _estimate_phase_batch(
-        resolved_device, "table", usable_vram_mb, table_batch_size
-    )
-    resolved_equation_batch = _estimate_phase_batch(
-        resolved_device, "equation", usable_vram_mb, equation_batch_size
+
+    resolved_table_batch = min(
+        _estimate_phase_batch(
+            resolved_device, "table", usable_vram_mb, table_batch_size
+        ),
+        _DEFAULT_BATCHES[resolved_device]["table"],
     )
 
     THRESHOLD_20GB_MB = 20 * 1024
-    THRESHOLD_40GB_MB = 40 * 1024
 
     resolved_ocr_batch = _estimate_phase_batch(
         resolved_device, "recognition", usable_vram_mb, ocr_batch_size
@@ -175,10 +181,10 @@ def configure_settings(
             resolved_ocr_batch = min(
                 resolved_ocr_batch, _DEFAULT_BATCHES[resolved_device]["recognition"]
             )
-        elif total_vram_mb >= THRESHOLD_40GB_MB:
-            resolved_ocr_batch = 512
         else:
-            resolved_ocr_batch = 256
+            resolved_ocr_batch = 512
+
+    resolved_equation_batch = resolved_ocr_batch
 
     resolved_page_batch = page_batch_size
     if resolved_page_batch is None:

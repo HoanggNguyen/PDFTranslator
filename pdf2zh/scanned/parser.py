@@ -37,6 +37,8 @@ from pdf2zh.scanned.models import (
     _TableJob,
 )
 from pdf2zh.scanned.utils.bbox import (
+    bbox_area,
+    bbox_intersection,
     clamp_bbox,
     convert_bbox,
     image_bbox_to_pdf,
@@ -67,7 +69,6 @@ class StageAParser:
         detection_batch_size: int | None = None,
         ocr_batch_size: int | None = None,
         table_batch_size: int | None = None,
-        equation_batch_size: int | None = None,
         enable_latex: bool = False,
         gpu_memory_utilization: float = 0.8,
     ) -> None:
@@ -81,7 +82,6 @@ class StageAParser:
             detection_batch_size=detection_batch_size,
             ocr_batch_size=ocr_batch_size,
             table_batch_size=table_batch_size,
-            equation_batch_size=equation_batch_size,
             enable_latex=enable_latex,
             gpu_memory_utilization=gpu_memory_utilization,
         )
@@ -225,9 +225,7 @@ class StageAParser:
         for layout_page in layout_result.pages:
             page_ocr = ocr_page_map.get(layout_page.page_index)
             if page_ocr is None:
-                raise ValueError(
-                    f"ocr_result is missing page {layout_page.page_index}"
-                )
+                raise ValueError(f"ocr_result is missing page {layout_page.page_index}")
             elements: list[ElementData] = []
 
             for block in layout_page.blocks:
@@ -256,7 +254,11 @@ class StageAParser:
                         for cell_bbox in table_block.cells_bbox:
                             cell_bbox_image = offset_bbox(
                                 convert_bbox(
-                                    cell_bbox, crop_w, crop_h, block_image_w, block_image_h
+                                    cell_bbox,
+                                    crop_w,
+                                    crop_h,
+                                    block_image_w,
+                                    block_image_h,
                                 ),
                                 block.bbox_image[0],
                                 block.bbox_image[1],
@@ -264,7 +266,11 @@ class StageAParser:
                             cell_bbox_pdf = clamp_bbox(
                                 offset_bbox(
                                     convert_bbox(
-                                        cell_bbox, crop_w, crop_h, block_pdf_w, block_pdf_h
+                                        cell_bbox,
+                                        crop_w,
+                                        crop_h,
+                                        block_pdf_w,
+                                        block_pdf_h,
                                     ),
                                     block.bbox_pdf[0],
                                     block.bbox_pdf[1],
@@ -320,8 +326,14 @@ class StageAParser:
                     )
                 )
 
-            # Don't need sort because surya-ocr return layout with reading order
-            # elements.sort(key=lambda element: element.bbox_pdf[1])
+            orphan_elements = self._collect_orphan_ocr_elements(layout_page, page_ocr)
+            elements.extend(orphan_elements)
+
+            # Layout blocks already arrive in reading order, but orphan OCR lines
+            # need to be merged back into the page flow by position.
+            elements.sort(
+                key=lambda element: (element.bbox_pdf[1], element.bbox_pdf[0])
+            )
             # log_toc_hints(elements, layout_page.page_index)
             pages.append(
                 PageData(
@@ -340,6 +352,72 @@ class StageAParser:
             chapters=[],
             glossary={},
         )
+
+    def _collect_orphan_ocr_elements(
+        self,
+        layout_page: LayoutPageResult,
+        page_ocr: OCRPageResult,
+        overlap_threshold: float = 0.5,
+    ) -> list[ElementData]:
+        """Keep OCR lines that are not covered by any detected layout block."""
+
+        text_lines = getattr(page_ocr.ocr_result, "text_lines", None)
+        if not text_lines:
+            return []
+
+        orphan_elements: list[ElementData] = []
+        layout_bboxes = [block.bbox_image for block in layout_page.blocks]
+
+        for line in text_lines:
+            line_text = getattr(line, "text", "").strip()
+            if not line_text:
+                continue
+
+            line_bbox = getattr(line, "bbox", None)
+            if line_bbox is None and hasattr(line, "polygon"):
+                line_bbox = polygon_to_bbox(line.polygon)
+            if line_bbox is None or is_degenerate(line_bbox):
+                continue
+
+            line_area = bbox_area(line_bbox)
+            if line_area <= 0:
+                continue
+
+            belongs_to_layout = False
+            for layout_bbox in layout_bboxes:
+                intersection = bbox_intersection(line_bbox, layout_bbox)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / line_area
+                if overlap_ratio >= overlap_threshold:
+                    belongs_to_layout = True
+                    break
+
+            if belongs_to_layout:
+                continue
+
+            orphan_bbox_pdf = clamp_bbox(
+                image_bbox_to_pdf(
+                    line_bbox,
+                    page_ocr.image_bbox,
+                    layout_page.page_width,
+                    layout_page.page_height,
+                ),
+                layout_page.page_width,
+                layout_page.page_height,
+            )
+            orphan_elements.append(
+                ElementData(
+                    label="Text",
+                    category=DEFAULT_CATEGORY,
+                    bbox_pdf=orphan_bbox_pdf,
+                    source_text=line_text,
+                    translated_text="",
+                )
+            )
+
+        return orphan_elements
 
     def parse_pdf(
         self,
@@ -472,7 +550,7 @@ class StageAParser:
         images: list[Image.Image],
     ) -> list[LayoutPageResult]:
         layout_predictions = self.layout_model(
-            images, batch_size=self.hardware.layout_batch_size, auto_unload=True
+            images, batch_size=self.hardware.layout_batch_size, auto_unload=False
         )
 
         layout_pages: list[LayoutPageResult] = []
@@ -550,7 +628,7 @@ class StageAParser:
             math_mode=False,
             detection_batch_size=self.hardware.detection_batch_size,
             ocr_batch_size=self.hardware.ocr_batch_size,
-            auto_unload=True,
+            auto_unload=False,
         )
 
         return [
@@ -603,7 +681,7 @@ class StageAParser:
             return TableParseResult(pdf_path="", tables={})
 
         table_predictions = self.table_model(
-            table_crops, batch_size=self.hardware.table_batch_size, auto_unload=True
+            table_crops, batch_size=self.hardware.table_batch_size, auto_unload=False
         )
 
         tables: dict[str, TableBlockResult] = {}

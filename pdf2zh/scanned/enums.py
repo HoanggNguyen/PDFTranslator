@@ -73,11 +73,11 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     SuryaLabel.PAGE_HEADER: ElementCategory.BYPASS,
     SuryaLabel.PAGE_FOOTER: ElementCategory.BYPASS,
     SuryaLabel.CAPTION: ElementCategory.IN_PLACE,
-    SuryaLabel.TABLE_OF_CONTENTS: ElementCategory.TABLE,
+    SuryaLabel.TABLE_OF_CONTENTS: ElementCategory.FLOWING_TEXT,
     # BYPASS: graphics that should be copied without modification
     SuryaLabel.PICTURE: ElementCategory.BYPASS,
     SuryaLabel.FIGURE: ElementCategory.BYPASS,
-    SuryaLabel.FORM: ElementCategory.BYPASS,
+    SuryaLabel.FORM: ElementCategory.FLOWING_TEXT,
     # TABLE: structured data requiring cell-level translation
     SuryaLabel.TABLE: ElementCategory.TABLE,
     # EQUATION: math content to be preserved as-is
