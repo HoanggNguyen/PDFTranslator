@@ -107,15 +107,17 @@ def test_collect_translatables_on_sample():
     write_keys = [t.write_key for t in tasks]
     texts = [t.text for t in tasks]
 
-    # Expected: 6 tasks
+    # Expected: 7 tasks
     # id=0: source_text of SectionHeader
     # id=1: source_text of Text element
     # id=2: source_text of Caption (BYPASS picture skipped, equation-only skipped)
     # id=3: latex of Caption ("Result table")
-    # id=4: cells[0].text of Caption ("Accuracy")
-    # id=5: source_text of page 1 Text
-    assert len(tasks) == 6
-    assert ids == ["0", "1", "2", "3", "4", "5"]
+    # id=4: cells[0].source_text of Table ("Accuracy")
+    # id=5: cells[2].source_text of Table ("Precision")
+    #       (TABLE elem.source_text skipped; "42.5" + "" cells filtered)
+    # id=6: source_text of page 1 Text
+    assert len(tasks) == 7
+    assert ids == ["0", "1", "2", "3", "4", "5", "6"]
 
     assert texts[0] == "Introduction to Machine Learning"
     assert write_keys[0] == "translated_text"
@@ -129,8 +131,11 @@ def test_collect_translatables_on_sample():
     assert texts[4] == "Accuracy"
     assert write_keys[4] == "translated_text"
 
-    assert texts[5] == "CeADAR is a research center located in Dublin Ireland."
+    assert texts[5] == "Precision"
     assert write_keys[5] == "translated_text"
+
+    assert texts[6] == "CeADAR is a research center located in Dublin Ireland."
+    assert write_keys[6] == "translated_text"
 
     # BYPASS element source_text not included
     assert not any(t.text == "" for t in tasks)
@@ -138,6 +143,8 @@ def test_collect_translatables_on_sample():
     assert not any("<math>P(x)" in t.text for t in tasks)
     # "42.5" not included (is_plain_text → False)
     assert not any(t.text == "42.5" for t in tasks)
+    # TABLE elem.source_text (the joined " | " string) not translated directly
+    assert not any(t.text == "Accuracy | 42.5 | Precision" for t in tasks)
 
 
 # ── 5. end-to-end with mocked Gateway.call ──────────────────────────────────────
@@ -172,12 +179,15 @@ def test_translate_document_end_to_end_mocked():
     # Original latex unchanged
     assert elems0[4]["latex"] == "Result table"
 
-    # cells[0] gets translated_text
-    assert elems0[4]["cells"][0]["translated_text"] == "<TR:Accuracy>"
-    # cells[0] original text unchanged
-    assert elems0[4]["cells"][0]["text"] == "Accuracy"
-    # "42.5" cell gets no translated_text
-    assert "translated_text" not in elems0[4]["cells"][1]
+    # TABLE element: cells get translated, elem.translated_text stays empty
+    table = elems0[5]
+    assert table["category"] == "TABLE"
+    assert table["translated_text"] == ""
+    assert table["cells"][0]["translated_text"] == "<TR:Accuracy>"
+    assert table["cells"][0]["source_text"] == "Accuracy"
+    assert table["cells"][1]["translated_text"] == ""  # "42.5" — not plain text
+    assert table["cells"][2]["translated_text"] == "<TR:Precision>"
+    assert table["cells"][3]["translated_text"] == ""  # empty cell
 
     # BYPASS element unchanged
     bypass = elems0[2]

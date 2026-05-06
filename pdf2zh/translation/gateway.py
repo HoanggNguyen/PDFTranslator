@@ -124,6 +124,9 @@ class Gateway:
             finish = choices[0].get("finish_reason")
             content = choices[0].get("message", {}).get("content", "")
             content = _THINK_RE.sub("", content)
+            # Drop lone UTF-16 surrogates the model occasionally emits;
+            # httpx fails to UTF-8 encode them on subsequent retry requests.
+            content = content.encode("utf-8", errors="ignore").decode("utf-8")
             content = self._merge(accumulated, content) if accumulated else content
             if finish == "length" and cont < _MAX_CONTINUE:
                 return await self._request(

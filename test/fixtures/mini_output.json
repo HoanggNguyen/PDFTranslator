@@ -51,10 +51,20 @@
           "source_text": "Table showing experimental results",
           "translated_text": "",
           "latex": "Result table",
+          "cells": []
+        },
+        {
+          "label": "Table",
+          "category": "TABLE",
+          "bbox_pdf": [72, 400, 540, 500],
+          "source_text": "Accuracy | 42.5 | Precision",
+          "translated_text": "",
+          "latex": "",
           "cells": [
-            {"text": "Accuracy", "value": "0.95"},
-            {"text": "42.5"},
-            {"text": ""}
+            {"bbox_pdf": [72, 480, 200, 500], "source_text": "Accuracy", "translated_text": "", "cell_font_size": 10.0},
+            {"bbox_pdf": [200, 480, 320, 500], "source_text": "42.5", "translated_text": "", "cell_font_size": 10.0},
+            {"bbox_pdf": [320, 480, 540, 500], "source_text": "Precision", "translated_text": "", "cell_font_size": 10.0},
+            {"bbox_pdf": [72, 460, 200, 480], "source_text": "", "translated_text": "", "cell_font_size": 10.0}
           ]
         }
       ]

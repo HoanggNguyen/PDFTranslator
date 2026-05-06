@@ -11,16 +11,22 @@ def collect_translatables(doc: dict) -> list[Task]:
     idx = 0
     for page in doc.get("pages", []):
         for elem in page.get("elements", []):
-            src = elem.get("source_text", "")
-            if src and elem.get("category") != "BYPASS" and not is_equation_only(src):
-                tasks.append(Task(elem, "translated_text", src, str(idx)))
-                idx += 1
+            category = elem.get("category", "")
+            cells = elem.get("cells", [])
+            # TABLE with cells: translate each cell individually; skip elem.source_text
+            # (which is just " | ".join(cells) — translating both wastes API calls).
+            is_table_with_cells = category == "TABLE" and cells
+            if not is_table_with_cells:
+                src = elem.get("source_text", "")
+                if src and category != "BYPASS" and not is_equation_only(src):
+                    tasks.append(Task(elem, "translated_text", src, str(idx)))
+                    idx += 1
             latex = elem.get("latex", "")
             if latex and is_plain_text(latex):
                 tasks.append(Task(elem, "translated_latex", latex, str(idx)))
                 idx += 1
-            for cell in elem.get("cells", []):
-                text = cell.get("text", "")
+            for cell in cells:
+                text = cell.get("source_text", "")
                 if text and is_plain_text(text):
                     tasks.append(Task(cell, "translated_text", text, str(idx)))
                     idx += 1
