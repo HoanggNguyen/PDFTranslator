@@ -28,21 +28,41 @@ def main() -> None:
     ap.add_argument("--parsed", required=True, help="Translated JSON (phase 2 output)")
     ap.add_argument("--output", required=True, help="Output PDF path")
     ap.add_argument("--font-config", default=None, help="JSON font/render config file")
-    ap.add_argument("--font-family", default="Helvetica",
-                    help="Typst font (single name or comma-separated fallback chain)")
-    ap.add_argument("--font-path", action="append", default=[], dest="font_paths",
-                    help="Typst --font-path directory (repeatable)")
+    ap.add_argument(
+        "--font-family",
+        default="Helvetica",
+        help="Typst font (single name or comma-separated fallback chain)",
+    )
+    ap.add_argument(
+        "--font-path",
+        action="append",
+        default=[],
+        dest="font_paths",
+        help="Typst --font-path directory (repeatable)",
+    )
     ap.add_argument("--pages", default=None, help="Page filter e.g. 0-4,7,10")
     ap.add_argument("--min-font", type=float, default=7.0, dest="min_font_size_pt")
     ap.add_argument("--typst-bin", default="typst", help="Path to typst binary")
-    ap.add_argument("--keep-typst-source", action="store_true",
-                    help="Save intermediate .typ file alongside output")
-    ap.add_argument("--no-bg-sampling", action="store_true",
-                    help="Disable background color sampling (use white)")
-    ap.add_argument("--no-redact", action="store_true",
-                    help="Skip native text layer redaction (faster, but original text remains selectable)")
-    ap.add_argument("--aggressive-compress", action="store_true",
-                    help="Re-encode images via pikepdf")
+    ap.add_argument(
+        "--keep-typst-source",
+        action="store_true",
+        help="Save intermediate .typ file alongside output",
+    )
+    ap.add_argument(
+        "--no-bg-sampling",
+        action="store_true",
+        help="Disable background color sampling (use white)",
+    )
+    ap.add_argument(
+        "--no-redact",
+        action="store_true",
+        help="Skip native text layer redaction (faster, but original text remains selectable)",
+    )
+    ap.add_argument(
+        "--aggressive-compress",
+        action="store_true",
+        help="Re-encode images via pikepdf",
+    )
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 

@@ -25,10 +25,16 @@ def main() -> None:
     parser.add_argument("--concurrent", type=int, default=30)
     parser.add_argument("--chunk-bytes", type=int, default=3000)
     parser.add_argument("--no-glossary", action="store_true")
-    parser.add_argument("--no-math-fix", action="store_true",
-                        help="Skip post-translation math/layout fix pass")
-    parser.add_argument("--no-toc-fix", action="store_true",
-                        help="Skip post-translation table-of-contents fix pass")
+    parser.add_argument(
+        "--no-math-fix",
+        action="store_true",
+        help="Skip post-translation math/layout fix pass",
+    )
+    parser.add_argument(
+        "--no-toc-fix",
+        action="store_true",
+        help="Skip post-translation table-of-contents fix pass",
+    )
     parser.add_argument("--length-tolerance", type=float, default=0.15)
     parser.add_argument("--rpm", type=int, default=None)
     parser.add_argument("--tpm", type=int, default=None)

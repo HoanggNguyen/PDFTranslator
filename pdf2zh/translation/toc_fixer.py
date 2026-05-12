@@ -13,6 +13,7 @@ This pass asks the LLM to:
 The render-time `parse_toc_entries` then has clean per-line input to work
 with, producing properly aligned TOC layouts.
 """
+
 from __future__ import annotations
 
 import asyncio

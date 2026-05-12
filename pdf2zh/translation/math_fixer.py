@@ -11,6 +11,7 @@ This module:
      blocks for grid/column layouts
   4. Writes corrections back into the doc
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -40,20 +41,20 @@ logger = logging.getLogger("json_translator")
 # - Exponent/subscript notation: x^2, a_n, x^{n+1}
 # - Existing <math> tags (we still want layout reasoning)
 _MATH_INDICATORS = re.compile(
-    r"<math\b"                                          # already-tagged math (re-check layout)
-    r"|\\[a-zA-Z]{2,}"                                  # any LaTeX backslash command
-    r"|\b(?:frac|sqrt|sum|int|prod|lim)\s*\("           # Typst math calls
+    r"<math\b"  # already-tagged math (re-check layout)
+    r"|\\[a-zA-Z]{2,}"  # any LaTeX backslash command
+    r"|\b(?:frac|sqrt|sum|int|prod|lim)\s*\("  # Typst math calls
     r"|\b(?:pi|theta|alpha|beta|gamma|delta|sigma|mu|lambda|omega|infty|sin|cos|tan|log|ln)\b"
-    r"|[a-zA-Z][\^_]\{?[0-9a-zA-Z+\-]"                  # x^2, a_n, x^{n+1}
+    r"|[a-zA-Z][\^_]\{?[0-9a-zA-Z+\-]"  # x^2, a_n, x^{n+1}
 )
 
 
 class MathTask(NamedTuple):
-    elem: dict      # element dict to write back into
+    elem: dict  # element dict to write back into
     write_key: str  # "translated_text"
-    text: str       # current translated_text
-    bbox: list      # [x0, y0, x1, y1] for layout reasoning
-    id: str         # numeric id for chunk addressing
+    text: str  # current translated_text
+    bbox: list  # [x0, y0, x1, y1] for layout reasoning
+    id: str  # numeric id for chunk addressing
 
 
 def collect_math_candidates(doc: dict) -> list[MathTask]:
@@ -128,9 +129,7 @@ def _has_unsafe_latex(text: str) -> bool:
     return bool(re.search(r"\\[a-zA-Z]+", s))
 
 
-async def _fix_one_chunk(
-    gw: Gateway, chunk: list[MathTask]
-) -> dict[str, str]:
+async def _fix_one_chunk(gw: Gateway, chunk: list[MathTask]) -> dict[str, str]:
     payload = [
         {
             "id": t.id,

@@ -12,24 +12,25 @@ _MATH_DISPLAY = re.compile(
 )
 # Inline math: <math>X</math>  (no display attribute, or display="inline")
 _MATH_INLINE = re.compile(
-    r'<math(?:\s+display=["\']inline["\'])?[^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE
+    r'<math(?:\s+display=["\']inline["\'])?[^>]*>(.*?)</math>',
+    re.DOTALL | re.IGNORECASE,
 )
-_BOLD = re.compile(r'<(?:b|strong)>(.*?)</(?:b|strong)>', re.DOTALL | re.IGNORECASE)
-_ITALIC = re.compile(r'<(?:i|em)>(.*?)</(?:i|em)>', re.DOTALL | re.IGNORECASE)
-_SUP = re.compile(r'<sup>(.*?)</sup>', re.DOTALL | re.IGNORECASE)
-_SUB = re.compile(r'<sub>(.*?)</sub>', re.DOTALL | re.IGNORECASE)
-_ANY_TAG = re.compile(r'<[^>]+>')
+_BOLD = re.compile(r"<(?:b|strong)>(.*?)</(?:b|strong)>", re.DOTALL | re.IGNORECASE)
+_ITALIC = re.compile(r"<(?:i|em)>(.*?)</(?:i|em)>", re.DOTALL | re.IGNORECASE)
+_SUP = re.compile(r"<sup>(.*?)</sup>", re.DOTALL | re.IGNORECASE)
+_SUB = re.compile(r"<sub>(.*?)</sub>", re.DOTALL | re.IGNORECASE)
+_ANY_TAG = re.compile(r"<[^>]+>")
 
 # Bare LaTeX command sequences (outside $ markers): \cmd{...} or \cmd
 _BARE_LATEX = re.compile(
-    r'(?<!\$)'                          # not already inside $
-    r'((?:\\[a-zA-Z]+(?:\{[^}]*\}|\[[^\]]*\])*\s*)+)'  # one or more \cmd{...}
+    r"(?<!\$)"  # not already inside $
+    r"((?:\\[a-zA-Z]+(?:\{[^}]*\}|\[[^\]]*\])*\s*)+)"  # one or more \cmd{...}
 )
 
 # Typst special chars in plain text (outside math)
-_TYPST_ESCAPE = re.compile(r'([#@\\])')
+_TYPST_ESCAPE = re.compile(r"([#@\\])")
 # Literal < > after all tags stripped
-_LT = re.compile(r'<(?![a-zA-Z/])')
+_LT = re.compile(r"<(?![a-zA-Z/])")
 _GT = re.compile(r'(?<![a-zA-Z0-9"])\s*>')
 
 
@@ -90,7 +91,7 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
 
     # 9. For non-equation: escape any remaining $ so cmarker never treats them as math.
     if not is_equation:
-        result = re.sub(r'(?<!\\)\$', r'\\$', result)
+        result = re.sub(r"(?<!\\)\$", r"\\$", result)
 
     return result
 
@@ -150,21 +151,22 @@ def _clean_math_chunk(chunk: str) -> str:
       \\cmd         → cmd  (bare backslash command)
     Also runs identifier splitting (bh → b h).
     """
-    m = re.match(r'^(\$+)(.*?)(\$+)$', chunk, re.DOTALL)
+    m = re.match(r"^(\$+)(.*?)(\$+)$", chunk, re.DOTALL)
     if not m:
         return chunk
     open_d, content, close_d = m.group(1), m.group(2), m.group(3)
     # Two-arg LaTeX commands (frac/binom) — convert before single-arg pass
     content = re.sub(
-        r'\\(frac|binom|tbinom|dbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}',
-        r'\1(\2, \3)', content,
+        r"\\(frac|binom|tbinom|dbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"\1(\2, \3)",
+        content,
     )
     # Single-arg LaTeX command: \cmd{x} → cmd(x)
-    content = re.sub(r'\\([a-zA-Z]+)\s*\{([^{}]*)\}', r'\1(\2)', content)
+    content = re.sub(r"\\([a-zA-Z]+)\s*\{([^{}]*)\}", r"\1(\2)", content)
     # Bare backslash command: \cmd → cmd
-    content = re.sub(r'\\([a-zA-Z]+)', r'\1', content)
+    content = re.sub(r"\\([a-zA-Z]+)", r"\1", content)
     # Drop \left / \right artefacts (already stripped above as 'left'/'right')
-    content = re.sub(r'\b(left|right)\s*([({[\])])', r'\2', content)
+    content = re.sub(r"\b(left|right)\s*([({[\])])", r"\2", content)
     content = _split_math_vars(content)
     return f"{open_d}{content}{close_d}"
 
@@ -219,18 +221,16 @@ _MATH_TYPST_DISPLAY = re.compile(
     r'<math\s+display=["\']block["\'][^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE
 )
 _MATH_TYPST_INLINE = re.compile(
-    r'<math(?:\s+display=["\']inline["\'])?[^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE
+    r'<math(?:\s+display=["\']inline["\'])?[^>]*>(.*?)</math>',
+    re.DOTALL | re.IGNORECASE,
 )
 # Raw Typst blocks emitted by the math-fix pass (e.g. #grid for layouts)
-_TYPST_BLOCK = re.compile(r'<typst>(.*?)</typst>', re.DOTALL | re.IGNORECASE)
+_TYPST_BLOCK = re.compile(r"<typst>(.*?)</typst>", re.DOTALL | re.IGNORECASE)
 
 # Detect translatable prose: word run after stripping math/tags. Anything left
 # means there's real text to render; otherwise the element is pure math and we
 # should preserve the original PDF text layer.
-_PROSE_LETTER_RUN = re.compile(
-    r"[A-Za-zÀ-ɏͰ-ϿЀ-ӿ"
-    r"؀-ۿऀ-ॿ฀-๿⺀-鿿]{2,}"
-)
+_PROSE_LETTER_RUN = re.compile(r"[A-Za-zÀ-ɏͰ-ϿЀ-ӿ" r"؀-ۿऀ-ॿ฀-๿⺀-鿿]{2,}")
 _DOLLAR_BLOCK_RE = re.compile(r"\$\$.*?\$\$", re.DOTALL)
 _DOLLAR_INLINE_RE = re.compile(r"\$[^$\n]*\$")
 _LATEX_CMD_RE = re.compile(r"\\[a-zA-Z]+(?:\s*\{[^{}]*\})*")
@@ -288,42 +288,177 @@ def is_pure_math_text(text: str) -> bool:
     s = _HTML_ANY_RE.sub("", s)
     return not _PROSE_LETTER_RUN.search(s)
 
+
 # Known Typst math identifiers that must NOT be split into separate letters.
 _TYPST_MATH_IDENTIFIERS: set[str] = {
     # Greek letters (lowercase + uppercase)
-    'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta',
-    'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'omicron', 'pi', 'rho',
-    'sigma', 'tau', 'upsilon', 'phi', 'chi', 'psi', 'omega',
-    'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta',
-    'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho',
-    'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega',
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "epsilon",
+    "zeta",
+    "eta",
+    "theta",
+    "iota",
+    "kappa",
+    "lambda",
+    "mu",
+    "nu",
+    "xi",
+    "omicron",
+    "pi",
+    "rho",
+    "sigma",
+    "tau",
+    "upsilon",
+    "phi",
+    "chi",
+    "psi",
+    "omega",
+    "Alpha",
+    "Beta",
+    "Gamma",
+    "Delta",
+    "Epsilon",
+    "Zeta",
+    "Eta",
+    "Theta",
+    "Iota",
+    "Kappa",
+    "Lambda",
+    "Mu",
+    "Nu",
+    "Xi",
+    "Omicron",
+    "Pi",
+    "Rho",
+    "Sigma",
+    "Tau",
+    "Upsilon",
+    "Phi",
+    "Chi",
+    "Psi",
+    "Omega",
     # Variant Greek
-    'varepsilon', 'varphi', 'vartheta', 'varrho', 'varsigma',
+    "varepsilon",
+    "varphi",
+    "vartheta",
+    "varrho",
+    "varsigma",
     # Common math functions
-    'frac', 'sqrt', 'root', 'abs', 'norm', 'floor', 'ceil', 'round',
-    'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
-    'arcsin', 'arccos', 'arctan', 'arccot', 'arcsec', 'arccsc',
-    'sinh', 'cosh', 'tanh', 'coth', 'sech', 'csch',
-    'log', 'ln', 'exp', 'det', 'dim', 'ker', 'gcd', 'lcm',
-    'max', 'min', 'sum', 'prod', 'lim', 'inf', 'sup',
-    'mod', 'deg', 'arg',
+    "frac",
+    "sqrt",
+    "root",
+    "abs",
+    "norm",
+    "floor",
+    "ceil",
+    "round",
+    "sin",
+    "cos",
+    "tan",
+    "cot",
+    "sec",
+    "csc",
+    "arcsin",
+    "arccos",
+    "arctan",
+    "arccot",
+    "arcsec",
+    "arccsc",
+    "sinh",
+    "cosh",
+    "tanh",
+    "coth",
+    "sech",
+    "csch",
+    "log",
+    "ln",
+    "exp",
+    "det",
+    "dim",
+    "ker",
+    "gcd",
+    "lcm",
+    "max",
+    "min",
+    "sum",
+    "prod",
+    "lim",
+    "inf",
+    "sup",
+    "mod",
+    "deg",
+    "arg",
     # Typst math layout/style
-    'vec', 'mat', 'cases', 'binom', 'display', 'inline', 'script',
-    'limits', 'scripts', 'attach', 'accent', 'overline', 'underline',
-    'overbrace', 'underbrace', 'cancel', 'upright', 'bold', 'italic',
-    'serif', 'sans', 'mono', 'bb', 'cal', 'frak',
+    "vec",
+    "mat",
+    "cases",
+    "binom",
+    "display",
+    "inline",
+    "script",
+    "limits",
+    "scripts",
+    "attach",
+    "accent",
+    "overline",
+    "underline",
+    "overbrace",
+    "underbrace",
+    "cancel",
+    "upright",
+    "bold",
+    "italic",
+    "serif",
+    "sans",
+    "mono",
+    "bb",
+    "cal",
+    "frak",
     # Relational / logical
-    'not', 'and', 'or', 'in', 'gt', 'lt', 'eq', 'ne', 'le', 'ge',
-    'approx', 'equiv', 'subset', 'supset', 'union', 'inter',
-    'forall', 'exists', 'therefore', 'because',
+    "not",
+    "and",
+    "or",
+    "in",
+    "gt",
+    "lt",
+    "eq",
+    "ne",
+    "le",
+    "ge",
+    "approx",
+    "equiv",
+    "subset",
+    "supset",
+    "union",
+    "inter",
+    "forall",
+    "exists",
+    "therefore",
+    "because",
     # Dots & special symbols
-    'dots', 'cdots', 'ddots', 'vdots', 'ldots',
-    'infty', 'partial', 'nabla', 'ell', 'hbar', 'planck',
-    'nothing', 'space', 'thin', 'med', 'thick',
+    "dots",
+    "cdots",
+    "ddots",
+    "vdots",
+    "ldots",
+    "infty",
+    "partial",
+    "nabla",
+    "ell",
+    "hbar",
+    "planck",
+    "nothing",
+    "space",
+    "thin",
+    "med",
+    "thick",
 }
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
-_IDENT_ALPHA = re.compile(r'[a-zA-Z]{2,}')
+_IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
 
 
 def _split_math_vars(math_content: str) -> str:
@@ -334,13 +469,14 @@ def _split_math_vars(math_content: str) -> str:
     ``theta`` etc. are kept intact, as are any word immediately followed by ``(``
     (function-call syntax).
     """
+
     def _replace(m: re.Match) -> str:
         word = m.group(0)
         # Known Typst math identifier — keep as-is
         if word in _TYPST_MATH_IDENTIFIERS:
             return word
         # Function call (followed by open paren) — keep as-is
-        if m.end() < len(math_content) and math_content[m.end()] == '(':
+        if m.end() < len(math_content) and math_content[m.end()] == "(":
             return word
         # Try greedy left-to-right: peel off known identifiers, then single chars
         result_parts: list[str] = []
@@ -349,7 +485,7 @@ def _split_math_vars(math_content: str) -> str:
             matched = False
             # Try longest known identifier starting at position i
             for length in range(min(len(word) - i, 12), 1, -1):
-                candidate = word[i:i + length]
+                candidate = word[i : i + length]
                 if candidate in _TYPST_MATH_IDENTIFIERS:
                     result_parts.append(candidate)
                     i += length
@@ -358,7 +494,7 @@ def _split_math_vars(math_content: str) -> str:
             if not matched:
                 result_parts.append(word[i])
                 i += 1
-        return ' '.join(result_parts)
+        return " ".join(result_parts)
 
     return _IDENT_ALPHA.sub(_replace, math_content)
 
@@ -416,16 +552,18 @@ def to_typst_native(text: str) -> str:
 
     # 6. Restore raw Typst blocks; clean LLM mistakes inside $...$ math regions.
     if raw_typst:
+
         def _restore(m: re.Match) -> str:
             content = raw_typst[int(m.group(1))]
             content = content.replace("\\/", "/")  # legacy prompt artifact
             # Inside each inline $...$, run full math cleanup (LaTeX → Typst, var split).
             return re.sub(
-                r'\$([^$]+?)\$',
+                r"\$([^$]+?)\$",
                 lambda mm: _clean_math_chunk(f"${mm.group(1)}$"),
                 content,
                 flags=re.DOTALL,
             )
+
         result = re.sub(f"{TS_OPEN}(\\d+){TS_CLOSE}", _restore, result)
 
     return result
@@ -439,10 +577,10 @@ def to_typst_native(text: str) -> str:
 # Lookahead: followed by whitespace+digit (next entry) or end of string.
 # Page numbers limited to 1-3 digits to avoid matching years like 2023.
 _TOC_BLOB_RE = re.compile(
-    r'(.+?)\s*(?:(?:\.\s*){2,})?\s*(\d{1,3})(?=\s+\d|\s*$)',
+    r"(.+?)\s*(?:(?:\.\s*){2,})?\s*(\d{1,3})(?=\s+\d|\s*$)",
     re.DOTALL,
 )
-_DOT_SEQ_RE = re.compile(r'\s*(?:\.\s*){2,}')
+_DOT_SEQ_RE = re.compile(r"\s*(?:\.\s*){2,}")
 
 
 def parse_toc_line(line: str) -> tuple[str, str] | None:
@@ -450,7 +588,7 @@ def parse_toc_line(line: str) -> tuple[str, str] | None:
     line = line.strip()
     if not line:
         return None
-    m = re.match(r'^(.*?)\s+(\d+)\s*$', line)
+    m = re.match(r"^(.*?)\s+(\d+)\s*$", line)
     if m:
         return m.group(1).strip(), m.group(2)
     return None
@@ -463,7 +601,7 @@ def parse_toc_entries(text: str) -> list[tuple[str, str | None]]:
     (entries concatenated with dot leaders or bare spaces).
     page_num is None for entries where no page number could be found.
     """
-    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
     if len(lines) > 1:
         result = []
         for line in lines:
@@ -475,16 +613,16 @@ def parse_toc_entries(text: str) -> list[tuple[str, str | None]]:
     entries: list[tuple[str, str | None]] = []
     prev_end = 0
     for m in _TOC_BLOB_RE.finditer(text):
-        gap = text[prev_end:m.start()].strip()
+        gap = text[prev_end : m.start()].strip()
         if gap:
-            clean = _DOT_SEQ_RE.sub(' ', gap).strip()
+            clean = _DOT_SEQ_RE.sub(" ", gap).strip()
             if clean:
                 entries.append((clean, None))
         title = m.group(1).strip()
         if title:
             entries.append((title, m.group(2)))
         prev_end = m.end()
-    tail = _DOT_SEQ_RE.sub(' ', text[prev_end:]).strip()
+    tail = _DOT_SEQ_RE.sub(" ", text[prev_end:]).strip()
     if tail:
         entries.append((tail, None))
     return entries if entries else [(text.strip(), None)]

@@ -8,7 +8,6 @@ import fitz
 
 from .background import RGB, prepare_cover, sample_text_color
 from .compiler import compile_typst
-from .compress import finalize_save
 from .config import RenderConfig
 from .markup import has_bare_latex, has_unbalanced_math_tags, is_pure_math_text
 from .overlay import composite_overlay
@@ -119,8 +118,10 @@ def render_document(
 
     logger.info(
         "render_document done: pages=%d rendered=%d skipped=%d cells=%d",
-        stats["pages"], stats["elements_rendered"],
-        stats["elements_skipped"], stats["cells_rendered"],
+        stats["pages"],
+        stats["elements_rendered"],
+        stats["elements_skipped"],
+        stats["cells_rendered"],
     )
     return stats
 
@@ -166,7 +167,9 @@ def _redact_text_layer(
                         if not cell.get("translated_text"):
                             continue
                         cell_uid = f"{uid}:c{cell_idx}"
-                        cx0, cy0, cx1, cy1 = cell.get("bbox_pdf", elem.get("bbox_pdf", [0,0,10,10]))
+                        cx0, cy0, cx1, cy1 = cell.get(
+                            "bbox_pdf", elem.get("bbox_pdf", [0, 0, 10, 10])
+                        )
                         fill = bg_colors.get(cell_uid, (255, 255, 255))
                         page.add_redact_annot(
                             fitz.Rect(cx0 - pad, cy0 - pad, cx1 + pad, cy1 + pad),
@@ -180,9 +183,11 @@ def _redact_text_layer(
                         continue
                     if category == "EQUATION" and translated == source:
                         continue
-                    if (is_pure_math_text(translated)
-                            or has_unbalanced_math_tags(translated)
-                            or has_bare_latex(translated)):
+                    if (
+                        is_pure_math_text(translated)
+                        or has_unbalanced_math_tags(translated)
+                        or has_bare_latex(translated)
+                    ):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
                     fill = bg_colors.get(uid, (255, 255, 255))
@@ -241,7 +246,9 @@ def _sample_colors(
                         cbbox = cell.get("bbox_pdf", bbox)
                         bg = prepare_cover(page, cbbox, pw, ph, cfg.background)
                         bg_colors[cell_uid] = bg.rgb
-                        tc = sample_text_color(page, cbbox, pw, ph, bg.rgb, cfg.text_color)
+                        tc = sample_text_color(
+                            page, cbbox, pw, ph, bg.rgb, cfg.text_color
+                        )
                         text_colors[cell_uid] = tc
                         stats["bg_samples"] += 1
                 else:

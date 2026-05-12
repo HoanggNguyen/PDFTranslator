@@ -5,17 +5,26 @@ import re
 from .background import RGB
 from .config import RenderConfig, StyleSpec
 from .labels import normalize_label, style_key
-from .markup import escape_typst_string, has_bare_latex, has_unbalanced_math_tags, is_pure_math_text, parse_toc_entries, to_typst_markup, to_typst_native, _split_math_vars
+from .markup import (
+    _split_math_vars,
+    escape_typst_string,
+    has_bare_latex,
+    has_unbalanced_math_tags,
+    is_pure_math_text,
+    parse_toc_entries,
+    to_typst_markup,
+    to_typst_native,
+)
 
 CMARKER_VERSION = "0.1.8"
 MITEX_VERSION = "0.2.6"
 
 # Detects legacy LaTeX inside <math> tags (backslash commands like \frac, \sum)
-_LATEX_IN_MATH = re.compile(r'<math[^>]*>[^<]*\\[a-zA-Z]', re.DOTALL)
+_LATEX_IN_MATH = re.compile(r"<math[^>]*>[^<]*\\[a-zA-Z]", re.DOTALL)
 
 # Detects bare Typst math function calls (frac(...), sqrt(...), etc.) outside <math> tags
 _BARE_TYPST_MATH = re.compile(
-    r'(?:^|[^a-zA-Z])(?:frac|sqrt|root|binom|sum|prod|integral|mat|vec|cases|abs|norm|floor|ceil)\s*\(',
+    r"(?:^|[^a-zA-Z])(?:frac|sqrt|root|binom|sum|prod|integral|mat|vec|cases|abs|norm|floor|ceil)\s*\(",
     re.IGNORECASE,
 )
 
@@ -153,7 +162,10 @@ def _cover_rect(
 
 def _text_block(
     var: str,
-    x0: float, y0: float, x1: float, y1: float,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
     markdown: str,
     font_size: float,
     min_font: float,
@@ -171,7 +183,7 @@ def _text_block(
     return (
         f'#let {var}_md = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
-        f'  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n'
+        f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
         f"  pdftr_fit_markdown({var}_md,"
         f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
         f' weight: "{weight}", style: "{style_}")\n'
@@ -182,7 +194,10 @@ def _text_block(
 
 def _text_block_typst(
     var: str,
-    x0: float, y0: float, x1: float, y1: float,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
     typst_markup: str,
     font_size: float,
     min_font: float,
@@ -198,7 +213,7 @@ def _text_block_typst(
     return (
         f'#let {var}_tm = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
-        f'  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n'
+        f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
         f"  pdftr_fit_typst({var}_tm,"
         f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
         f' weight: "{weight}", style: "{style_}")\n'
@@ -207,12 +222,15 @@ def _text_block_typst(
     )
 
 
-_TOC_TOP_LEVEL_RE = re.compile(r'^\d+\s+\S')
+_TOC_TOP_LEVEL_RE = re.compile(r"^\d+\s+\S")
 
 
 def _toc_block(
     var: str,
-    x0: float, y0: float, x1: float, y1: float,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
     translated_text: str,
     font_size: float,
     min_font: float,
@@ -237,23 +255,31 @@ def _toc_block(
         weight = "bold" if _TOC_TOP_LEVEL_RE.match(title) else "regular"
         if page_num:
             row = (
-                f'grid(columns: (1fr, auto), gutter: 4pt, '
+                f"grid(columns: (1fr, auto), gutter: 4pt, "
                 f'text(weight: "{weight}", "{title_escaped} "), '
                 f'align(right, text(weight: "{weight}", "{page_num}")))'
             )
             page_int = int(page_num)
             if rendered_pages is None or page_int in rendered_pages:
-                markup_lines.append(f'#link(<pdftr-page-{page_int}>)[#{row}]')
+                markup_lines.append(f"#link(<pdftr-page-{page_int}>)[#{row}]")
             else:
-                markup_lines.append(f'#{row}')
+                markup_lines.append(f"#{row}")
         else:
-            markup_lines.append(
-                f'#par(text(weight: "{weight}", "{title_escaped}"))'
-            )
+            markup_lines.append(f'#par(text(weight: "{weight}", "{title_escaped}"))')
     typst_markup = "\n".join(markup_lines)
     return _text_block_typst(
-        var, x0, y0, x1, y1, typst_markup,
-        font_size, min_font, "regular", "normal", text_color, font_family,
+        var,
+        x0,
+        y0,
+        x1,
+        y1,
+        typst_markup,
+        font_size,
+        min_font,
+        "regular",
+        "normal",
+        text_color,
+        font_family,
     )
 
 
@@ -266,7 +292,7 @@ def build_typst_source(
 ) -> str:
     lines: list[str] = [
         f"#set text(font: {_font_typst(cfg.font_family)})",
-        f"#import \"@preview/cmarker:{CMARKER_VERSION}\"",
+        f'#import "@preview/cmarker:{CMARKER_VERSION}"',
         _FIT_HELPERS,
     ]
 
@@ -274,8 +300,7 @@ def build_typst_source(
     # 1-indexed page numbers that will appear in the output PDF — used to gate
     # TOC links so we don't emit links to pages that were filtered out.
     rendered_pages = {
-        i + 1 for i in range(len(pages))
-        if cfg.pages is None or i in cfg.pages
+        i + 1 for i in range(len(pages)) if cfg.pages is None or i in cfg.pages
     }
     for page_idx, page in enumerate(pages):
         if cfg.pages is not None and page_idx not in cfg.pages:
@@ -311,23 +336,53 @@ def build_typst_source(
                     continue
                 # Pure math / malformed LLM / bare LaTeX outside tags →
                 # preserve original PDF text layer (don't erase, don't overlay).
-                if (is_pure_math_text(translated)
-                        or has_unbalanced_math_tags(translated)
-                        or has_bare_latex(translated)):
+                if (
+                    is_pure_math_text(translated)
+                    or has_unbalanced_math_tags(translated)
+                    or has_bare_latex(translated)
+                ):
                     continue
-                lines.append(_cover_rect(var, x0, y0, x1, y1, bg, cfg.background.eraser_padding_pt))
+                lines.append(
+                    _cover_rect(
+                        var, x0, y0, x1, y1, bg, cfg.background.eraser_padding_pt
+                    )
+                )
                 if "<math" in translated or "<typst" in translated:
                     typst_markup = to_typst_native(translated)
-                    lines.append(_text_block_typst(var, x0, y0, x1, y1, typst_markup,
-                                                   font_size, cfg.min_font_size_pt,
-                                                   style.weight, style.style_,
-                                                   tc, cfg.font_family))
+                    lines.append(
+                        _text_block_typst(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            typst_markup,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            style.weight,
+                            style.style_,
+                            tc,
+                            cfg.font_family,
+                        )
+                    )
                 else:
                     markdown = to_typst_markup(translated)
-                    lines.append(_text_block(var, x0, y0, x1, y1, markdown,
-                                             font_size, cfg.min_font_size_pt,
-                                             style.weight, style.style_,
-                                             tc, cfg.font_family))
+                    lines.append(
+                        _text_block(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            markdown,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            style.weight,
+                            style.style_,
+                            tc,
+                            cfg.font_family,
+                        )
+                    )
 
             elif category == "TABLE":
                 cells = elem.get("cells", [])
@@ -344,14 +399,33 @@ def build_typst_source(
                     cell_size = sizes.get(cell_uid, font_size)
                     cell_md = to_typst_markup(cell_translated)
                     inset = cfg.sizing.cell_bbox_inset_pt
-                    lines.append(_cover_rect(cell_var, cx0, cy0, cx1, cy1, cell_bg,
-                                             cfg.background.eraser_padding_pt))
-                    lines.append(_text_block(cell_var,
-                                             cx0 + inset, cy0 + inset,
-                                             cx1 - inset, cy1 - inset,
-                                             cell_md, cell_size, cfg.min_font_size_pt,
-                                             cfg.cell_style.weight, cfg.cell_style.style_,
-                                             cell_tc, cfg.font_family))
+                    lines.append(
+                        _cover_rect(
+                            cell_var,
+                            cx0,
+                            cy0,
+                            cx1,
+                            cy1,
+                            cell_bg,
+                            cfg.background.eraser_padding_pt,
+                        )
+                    )
+                    lines.append(
+                        _text_block(
+                            cell_var,
+                            cx0 + inset,
+                            cy0 + inset,
+                            cx1 - inset,
+                            cy1 - inset,
+                            cell_md,
+                            cell_size,
+                            cfg.min_font_size_pt,
+                            cfg.cell_style.weight,
+                            cfg.cell_style.style_,
+                            cell_tc,
+                            cfg.font_family,
+                        )
+                    )
 
             else:  # FLOWING_TEXT, IN_PLACE
                 translated = elem.get("translated_text") or ""
@@ -359,36 +433,91 @@ def build_typst_source(
                     continue
                 # Pure math / malformed LLM / bare LaTeX outside tags →
                 # preserve original PDF text layer.
-                if (is_pure_math_text(translated)
-                        or has_unbalanced_math_tags(translated)
-                        or has_bare_latex(translated)):
+                if (
+                    is_pure_math_text(translated)
+                    or has_unbalanced_math_tags(translated)
+                    or has_bare_latex(translated)
+                ):
                     continue
 
-                lines.append(_cover_rect(var, x0, y0, x1, y1, bg, cfg.background.eraser_padding_pt))
+                lines.append(
+                    _cover_rect(
+                        var, x0, y0, x1, y1, bg, cfg.background.eraser_padding_pt
+                    )
+                )
 
                 if label == "TableOfContents":
-                    lines.append(_toc_block(var, x0, y0, x1, y1, translated,
-                                            font_size, cfg.min_font_size_pt,
-                                            tc, cfg.font_family, rendered_pages))
+                    lines.append(
+                        _toc_block(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            translated,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            tc,
+                            cfg.font_family,
+                            rendered_pages,
+                        )
+                    )
                 elif "<typst" in translated or "<math" in translated:
                     typst_markup = to_typst_native(translated)
-                    lines.append(_text_block_typst(var, x0, y0, x1, y1, typst_markup,
-                                                       font_size, cfg.min_font_size_pt,
-                                                       style.weight, style.style_,
-                                                       tc, cfg.font_family))
+                    lines.append(
+                        _text_block_typst(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            typst_markup,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            style.weight,
+                            style.style_,
+                            tc,
+                            cfg.font_family,
+                        )
+                    )
                 elif _BARE_TYPST_MATH.search(translated):
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
                     typst_markup = f"$ {_split_math_vars(translated)} $"
-                    lines.append(_text_block_typst(var, x0, y0, x1, y1, typst_markup,
-                                                   font_size, cfg.min_font_size_pt,
-                                                   style.weight, style.style_,
-                                                   tc, cfg.font_family))
+                    lines.append(
+                        _text_block_typst(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            typst_markup,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            style.weight,
+                            style.style_,
+                            tc,
+                            cfg.font_family,
+                        )
+                    )
                 else:
                     # No <math> tags, no Typst functions — plain text/LaTeX, use cmarker/mitex
                     markdown = to_typst_markup(translated)
-                    lines.append(_text_block(var, x0, y0, x1, y1, markdown, font_size,
-                                             cfg.min_font_size_pt, style.weight, style.style_,
-                                             tc, cfg.font_family))
+                    lines.append(
+                        _text_block(
+                            var,
+                            x0,
+                            y0,
+                            x1,
+                            y1,
+                            markdown,
+                            font_size,
+                            cfg.min_font_size_pt,
+                            style.weight,
+                            style.style_,
+                            tc,
+                            cfg.font_family,
+                        )
+                    )
 
         # Add pagebreak between pages (not after the last one)
         if page_idx < len(pages) - 1:

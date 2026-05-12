@@ -7,9 +7,9 @@ from typing import Any
 
 @dataclass
 class StyleSpec:
-    weight: str = "regular"   # "regular" | "bold"
-    style_: str = "normal"    # "normal" | "italic"
-    align: str = "left"       # "left" | "center" | "right"
+    weight: str = "regular"  # "regular" | "bold"
+    style_: str = "normal"  # "normal" | "italic"
+    align: str = "left"  # "left" | "center" | "right"
 
 
 @dataclass
@@ -17,26 +17,33 @@ class SizingConfig:
     detect: bool = True
     cluster_eps_pt: float = 2.0
     # Maps group name → list of labels belonging to that group
-    cluster_groups: dict[str, list[str]] = field(default_factory=lambda: {
-        "body": [
-            "Text", "ListItem", "Footnote", "Handwriting",
-            "TextInlineMath",
-        ],
-        "toc": ["TableOfContents"],
-        "equation": ["Equation"],
-        "headings": ["SectionHeader"],
-        "header_footer": ["PageHeader", "PageFooter"],
-        "caption": ["Caption"],
-    })
+    cluster_groups: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            "body": [
+                "Text",
+                "ListItem",
+                "Footnote",
+                "Handwriting",
+                "TextInlineMath",
+            ],
+            "toc": ["TableOfContents"],
+            "equation": ["Equation"],
+            "headings": ["SectionHeader"],
+            "header_footer": ["PageHeader", "PageFooter"],
+            "caption": ["Caption"],
+        }
+    )
     # "document" = cluster across all pages; "page" = cluster per page
-    cluster_scope_by_group: dict[str, str] = field(default_factory=lambda: {
-        "body": "page",
-        "toc": "document",
-        "equation": "page",
-        "headings": "page",
-        "header_footer": "page",
-        "caption": "page",
-    })
+    cluster_scope_by_group: dict[str, str] = field(
+        default_factory=lambda: {
+            "body": "page",
+            "toc": "document",
+            "equation": "page",
+            "headings": "page",
+            "header_footer": "page",
+            "caption": "page",
+        }
+    )
     cap_height_ratio: float = 0.8
     fallback_size: float = 11.0
     # Used by _estimate_fit_size: avg char width / font_size and line-height / font_size
@@ -84,13 +91,15 @@ class RenderConfig:
     # is missing — useful for mixed-script content (Vietnamese, Greek, etc.).
     font_family: str | list[str] = "Helvetica"
     # Optional per-label style overrides
-    styles: dict[str, StyleSpec] = field(default_factory=lambda: {
-        "SectionHeader": StyleSpec(weight="bold"),
-        "PageHeader": StyleSpec(align="center"),
-        "PageFooter": StyleSpec(align="center"),
-        "Caption": StyleSpec(style_="italic", align="center"),
-        "TableOfContents": StyleSpec(),
-    })
+    styles: dict[str, StyleSpec] = field(
+        default_factory=lambda: {
+            "SectionHeader": StyleSpec(weight="bold"),
+            "PageHeader": StyleSpec(align="center"),
+            "PageFooter": StyleSpec(align="center"),
+            "Caption": StyleSpec(style_="italic", align="center"),
+            "TableOfContents": StyleSpec(),
+        }
+    )
     default_style: StyleSpec = field(default_factory=StyleSpec)
     cell_style: StyleSpec = field(default_factory=StyleSpec)
     sizing: SizingConfig = field(default_factory=SizingConfig)
@@ -113,6 +122,7 @@ class RenderConfig:
     @classmethod
     def from_json(cls, path: str | Path) -> "RenderConfig":
         import json
+
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         cfg = cls()
         if "font_family" in data:

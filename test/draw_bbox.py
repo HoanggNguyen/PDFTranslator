@@ -5,6 +5,7 @@ Usage:
     python test/draw_bbox.py --pdf input.pdf --json output.translated.json --output bbox.pdf
     python test/draw_bbox.py --pdf input.pdf --json output.json --output bbox.pdf --pages 0-9
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -12,11 +13,11 @@ from pathlib import Path
 import fitz
 
 COLORS = {
-    "FLOWING_TEXT": (0.0, 0.0, 1.0),   # blue
-    "IN_PLACE":     (0.0, 0.7, 0.0),   # green
-    "EQUATION":     (1.0, 0.5, 0.0),   # orange
-    "TABLE":        (0.5, 0.0, 0.8),   # purple
-    "BYPASS":       (1.0, 0.0, 0.0),   # red
+    "FLOWING_TEXT": (0.0, 0.0, 1.0),  # blue
+    "IN_PLACE": (0.0, 0.7, 0.0),  # green
+    "EQUATION": (1.0, 0.5, 0.0),  # orange
+    "TABLE": (0.5, 0.0, 0.8),  # purple
+    "BYPASS": (1.0, 0.0, 0.0),  # red
 }
 CELL_COLOR = (0.8, 0.7, 0.0)  # yellow
 
@@ -71,7 +72,8 @@ def main():
             page.insert_text(
                 fitz.Point(bbox[0], bbox[1] - 1),
                 f"{cat[:2]} {label}",
-                fontsize=6, color=color,
+                fontsize=6,
+                color=color,
             )
 
             if cat == "TABLE":
@@ -85,7 +87,9 @@ def main():
     doc.save(str(out))
     doc.close()
     print(f"Saved → {out}")
-    print("Legend: blue=FLOWING_TEXT  green=IN_PLACE  orange=EQUATION  purple=TABLE  red=BYPASS")
+    print(
+        "Legend: blue=FLOWING_TEXT  green=IN_PLACE  orange=EQUATION  purple=TABLE  red=BYPASS"
+    )
 
 
 if __name__ == "__main__":

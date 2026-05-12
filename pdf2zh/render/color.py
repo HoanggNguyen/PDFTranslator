@@ -52,8 +52,12 @@ def detect_bg_color(
         return fallback
     top = arr[py0 : py0 + edge_band_px, px0:px1].reshape(-1, 3)
     bot = arr[py1 - edge_band_px : py1, px0:px1].reshape(-1, 3)
-    left = arr[py0 + edge_band_px : py1 - edge_band_px, px0 : px0 + edge_band_px].reshape(-1, 3)
-    right = arr[py0 + edge_band_px : py1 - edge_band_px, px1 - edge_band_px : px1].reshape(-1, 3)
+    left = arr[
+        py0 + edge_band_px : py1 - edge_band_px, px0 : px0 + edge_band_px
+    ].reshape(-1, 3)
+    right = arr[
+        py0 + edge_band_px : py1 - edge_band_px, px1 - edge_band_px : px1
+    ].reshape(-1, 3)
     band = np.concatenate([top, bot, left, right])
     return _mode_rgb(band, qstep) or fallback
 
@@ -69,7 +73,9 @@ def detect_text_color(
     fallback: tuple[int, int, int] = (0, 0, 0),
 ) -> tuple[int, int, int]:
     px0, py0, px1, py1 = bbox_px
-    inner = arr[py0 + edge_band_px : py1 - edge_band_px, px0 + edge_band_px : px1 - edge_band_px]
+    inner = arr[
+        py0 + edge_band_px : py1 - edge_band_px, px0 + edge_band_px : px1 - edge_band_px
+    ]
     if inner.size == 0:
         return fallback
     flat = inner.reshape(-1, 3).astype(np.int32)

@@ -96,7 +96,7 @@ class TestLiteralCharacters:
 class TestMathAndProseEquation:
     def test_mixed_prose_and_math(self):
         out = to_typst_markup(
-            'Nếu ax<sup>2</sup> + bx + c = 0, thì x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}.',
+            "Nếu ax<sup>2</sup> + bx + c = 0, thì x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}.",
             is_equation=True,
         )
         # Vietnamese prose preserved

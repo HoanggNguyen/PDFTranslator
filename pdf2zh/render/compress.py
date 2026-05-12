@@ -24,8 +24,9 @@ def finalize_save(
 
     save_kwargs: dict = {"garbage": 4, "clean": True}
     if cfg.deflate:
-        save_kwargs.update(deflate=True, deflate_images=True, deflate_fonts=True,
-                           use_objstms=1)
+        save_kwargs.update(
+            deflate=True, deflate_images=True, deflate_fonts=True, use_objstms=1
+        )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_path), **save_kwargs)
@@ -37,13 +38,12 @@ def finalize_save(
 
 def _recompress_images(path: Path, cfg: CompressConfig) -> None:
     """Re-encode images in PDF via pikepdf (optional, aggressive compression)."""
-    try:
-        import pikepdf
-        from PIL import Image
-        import io
-    except ImportError:
+    from importlib.util import find_spec
+
+    if find_spec("pikepdf") is None or find_spec("PIL") is None:
         logger.warning("pikepdf or Pillow not installed; skipping image recompression")
         return
+    import pikepdf
 
     original_size = path.stat().st_size
 
@@ -59,15 +59,16 @@ def _recompress_images(path: Path, cfg: CompressConfig) -> None:
                         continue
                     _recompress_one(pdf, xobj, cfg)
 
-            pdf.save(str(tmp_path), compress_streams=True,
-                     recompress_flate=True)
+            pdf.save(str(tmp_path), compress_streams=True, recompress_flate=True)
 
         new_size = tmp_path.stat().st_size
         if new_size < original_size:
             shutil.move(str(tmp_path), str(path))
             logger.info(
                 "Image recompression: %d → %d bytes (%.1f%%)",
-                original_size, new_size, 100 * new_size / max(1, original_size)
+                original_size,
+                new_size,
+                100 * new_size / max(1, original_size),
             )
         else:
             tmp_path.unlink(missing_ok=True)
@@ -78,9 +79,10 @@ def _recompress_images(path: Path, cfg: CompressConfig) -> None:
 
 
 def _recompress_one(pdf, xobj, cfg: CompressConfig) -> None:
+    import io
+
     import pikepdf
     from PIL import Image
-    import io
 
     try:
         # Skip non-standard images

@@ -24,7 +24,7 @@ def build_translation_prompt(
         f"   \\leq → <=  |  \\geq → >=  |  \\neq → !=  |  \\infty → oo\n"
         f"   \\left( ... \\right) → ( ... )  (just drop \\left/\\right)\n"
         f"   \\begin{{pmatrix}} a & b \\\\\\\\ c & d \\end{{pmatrix}} → mat(a, b; c, d)\n"
-        f"   ^{{xy}} → ^(xy)  |  _{{xy}} → _(xy)  |  \\text{{word}} → \"word\"\n"
+        f'   ^{{xy}} → ^(xy)  |  _{{xy}} → _(xy)  |  \\text{{word}} → "word"\n'
         f"   Keep <math>...</math> tags around the converted content.\n"
         f"   IMPORTANT: In Typst math, adjacent letters like `bh` form ONE identifier.\n"
         f"   Always separate single-letter variables with spaces: `b h` not `bh`, `a b` not `ab`.\n"
@@ -81,7 +81,10 @@ def build_toc_fix_prompt(
     )
     input_json = json.dumps(entries, ensure_ascii=False)
     example_ids = [str(e.get("id")) for e in entries[:2]]
-    example = ", ".join(f'{{"id":"{k}","t":"<entry1>\\\\t<page>\\\\n<entry2>\\\\t<page>"}}' for k in example_ids)
+    example = ", ".join(
+        f'{{"id":"{k}","t":"<entry1>\\\\t<page>\\\\n<entry2>\\\\t<page>"}}'
+        for k in example_ids
+    )
     user = (
         f"<input>\n```json\n{input_json}\n```\n</input>\n\n"
         f"Return JSON array in this shape:\n[{example}]"
@@ -114,7 +117,7 @@ def build_math_fix_prompt(
         "  \\frac{a}{b} → frac(a, b)  |  \\sqrt{x} → sqrt(x)  |  \\pi → pi\n"
         "  \\sum_{i}^{n} → sum_(i)^(n)  |  \\int_a^b → integral_a^b\n"
         "  \\binom{n}{k} → binom(n, k)  |  \\pm → plus.minus  |  \\leq → <=\n"
-        "  \\left( ... \\right) → ( ... )  |  \\text{w} → \"w\"\n\n"
+        '  \\left( ... \\right) → ( ... )  |  \\text{w} → "w"\n\n'
         "## Rule 3 — Use <typst> blocks ONLY for grid layouts (be conservative)\n"
         "Default action: keep <math>...</math> tags + plain text as-is. DO NOT wrap simple\n"
         "text+math entries in <typst>. Only emit a <typst> block when the entry truly needs\n"

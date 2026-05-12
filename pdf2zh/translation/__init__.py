@@ -2,7 +2,6 @@ from .chunker import collect_translatables, segments_to_chunks
 from .config import PROVIDERS, TranslatorConfig, resolve_provider
 from .gateway import Gateway, RateLimiter
 from .math_fixer import collect_math_candidates, fix_math_document
-from .toc_fixer import collect_toc_candidates, fix_toc_document
 from .models import Task
 from .pipeline import extract_glossary, translate_chunks, translate_document
 from .predicates import is_equation_only, is_plain_text
@@ -11,6 +10,7 @@ from .prompts import (
     build_translation_prompt,
     glossary_block_for_chunk,
 )
+from .toc_fixer import collect_toc_candidates, fix_toc_document
 
 __all__ = [
     "PROVIDERS",

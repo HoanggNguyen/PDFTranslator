@@ -69,8 +69,14 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                 w = max(1.0, bbox[2] - bbox[0])
                 h = max(1.0, bbox[3] - bbox[1])
 
-                src_fs = _autofit(source, w, h, cfg) if source.strip() else cfg.fallback_size
-                t_fs = _autofit(translated, w, h, cfg) if translated.strip() else cfg.fallback_size
+                src_fs = (
+                    _autofit(source, w, h, cfg) if source.strip() else cfg.fallback_size
+                )
+                t_fs = (
+                    _autofit(translated, w, h, cfg)
+                    if translated.strip()
+                    else cfg.fallback_size
+                )
 
                 translated_ceiling[uid] = t_fs
                 scope = cfg.cluster_scope_by_group.get(group, "page")
@@ -90,8 +96,16 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     cw = max(1.0, cbbox[2] - cbbox[0])
                     ch = max(1.0, cbbox[3] - cbbox[1])
 
-                    src_cs = _autofit(cell_source, cw, ch, cfg) if cell_source.strip() else cfg.fallback_size
-                    t_cs = _autofit(cell_translated, cw, ch, cfg) if cell_translated.strip() else cfg.fallback_size
+                    src_cs = (
+                        _autofit(cell_source, cw, ch, cfg)
+                        if cell_source.strip()
+                        else cfg.fallback_size
+                    )
+                    t_cs = (
+                        _autofit(cell_translated, cw, ch, cfg)
+                        if cell_translated.strip()
+                        else cfg.fallback_size
+                    )
                     translated_ceiling[cell_uid] = t_cs
                     raw.setdefault(table_bucket, []).append((cell_uid, src_cs))
 

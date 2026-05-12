@@ -10,13 +10,13 @@ from .chunker import collect_translatables, segments_to_chunks
 from .config import TranslatorConfig, resolve_provider
 from .gateway import Gateway
 from .math_fixer import fix_math_document
-from .toc_fixer import fix_toc_document
 from .models import Task
 from .prompts import (
     build_glossary_prompt,
     build_translation_prompt,
     glossary_block_for_chunk,
 )
+from .toc_fixer import fix_toc_document
 
 logger = logging.getLogger("json_translator")
 

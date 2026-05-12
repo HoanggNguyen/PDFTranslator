@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from statistics import median as _median
 from typing import TYPE_CHECKING
 
 import fitz
@@ -17,8 +16,8 @@ RGB = tuple[int, int, int]
 
 @dataclass
 class CoverPlan:
-    kind: str            # "flat" or "strip"
-    rgb: RGB             # used when kind == "flat"
+    kind: str  # "flat" or "strip"
+    rgb: RGB  # used when kind == "flat"
     pixmap: fitz.Pixmap | None = None  # used when kind == "strip"
 
 
@@ -76,8 +75,8 @@ def _sample_donut_median(
 
     mask = np.ones((pm.height, pm.width), dtype=bool)
     mask[
-        max(0, inner_y0):min(pm.height, inner_y1),
-        max(0, inner_x0):min(pm.width, inner_x1),
+        max(0, inner_y0) : min(pm.height, inner_y1),
+        max(0, inner_x0) : min(pm.width, inner_x1),
     ] = False
 
     donut_pixels = arr[mask].reshape(-1, 3)
@@ -147,8 +146,9 @@ def sample_text_color(
         if inner.is_empty:
             return cfg.fallback
 
-        pm = page.get_pixmap(matrix=fitz.Matrix(2, 2), clip=inner,
-                             colorspace=fitz.csRGB, alpha=False)
+        pm = page.get_pixmap(
+            matrix=fitz.Matrix(2, 2), clip=inner, colorspace=fitz.csRGB, alpha=False
+        )
         arr = np.frombuffer(pm.samples, dtype=np.uint8).reshape(-1, 3).astype(np.int32)
         bg_arr = np.array(bg, dtype=np.int32)
         dist = np.sqrt(((arr - bg_arr) ** 2).sum(axis=1))

@@ -46,9 +46,7 @@ def compile_typst(
 
     if result.returncode != 0:
         tail = "\n".join((result.stderr or "").splitlines()[-50:])
-        raise RuntimeError(
-            f"typst compile failed (exit {result.returncode}):\n{tail}"
-        )
+        raise RuntimeError(f"typst compile failed (exit {result.returncode}):\n{tail}")
 
     logger.debug("typst compiled → %s", output_pdf)
     return output_pdf

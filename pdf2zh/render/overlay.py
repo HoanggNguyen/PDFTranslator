@@ -31,7 +31,9 @@ def composite_overlay(
         try:
             ov_idx = next(ov_page_iter)
         except StopIteration:
-            logger.warning("Overlay has fewer pages than original (stopped at %d)", src_idx)
+            logger.warning(
+                "Overlay has fewer pages than original (stopped at %d)", src_idx
+            )
             break
 
         src_page = src[src_idx]
@@ -45,7 +47,14 @@ def composite_overlay(
 
     ov.close()
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
-    src.save(str(output_pdf), garbage=4, deflate=True, deflate_images=True,
-             deflate_fonts=True, use_objstms=1, clean=True)
+    src.save(
+        str(output_pdf),
+        garbage=4,
+        deflate=True,
+        deflate_images=True,
+        deflate_fonts=True,
+        use_objstms=1,
+        clean=True,
+    )
     src.close()
     logger.info("Saved %s", output_pdf)

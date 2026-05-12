@@ -72,7 +72,12 @@ def detect_bg_color(arr, bbox_px, edge=2, qstep=16):
     left = arr[py0 + edge : py1 - edge, px0 : px0 + edge]
     right = arr[py0 + edge : py1 - edge, px1 - edge : px1]
     band = np.concatenate(
-        [top.reshape(-1, 3), bot.reshape(-1, 3), left.reshape(-1, 3), right.reshape(-1, 3)]
+        [
+            top.reshape(-1, 3),
+            bot.reshape(-1, 3),
+            left.reshape(-1, 3),
+            right.reshape(-1, 3),
+        ]
     )
     if band.size == 0:
         return (255, 255, 255)
@@ -116,9 +121,9 @@ def check_inputs(pdf_path: Path, json_path: Path) -> tuple[fitz.Document, dict]:
     parsed = json.loads(json_path.read_text(encoding="utf-8"))
     assert "pages" in parsed, "parsed JSON missing 'pages'"
     print(f"  pdf pages = {doc.page_count}, parsed pages = {len(parsed['pages'])}")
-    assert doc.page_count == len(parsed["pages"]), (
-        "page count mismatch — JSON came from a different PDF?"
-    )
+    assert doc.page_count == len(
+        parsed["pages"]
+    ), "page count mismatch — JSON came from a different PDF?"
     return doc, parsed
 
 
@@ -137,9 +142,9 @@ def check_schema(parsed: dict) -> None:
                 fontsize_zero += 1
             for c in el.get("cells", []):
                 cells_total += 1
-                assert "source_text" in c and "bbox_pdf" in c, (
-                    "cell missing source_text or bbox_pdf — old fixture schema?"
-                )
+                assert (
+                    "source_text" in c and "bbox_pdf" in c
+                ), "cell missing source_text or bbox_pdf — old fixture schema?"
                 if c.get("translated_text"):
                     cells_with_translated += 1
     print(f"  categories: {dict(cat_counter)}")
@@ -148,9 +153,9 @@ def check_schema(parsed: dict) -> None:
     print(f"  cells: {cells_total} total, {cells_with_translated} translated")
     assert cells_total > 0, "no cells found — TABLE elements missing cells"
     if cells_total:
-        assert cells_with_translated > 0, (
-            "no cells have translated_text — phase 2 cell translation broken"
-        )
+        assert (
+            cells_with_translated > 0
+        ), "no cells have translated_text — phase 2 cell translation broken"
 
 
 def check_overflow_risk(parsed: dict) -> None:
@@ -171,10 +176,12 @@ def check_overflow_risk(parsed: dict) -> None:
             if fs > h:
                 risk_count += 1
     pct = 100 * risk_count / max(1, total)
-    print(f"  font_size > bbox_height in {risk_count}/{total} ({pct:.0f}%) text elements")
+    print(
+        f"  font_size > bbox_height in {risk_count}/{total} ({pct:.0f}%) text elements"
+    )
     if pct > 10:
         print(
-            f"  WARN: > 10% overflow if font_size used as truth — shrink-to-fit REQUIRED"
+            "  WARN: > 10% overflow if font_size used as truth — shrink-to-fit REQUIRED"
         )
 
 
@@ -269,13 +276,19 @@ def run_full_render(args) -> None:
     print(f"  page 0 extracted text excerpt: {text0.strip()[:120]!r}")
     # Translated content from JSON should be findable somewhere in output.
     first_translation = next(
-        (el["translated_text"] for el in parsed["pages"][0]["elements"] if el["translated_text"]),
+        (
+            el["translated_text"]
+            for el in parsed["pages"][0]["elements"]
+            if el["translated_text"]
+        ),
         None,
     )
     if first_translation:
         # Stripped of HTML tags for comparison.
         snippet = first_translation.replace("<b>", "").replace("</b>", "")[:30]
-        assert snippet in text0, f"first translation not found in rendered page: {snippet!r}"
+        assert (
+            snippet in text0
+        ), f"first translation not found in rendered page: {snippet!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -284,11 +297,15 @@ def run_full_render(args) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--input", required=True, help="Source PDF")
     ap.add_argument("--parsed", required=True, help="Translated JSON (phase 2 output)")
     ap.add_argument("--font", default=None, help="TTF font path (Unicode)")
-    ap.add_argument("--render", action="store_true", help="Run full render via pdf2zh.render")
+    ap.add_argument(
+        "--render", action="store_true", help="Run full render via pdf2zh.render"
+    )
     ap.add_argument("--output", default=None, help="Output PDF path (when --render)")
     args = ap.parse_args()
 
@@ -296,36 +313,38 @@ def main() -> int:
     json_path = Path(args.parsed)
     font_path = Path(args.font) if args.font else None
 
-    print(f"\n[1] check_inputs")
+    print("\n[1] check_inputs")
     doc, parsed = check_inputs(pdf_path, json_path)
 
-    print(f"\n[2] check_schema")
+    print("\n[2] check_schema")
     check_schema(parsed)
 
-    print(f"\n[3] check_overflow_risk")
+    print("\n[3] check_overflow_risk")
     check_overflow_risk(parsed)
 
-    print(f"\n[4] check_native_text")
+    print("\n[4] check_native_text")
     check_native_text(doc)
 
-    print(f"\n[5] check_pixmap_and_color")
+    print("\n[5] check_pixmap_and_color")
     check_pixmap_and_color(doc, parsed)
 
-    print(f"\n[6] check_synthetic_render")
+    print("\n[6] check_synthetic_render")
     check_synthetic_render(font_path)
 
-    print(f"\n[7] render module status: ", end="")
+    print("\n[7] render module status: ", end="")
     have_render = check_render_module()
     print("AVAILABLE" if have_render else "not yet implemented (pdf2zh.render)")
 
     if args.render:
         if not have_render:
-            print("\nERROR: --render requested but pdf2zh.render module does not exist yet.")
+            print(
+                "\nERROR: --render requested but pdf2zh.render module does not exist yet."
+            )
             return 2
         if not args.font or not args.output:
             print("\nERROR: --render requires --font and --output.")
             return 2
-        print(f"\n[8] run_full_render")
+        print("\n[8] run_full_render")
         run_full_render(args)
 
     print("\nALL CHECKS PASSED")
