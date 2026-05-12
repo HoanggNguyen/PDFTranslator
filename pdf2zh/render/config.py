@@ -20,16 +20,20 @@ class SizingConfig:
     cluster_groups: dict[str, list[str]] = field(default_factory=lambda: {
         "body": [
             "Text", "ListItem", "Footnote", "Handwriting",
-            "Equation", "TextInlineMath", "TableOfContents",
+            "TextInlineMath",
         ],
+        "toc": ["TableOfContents"],
+        "equation": ["Equation"],
         "headings": ["SectionHeader"],
         "header_footer": ["PageHeader", "PageFooter"],
         "caption": ["Caption"],
     })
     # "document" = cluster across all pages; "page" = cluster per page
     cluster_scope_by_group: dict[str, str] = field(default_factory=lambda: {
-        "body": "document",
-        "headings": "document",
+        "body": "page",
+        "toc": "document",
+        "equation": "page",
+        "headings": "page",
         "header_footer": "page",
         "caption": "page",
     })
@@ -38,6 +42,9 @@ class SizingConfig:
     # Used by _estimate_fit_size: avg char width / font_size and line-height / font_size
     char_width_ratio: float = 0.55
     leading_ratio: float = 1.25
+    # Table cell tweaks: slightly smaller font + inset to avoid border overlap
+    cell_font_scale: float = 0.88
+    cell_bbox_inset_pt: float = 2.0
 
 
 @dataclass
@@ -73,7 +80,9 @@ class CompressConfig:
 class RenderConfig:
     # Typst font configuration
     typst_font_paths: list[str] = field(default_factory=list)
-    font_family: str = "Noto Sans"
+    # Single name or fallback chain. Typst tries each in order when a glyph
+    # is missing — useful for mixed-script content (Vietnamese, Greek, etc.).
+    font_family: str | list[str] = "Helvetica"
     # Optional per-label style overrides
     styles: dict[str, StyleSpec] = field(default_factory=lambda: {
         "SectionHeader": StyleSpec(weight="bold"),

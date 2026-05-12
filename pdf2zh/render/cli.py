@@ -28,7 +28,8 @@ def main() -> None:
     ap.add_argument("--parsed", required=True, help="Translated JSON (phase 2 output)")
     ap.add_argument("--output", required=True, help="Output PDF path")
     ap.add_argument("--font-config", default=None, help="JSON font/render config file")
-    ap.add_argument("--font-family", default="Noto Sans", help="Typst font family name")
+    ap.add_argument("--font-family", default="Helvetica",
+                    help="Typst font (single name or comma-separated fallback chain)")
     ap.add_argument("--font-path", action="append", default=[], dest="font_paths",
                     help="Typst --font-path directory (repeatable)")
     ap.add_argument("--pages", default=None, help="Page filter e.g. 0-4,7,10")
@@ -57,7 +58,8 @@ def main() -> None:
 
     # CLI args override config file
     if args.font_family:
-        cfg.font_family = args.font_family
+        fonts = [f.strip() for f in args.font_family.split(",") if f.strip()]
+        cfg.font_family = fonts[0] if len(fonts) == 1 else fonts
     if args.font_paths:
         cfg.typst_font_paths = args.font_paths
     cfg.typst_binary = args.typst_bin

@@ -9,6 +9,8 @@ import json_repair
 from .chunker import collect_translatables, segments_to_chunks
 from .config import TranslatorConfig, resolve_provider
 from .gateway import Gateway
+from .math_fixer import fix_math_document
+from .toc_fixer import fix_toc_document
 from .models import Task
 from .prompts import (
     build_glossary_prompt,
@@ -200,4 +202,11 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
         "translated": sum(1 for t in tasks if t.id in translations),
     }
     logger.info(f"Token usage stats: {token_stats}")
+
+    if cfg.toc_fix_enabled:
+        fix_toc_document(doc, cfg)
+
+    if cfg.math_fix_enabled:
+        fix_math_document(doc, cfg)
+
     return doc

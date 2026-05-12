@@ -10,6 +10,7 @@ from .background import RGB, prepare_cover, sample_text_color
 from .compiler import compile_typst
 from .compress import finalize_save
 from .config import RenderConfig
+from .markup import has_bare_latex, has_unbalanced_math_tags, is_pure_math_text
 from .overlay import composite_overlay
 from .sizing import assign_render_sizes
 from .source_builder import build_typst_source
@@ -178,6 +179,10 @@ def _redact_text_layer(
                     if not translated:
                         continue
                     if category == "EQUATION" and translated == source:
+                        continue
+                    if (is_pure_math_text(translated)
+                            or has_unbalanced_math_tags(translated)
+                            or has_bare_latex(translated)):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
                     fill = bg_colors.get(uid, (255, 255, 255))
