@@ -58,9 +58,7 @@ class HardwareConfig:
     detection_batch_size: int
     ocr_batch_size: int
     table_batch_size: int
-    equation_batch_size: int
     gpu_memory_utilization: float
-    enable_latex: bool = False
 
 
 # Backward-compatible alias for older imports.
@@ -138,7 +136,6 @@ def configure_settings(
     detection_batch_size: int | None = None,
     ocr_batch_size: int | None = None,
     table_batch_size: int | None = None,
-    enable_latex: bool = False,
     gpu_memory_utilization: float = 0.9,
 ) -> HardwareConfig:
     """Resolve and apply settings using local hardware heuristics."""
@@ -184,13 +181,11 @@ def configure_settings(
         else:
             resolved_ocr_batch = 512
 
-    resolved_equation_batch = resolved_ocr_batch
-
     resolved_page_batch = page_batch_size
     if resolved_page_batch is None:
         resolved_page_batch = batch_size
     if resolved_page_batch is None:
-        resolved_page_batch = max(resolved_layout_batch, resolved_detection_batch)
+        resolved_page_batch = min(resolved_layout_batch, resolved_detection_batch)
     resolved_page_batch = max(1, resolved_page_batch)
 
     config = HardwareConfig(
@@ -202,21 +197,18 @@ def configure_settings(
         detection_batch_size=resolved_detection_batch,
         ocr_batch_size=resolved_ocr_batch,
         table_batch_size=resolved_table_batch,
-        equation_batch_size=resolved_equation_batch,
-        enable_latex=enable_latex,
         gpu_memory_utilization=gpu_memory_utilization,
     )
 
     logger.info(
         "Configured settings: device=%s page=%s layout=%s detection=%s "
-        "ocr=%s table=%s equation=%s",
+        "ocr=%s table=%s",
         config.device,
         config.page_batch_size,
         config.layout_batch_size,
         config.detection_batch_size,
         config.ocr_batch_size,
         config.table_batch_size,
-        config.equation_batch_size,
     )
     return config
 
@@ -249,8 +241,6 @@ def main() -> None:
     parser.add_argument("--detection-batch-size", type=int, default=None)
     parser.add_argument("--ocr-batch-size", type=int, default=None)
     parser.add_argument("--table-batch-size", type=int, default=None)
-    parser.add_argument("--equation-batch-size", type=int, default=None)
-    parser.add_argument("--enable-latex", action="store_true")
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.8)
     args = parser.parse_args()
 
@@ -261,8 +251,6 @@ def main() -> None:
         detection_batch_size=args.detection_batch_size,
         ocr_batch_size=args.ocr_batch_size,
         table_batch_size=args.table_batch_size,
-        equation_batch_size=args.equation_batch_size,
-        enable_latex=args.enable_latex,
         gpu_memory_utilization=args.gpu_memory_utilization,
     )
     print(json.dumps(asdict(config), indent=2))

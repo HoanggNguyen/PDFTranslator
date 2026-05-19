@@ -286,3 +286,47 @@ def bbox_iou(bbox1: list[float], bbox2: list[float]) -> float:
         return 0.0
 
     return inter_area / union_area
+
+
+def bbox_union_area(bboxes: list[list[float]]) -> float:
+    """Calculate the union area of multiple axis-aligned bboxes."""
+
+    valid_bboxes = [bbox for bbox in bboxes if bbox_area(bbox) > 0]
+    if not valid_bboxes:
+        return 0.0
+
+    x_points = sorted(
+        {bbox[0] for bbox in valid_bboxes} | {bbox[2] for bbox in valid_bboxes}
+    )
+    if len(x_points) < 2:
+        return 0.0
+
+    total_area = 0.0
+    for x0, x1 in zip(x_points, x_points[1:]):
+        if x1 <= x0:
+            continue
+
+        y_intervals: list[tuple[float, float]] = []
+        for bbox in valid_bboxes:
+            bx0, by0, bx1, by1 = bbox
+            if bx0 < x1 and bx1 > x0:
+                y_intervals.append((by0, by1))
+
+        if not y_intervals:
+            continue
+
+        y_intervals.sort()
+        covered_height = 0.0
+        current_y0, current_y1 = y_intervals[0]
+        for next_y0, next_y1 in y_intervals[1:]:
+            if next_y0 <= current_y1:
+                current_y1 = max(current_y1, next_y1)
+                continue
+
+            covered_height += current_y1 - current_y0
+            current_y0, current_y1 = next_y0, next_y1
+
+        covered_height += current_y1 - current_y0
+        total_area += (x1 - x0) * covered_height
+
+    return total_area

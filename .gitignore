@@ -43,3 +43,5 @@ claude
 # File
 output.json
 *.pdf
+SURYAOCR_README.md
+test.py

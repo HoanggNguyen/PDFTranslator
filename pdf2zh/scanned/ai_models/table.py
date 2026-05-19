@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 
 from pdf2zh.scanned.ai_models.base import BaseImageToTextModel
+from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -159,5 +160,58 @@ class PaddleCellTableModule(BaseImageToTextModel):
                 if coords:
                     boxes.append([float(x) for x in coords])
 
-            batch_boxes.append(boxes)
+            batch_boxes.append(self._prune_nested_cell_boxes(boxes))
         return batch_boxes
+
+    def _prune_nested_cell_boxes(
+        self,
+        boxes: list[list[float]],
+        containment_threshold: float = 0.8,
+    ) -> list[list[float]]:
+        if len(boxes) < 2:
+            return boxes
+
+        kept_boxes: list[list[float]] = []
+        sorted_boxes = sorted(boxes, key=bbox_area)
+
+        for box in sorted_boxes:
+            box_area = max(1.0, bbox_area(box))
+            is_duplicate = False
+            for kept in kept_boxes:
+                intersection = bbox_intersection(box, kept)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / box_area
+                if overlap_ratio >= containment_threshold:
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                kept_boxes.append(box)
+
+        filtered_boxes: list[list[float]] = []
+        for box in kept_boxes:
+            box_area = max(1.0, bbox_area(box))
+            contains_smaller_box = False
+            for other in kept_boxes:
+                if other is box:
+                    continue
+
+                other_area = bbox_area(other)
+                if other_area >= box_area:
+                    continue
+
+                intersection = bbox_intersection(box, other)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / max(1.0, other_area)
+                if overlap_ratio >= containment_threshold:
+                    contains_smaller_box = True
+                    break
+
+            if not contains_smaller_box:
+                filtered_boxes.append(box)
+
+        return filtered_boxes

@@ -22,8 +22,7 @@ from pdf2zh.scanned.enums import (
 from pdf2zh.scanned.models import (
     CellData,
     ElementData,
-    EquationBlockResult,
-    EquationParseResult,
+    EquationWordData,
     LayoutBlockResult,
     LayoutPageResult,
     LayoutParseResult,
@@ -39,6 +38,7 @@ from pdf2zh.scanned.models import (
 from pdf2zh.scanned.utils.bbox import (
     bbox_area,
     bbox_intersection,
+    bbox_union_area,
     clamp_bbox,
     convert_bbox,
     image_bbox_to_pdf,
@@ -46,12 +46,17 @@ from pdf2zh.scanned.utils.bbox import (
     offset_bbox,
     polygon_to_bbox,
 )
+from pdf2zh.scanned.utils.block import (
+    get_line_bbox,
+    is_sparse_text_block,
+)
 from pdf2zh.scanned.utils.hardware import configure_settings
 from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
 from pdf2zh.scanned.utils.ocr_text import (
-    collect_ocr_text,
+    clean_ocr_text,
     extract_text_for_region,
     join_raw_text,
+    sort_text_lines,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,7 +74,6 @@ class StageAParser:
         detection_batch_size: int | None = None,
         ocr_batch_size: int | None = None,
         table_batch_size: int | None = None,
-        enable_latex: bool = False,
         gpu_memory_utilization: float = 0.8,
     ) -> None:
         """Configure settings and initialize predictors."""
@@ -82,7 +86,6 @@ class StageAParser:
             detection_batch_size=detection_batch_size,
             ocr_batch_size=ocr_batch_size,
             table_batch_size=table_batch_size,
-            enable_latex=enable_latex,
             gpu_memory_utilization=gpu_memory_utilization,
         )
         self.layout_model = SuryaLayoutModel()
@@ -102,10 +105,17 @@ class StageAParser:
             context.page_indices, self.hardware.layout_batch_size
         ):
             images, _ = self._load_page_images(
-                context.pdf_path, batch_indices, include_highres=False
+                context.pdf_path,
+                batch_indices,
+                include_highres=False,
             )
             parsed_pages.extend(
-                self._parse_layout_batch(batch_indices, context.page_dims, images)
+                self._parse_layout_batch(
+                    batch_indices,
+                    context.page_dims,
+                    images,
+                    ocr_pages=None,
+                )
             )
 
         return LayoutParseResult(pdf_path=str(context.pdf_path), pages=parsed_pages)
@@ -122,9 +132,7 @@ class StageAParser:
             context.page_indices, self.hardware.detection_batch_size
         ):
             images, highres_images = self._load_page_images(
-                context.pdf_path,
-                batch_indices,
-                include_highres=True,
+                context.pdf_path, batch_indices, include_highres=True
             )
             parsed_pages.extend(
                 self._parse_ocr_batch(batch_indices, images, highres_images)
@@ -160,46 +168,72 @@ class StageAParser:
 
         return TableParseResult(pdf_path=str(context.pdf_path), tables=tables)
 
-    def parse_equations(
+    def parse_pdf(
         self,
-        context: _DocumentContext,
-        layout_result: LayoutParseResult,
-        enable_latex: bool = False,
-    ) -> EquationParseResult:
-        """Run equation crop OCR for LaTeX when enabled."""
+        pdf_path: str | Path,
+        cache_path: str | Path | None = None,
+        pages: list[int] | None = None,
+    ) -> ParsedDocument:
+        """Backward-compatible wrapper that executes the phase pipeline."""
 
-        if Path(layout_result.pdf_path) != context.pdf_path:
-            raise ValueError("layout_result does not belong to the requested PDF")
+        pdf_path = self._resolve_pdf_path(pdf_path)
+        if cache_path:
+            cache_path = Path(cache_path)
+            if cache_path.exists():
+                logger.info("Loading cached Stage A result from %s", cache_path)
+                return ParsedDocument.load(cache_path)
 
-        if not enable_latex:
-            return EquationParseResult(
-                pdf_path=str(context.pdf_path),
-                equations={
-                    block.block_id: EquationBlockResult(
-                        block_id=block.block_id,
-                        latex="[EQUATION_PLACEHOLDER]",
-                    )
-                    for page in layout_result.pages
-                    for block in page.blocks
-                    if block.category == ElementCategory.EQUATION
-                },
-            )
+        context = self._prepare_document_context(pdf_path, pages)
 
-        equations: dict[str, EquationBlockResult] = {}
+        layout_pages: list[LayoutPageResult] = []
+        ocr_pages: list[OCRPageResult] = []
+        tables: dict[str, TableBlockResult] = {}
 
-        for page_batch in self._chunked(
-            layout_result.pages, self.hardware.equation_batch_size
+        for batch_indices in self._chunked(
+            context.page_indices, self.hardware.page_batch_size
         ):
-            batch_indices = [page.page_index for page in page_batch]
-            _, highres_images = self._load_page_images(
-                context.pdf_path, batch_indices, include_highres=True
+            images, highres_images = self._load_page_images(
+                context.pdf_path,
+                batch_indices,
+                include_highres=True,
             )
-            batch_equations = self._parse_equations_batch(
-                page_batch, highres_images, enable_latex=True
-            )
-            equations.update(batch_equations.equations)
 
-        return EquationParseResult(pdf_path=str(context.pdf_path), equations=equations)
+            batch_ocr_pages = self._parse_ocr_batch(
+                batch_indices, images, highres_images
+            )
+
+            batch_layout_pages = self._parse_layout_batch(
+                batch_indices,
+                context.page_dims,
+                images,
+                ocr_pages=batch_ocr_pages,
+            )
+
+            batch_tables = self._parse_tables_batch(
+                batch_layout_pages,
+                images,
+            )
+
+            layout_pages.extend(batch_layout_pages)
+            ocr_pages.extend(batch_ocr_pages)
+            tables.update(batch_tables.tables)
+            del images
+
+        parsed_doc = self.merge_results(
+            context.pdf_path,
+            LayoutParseResult(pdf_path=str(context.pdf_path), pages=layout_pages),
+            OCRParseResult(pdf_path=str(context.pdf_path), pages=ocr_pages),
+            table_result=TableParseResult(
+                pdf_path=str(context.pdf_path), tables=tables
+            ),
+        )
+
+        if cache_path:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            parsed_doc.save(cache_path)
+            logger.info("Saved Stage A result to %s", cache_path)
+
+        return parsed_doc
 
     def merge_results(
         self,
@@ -207,7 +241,6 @@ class StageAParser:
         layout_result: LayoutParseResult,
         ocr_result: OCRParseResult,
         table_result: TableParseResult | None = None,
-        equation_result: EquationParseResult | None = None,
     ) -> ParsedDocument:
         """Merge phase outputs into the final ParsedDocument."""
 
@@ -218,7 +251,6 @@ class StageAParser:
             raise ValueError("ocr_result does not belong to the requested PDF")
 
         table_map = table_result.tables if table_result else {}
-        equation_map = equation_result.equations if equation_result else {}
         ocr_page_map = ocr_result.page_map()
 
         pages: list[PageData] = []
@@ -226,21 +258,23 @@ class StageAParser:
             page_ocr = ocr_page_map.get(layout_page.page_index)
             if page_ocr is None:
                 raise ValueError(f"ocr_result is missing page {layout_page.page_index}")
+
             elements: list[ElementData] = []
 
             for block in layout_page.blocks:
                 source_text = ""
-                latex = ""
                 cells: list[CellData] = []
+                equation_words: list[EquationWordData] = []
 
                 if block.category == ElementCategory.BYPASS:
                     pass
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
-                        source_text = extract_text_for_region(
+                        matching_lines = extract_text_for_region(
                             page_ocr.ocr_result, block.bbox_image
                         )
+                        source_text = " ".join(line.text for line in matching_lines)
                     else:
                         crop_w, crop_h = table_block.crop_size
                         block_image_w = block.bbox_image[2] - block.bbox_image[0]
@@ -249,7 +283,8 @@ class StageAParser:
                         block_pdf_h = block.bbox_pdf[3] - block.bbox_pdf[1]
 
                         source_parts: list[str] = []
-                        cells: list[CellData] = []
+                        cells = []
+                        cell_boxes_image: list[list[float]] = []
 
                         for cell_bbox in table_block.cells_bbox:
                             cell_bbox_image = offset_bbox(
@@ -263,6 +298,7 @@ class StageAParser:
                                 block.bbox_image[0],
                                 block.bbox_image[1],
                             )
+                            cell_boxes_image.append(cell_bbox_image)
                             cell_bbox_pdf = clamp_bbox(
                                 offset_bbox(
                                     convert_bbox(
@@ -278,41 +314,84 @@ class StageAParser:
                                 layout_page.page_width,
                                 layout_page.page_height,
                             )
-                            cell_text = extract_text_for_region(
+                            matching_cell_lines = extract_text_for_region(
                                 page_ocr.ocr_result, cell_bbox_image
+                            )
+                            # cell_text = smart_join_text_lines(matching_cell_lines)
+                            cell_text = " ".join(
+                                line.text for line in matching_cell_lines
+                            )
+                            if cell_text:
+                                cells.append(
+                                    CellData(
+                                        bbox_pdf=cell_bbox_pdf,
+                                        source_text=cell_text,
+                                        translated_text="",
+                                    )
+                                )
+                                source_parts.append(cell_text)
+
+                        for orphan_line in self._collect_orphan_table_lines(
+                            page_ocr.ocr_result,
+                            block.bbox_image,
+                            cell_boxes_image,
+                        ):
+                            orphan_text = clean_ocr_text(
+                                getattr(orphan_line, "text", "")
+                            )
+                            if not orphan_text:
+                                continue
+
+                            orphan_bbox_line = get_line_bbox(orphan_line)
+
+                            if orphan_bbox_line is None or is_degenerate(
+                                orphan_bbox_line
+                            ):
+                                continue
+
+                            orphan_bbox_pdf = clamp_bbox(
+                                image_bbox_to_pdf(
+                                    orphan_bbox_line,
+                                    page_ocr.image_bbox,
+                                    layout_page.page_width,
+                                    layout_page.page_height,
+                                ),
+                                layout_page.page_width,
+                                layout_page.page_height,
                             )
                             cells.append(
                                 CellData(
-                                    bbox_pdf=cell_bbox_pdf,
-                                    source_text=cell_text,
+                                    bbox_pdf=orphan_bbox_pdf,
+                                    source_text=orphan_text,
                                     translated_text="",
                                 )
                             )
-                            source_parts.append(cell_text)
+                            source_parts.append(orphan_text)
 
                         source_text = " | ".join(source_parts)
 
                         if not cells:
-                            source_text = extract_text_for_region(
+                            matching_lines = extract_text_for_region(
                                 page_ocr.ocr_result, block.bbox_image
                             )
-
-                    source_text = " | ".join(source_parts)
-                    if not cells:
-                        source_text = extract_text_for_region(
-                            page_ocr.ocr_result, block.bbox_image
-                        )
+                            # source_text = smart_join_text_lines(matching_lines)
+                            source_text = " ".join(line.text for line in matching_lines)
                 else:
-                    source_text = extract_text_for_region(
+                    matching_lines = extract_text_for_region(
                         page_ocr.ocr_result, block.bbox_image
                     )
                     if block.category == ElementCategory.EQUATION:
-                        equation_block = equation_map.get(block.block_id)
-                        latex = (
-                            equation_block.latex
-                            if equation_block is not None
-                            else "[EQUATION_PLACEHOLDER]"
+                        equation_words = self._collect_equation_words(
+                            matching_lines,
+                            page_ocr.image_bbox,
+                            layout_page,
                         )
+                    source_text = " ".join(line.text for line in matching_lines)
+                    # else:
+                    #     source_text = smart_join_text_lines(matching_lines)
+
+                    if not source_text:
+                        continue
 
                 elements.append(
                     ElementData(
@@ -321,20 +400,17 @@ class StageAParser:
                         bbox_pdf=block.bbox_pdf,
                         source_text=source_text,
                         translated_text="",
-                        latex=latex,
                         cells=cells,
+                        equation_words=equation_words,
                     )
                 )
 
-            orphan_elements = self._collect_orphan_ocr_elements(layout_page, page_ocr)
-            elements.extend(orphan_elements)
-
-            # Layout blocks already arrive in reading order, but orphan OCR lines
-            # need to be merged back into the page flow by position.
-            elements.sort(
-                key=lambda element: (element.bbox_pdf[1], element.bbox_pdf[0])
+            orphan_elements = self._collect_orphan_ocr_data(
+                elements,
+                layout_page,
+                page_ocr,
             )
-            # log_toc_hints(elements, layout_page.page_index)
+            elements = self._insert_orphan_elements(elements, orphan_elements)
             pages.append(
                 PageData(
                     page_index=layout_page.page_index,
@@ -352,150 +428,6 @@ class StageAParser:
             chapters=[],
             glossary={},
         )
-
-    def _collect_orphan_ocr_elements(
-        self,
-        layout_page: LayoutPageResult,
-        page_ocr: OCRPageResult,
-        overlap_threshold: float = 0.5,
-    ) -> list[ElementData]:
-        """Keep OCR lines that are not covered by any detected layout block."""
-
-        text_lines = getattr(page_ocr.ocr_result, "text_lines", None)
-        if not text_lines:
-            return []
-
-        orphan_elements: list[ElementData] = []
-        layout_bboxes = [block.bbox_image for block in layout_page.blocks]
-
-        for line in text_lines:
-            line_text = getattr(line, "text", "").strip()
-            if not line_text:
-                continue
-
-            line_bbox = getattr(line, "bbox", None)
-            if line_bbox is None and hasattr(line, "polygon"):
-                line_bbox = polygon_to_bbox(line.polygon)
-            if line_bbox is None or is_degenerate(line_bbox):
-                continue
-
-            line_area = bbox_area(line_bbox)
-            if line_area <= 0:
-                continue
-
-            belongs_to_layout = False
-            for layout_bbox in layout_bboxes:
-                intersection = bbox_intersection(line_bbox, layout_bbox)
-                if intersection is None:
-                    continue
-
-                overlap_ratio = bbox_area(intersection) / line_area
-                if overlap_ratio >= overlap_threshold:
-                    belongs_to_layout = True
-                    break
-
-            if belongs_to_layout:
-                continue
-
-            orphan_bbox_pdf = clamp_bbox(
-                image_bbox_to_pdf(
-                    line_bbox,
-                    page_ocr.image_bbox,
-                    layout_page.page_width,
-                    layout_page.page_height,
-                ),
-                layout_page.page_width,
-                layout_page.page_height,
-            )
-            orphan_elements.append(
-                ElementData(
-                    label="Text",
-                    category=DEFAULT_CATEGORY,
-                    bbox_pdf=orphan_bbox_pdf,
-                    source_text=line_text,
-                    translated_text="",
-                )
-            )
-
-        return orphan_elements
-
-    def parse_pdf(
-        self,
-        pdf_path: str | Path,
-        cache_path: str | Path | None = None,
-        pages: list[int] | None = None,
-        enable_latex: bool | None = None,
-    ) -> ParsedDocument:
-        """Backward-compatible wrapper that executes the phase pipeline."""
-
-        pdf_path = self._resolve_pdf_path(pdf_path)
-        if cache_path:
-            cache_path = Path(cache_path)
-            if cache_path.exists():
-                logger.info("Loading cached Stage A result from %s", cache_path)
-                return ParsedDocument.load(cache_path)
-
-        context = self._prepare_document_context(pdf_path, pages)
-        enable_latex = (
-            self.hardware.enable_latex if enable_latex is None else enable_latex
-        )
-
-        layout_pages: list[LayoutPageResult] = []
-        ocr_pages: list[OCRPageResult] = []
-        tables: dict[str, TableBlockResult] = {}
-        equations: dict[str, EquationBlockResult] = {}
-
-        for batch_indices in self._chunked(
-            context.page_indices, self.hardware.page_batch_size
-        ):
-            images, highres_images = self._load_page_images(
-                context.pdf_path,
-                batch_indices,
-                include_highres=True,
-            )
-            batch_layout_pages = self._parse_layout_batch(
-                batch_indices,
-                context.page_dims,
-                images,
-            )
-
-            batch_tables = self._parse_tables_batch(
-                batch_layout_pages,
-                images,
-            )
-            batch_equations = self._parse_equations_batch(
-                batch_layout_pages,
-                highres_images,
-                enable_latex=enable_latex,
-            )
-            batch_ocr_pages = self._parse_ocr_batch(
-                batch_indices, images, highres_images
-            )
-
-            layout_pages.extend(batch_layout_pages)
-            ocr_pages.extend(batch_ocr_pages)
-            tables.update(batch_tables.tables)
-            equations.update(batch_equations.equations)
-            self._release_obj(images, highres_images)
-
-        parsed_doc = self.merge_results(
-            context.pdf_path,
-            LayoutParseResult(pdf_path=str(context.pdf_path), pages=layout_pages),
-            OCRParseResult(pdf_path=str(context.pdf_path), pages=ocr_pages),
-            table_result=TableParseResult(
-                pdf_path=str(context.pdf_path), tables=tables
-            ),
-            equation_result=EquationParseResult(
-                pdf_path=str(context.pdf_path), equations=equations
-            ),
-        )
-
-        if cache_path:
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            parsed_doc.save(cache_path)
-            logger.info("Saved Stage A result to %s", cache_path)
-
-        return parsed_doc
 
     def _prepare_document_context(
         self,
@@ -533,6 +465,7 @@ class StageAParser:
         from surya.settings import settings
 
         images, _ = load_from_file(str(pdf_path), page_range=page_indices)
+
         if not include_highres:
             return images, None
 
@@ -541,6 +474,7 @@ class StageAParser:
             dpi=settings.IMAGE_DPI_HIGHRES,
             page_range=page_indices,
         )
+
         return images, highres_images
 
     def _parse_layout_batch(
@@ -548,21 +482,33 @@ class StageAParser:
         batch_indices: list[int],
         page_dims: dict[int, tuple[float, float]],
         images: list[Image.Image],
+        ocr_pages: list[OCRPageResult] | None = None,
     ) -> list[LayoutPageResult]:
         layout_predictions = self.layout_model(
             images, batch_size=self.hardware.layout_batch_size, auto_unload=False
         )
 
         layout_pages: list[LayoutPageResult] = []
+        ocr_page_map = (
+            {page.page_index: page for page in ocr_pages}
+            if ocr_pages is not None
+            else {}
+        )
 
         for seq, page_index in enumerate(batch_indices):
             page_width, page_height = page_dims[page_index]
             image_bbox = [0, 0, images[seq].size[0], images[seq].size[1]]
             layout_image_bbox = list(layout_predictions[seq].image_bbox)
             blocks: list[LayoutBlockResult] = []
+            page_ocr = ocr_page_map.get(page_index)
 
             for position, block in enumerate(layout_predictions[seq].bboxes):
-                raw_bbox = list(getattr(block, "bbox", polygon_to_bbox(block.polygon)))
+                block_bbox = getattr(block, "bbox", None)
+                raw_bbox = list(
+                    block_bbox
+                    if block_bbox is not None
+                    else polygon_to_bbox(block.polygon)
+                )
                 label = block.label
                 category = SURYA_LABEL_MAP.get(label, DEFAULT_CATEGORY)
                 bbox_pdf = clamp_bbox(
@@ -601,6 +547,24 @@ class StageAParser:
                         bbox_image=bbox_image,
                         bbox_pdf=bbox_pdf,
                     )
+                )
+
+            if page_ocr is not None:
+                blocks = self._expand_layout_blocks(
+                    blocks,
+                    page_ocr,
+                    image_bbox,
+                    page_width,
+                    page_height,
+                )
+                blocks = self._prune_overlapping_layout_blocks(blocks)
+                blocks = self._refine_sparse_text_blocks(
+                    blocks,
+                    page_ocr,
+                    image_bbox,
+                    layout_image_bbox,
+                    page_width,
+                    page_height,
                 )
 
             layout_pages.append(
@@ -696,79 +660,670 @@ class StageAParser:
 
         return TableParseResult(pdf_path="", tables=tables)
 
-    def _parse_equations_batch(
+    def _expand_layout_blocks(
         self,
-        layout_pages: list[LayoutPageResult],
-        highres_images: list[Image.Image] | None,
-        enable_latex: bool,
-    ) -> EquationParseResult:
-        equations: dict[str, EquationBlockResult] = {}
+        blocks: list[LayoutBlockResult],
+        page_ocr: OCRPageResult,
+        image_bbox: list[float],
+        page_width: float,
+        page_height: float,
+        overlap_threshold: float = 0.3,
+    ) -> list[LayoutBlockResult]:
+        text_lines = getattr(page_ocr.ocr_result, "text_lines", None) or []
+        if not text_lines:
+            return blocks
 
-        equation_blocks = [
-            (seq, page, block)
-            for seq, page in enumerate(layout_pages)
-            for block in page.blocks
-            if block.category == ElementCategory.EQUATION
-        ]
+        expanded_blocks: list[LayoutBlockResult] = []
+        for block in blocks:
+            if block.category == ElementCategory.BYPASS:
+                expanded_blocks.append(block)
+                continue
 
-        if not equation_blocks:
-            return EquationParseResult(pdf_path="", equations={})
+            matched_boxes: list[list[float]] = [block.bbox_image]
+            for line in text_lines:
+                line_bbox = get_line_bbox(line)
+                if line_bbox is None or is_degenerate(line_bbox):
+                    continue
 
-        if not enable_latex:
-            for _seq, _page, block in equation_blocks:
-                equations[block.block_id] = EquationBlockResult(
+                intersection = bbox_intersection(line_bbox, block.bbox_image)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / max(1.0, bbox_area(line_bbox))
+                # line_center_x = (line_bbox[0] + line_bbox[2]) / 2.0
+                # line_center_y = (line_bbox[1] + line_bbox[3]) / 2.0
+                # center_inside = (
+                #     block.bbox_image[0] <= line_center_x <= block.bbox_image[2]
+                #     and block.bbox_image[1] <= line_center_y <= block.bbox_image[3]
+                # )
+                if overlap_ratio >= overlap_threshold:
+                    matched_boxes.append(line_bbox)
+
+            merged_bbox = self._merge_bboxes(matched_boxes)
+            if merged_bbox is None:
+                expanded_blocks.append(block)
+                continue
+
+            bbox_image = self._clamp_image_bbox(merged_bbox, image_bbox)
+            bbox_pdf = clamp_bbox(
+                image_bbox_to_pdf(
+                    bbox_image,
+                    image_bbox,
+                    page_width,
+                    page_height,
+                ),
+                page_width,
+                page_height,
+            )
+            expanded_blocks.append(
+                LayoutBlockResult(
                     block_id=block.block_id,
-                    latex="[EQUATION_PLACEHOLDER]",
+                    page_index=block.page_index,
+                    position=block.position,
+                    label=block.label,
+                    category=block.category,
+                    bbox_layout=block.bbox_layout,
+                    bbox_image=bbox_image,
+                    bbox_pdf=bbox_pdf,
                 )
-            return EquationParseResult(pdf_path="", equations=equations)
+            )
 
-        if highres_images is None:
-            raise ValueError("highres images are required for equation OCR")
+        return expanded_blocks
 
-        from surya.common.surya.schema import TaskNames
+    def _prune_overlapping_layout_blocks(
+        self,
+        blocks: list[LayoutBlockResult],
+        overlap_threshold: float = 0.9,
+        containment_threshold: float = 0.98,
+    ) -> list[LayoutBlockResult]:
+        if len(blocks) < 2:
+            return blocks
 
-        equation_crops: list[Image.Image] = []
-        task_names: list[str] = []
-        block_ids: list[str] = []
+        kept_blocks: list[LayoutBlockResult] = []
+        for block in sorted(
+            blocks,
+            key=lambda item: (-bbox_area(item.bbox_image), item.position),
+        ):
+            block_area = max(1.0, bbox_area(block.bbox_image))
+            should_drop = False
 
-        for seq, page, block in equation_blocks:
-            crop = crop_image_to_bbox(
-                highres_images[seq],
-                block.bbox_pdf,
+            for kept in kept_blocks:
+                intersection = bbox_intersection(block.bbox_image, kept.bbox_image)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / block_area
+                kept_area = bbox_area(kept.bbox_image)
+                if overlap_ratio >= overlap_threshold and kept_area >= block_area:
+                    should_drop = True
+                    break
+
+            if not should_drop:
+                kept_blocks.append(block)
+
+        filtered_blocks: list[LayoutBlockResult] = []
+        for block in kept_blocks:
+            block_area = max(1.0, bbox_area(block.bbox_image))
+            covered_by_larger = False
+            for other in kept_blocks:
+                if other.block_id == block.block_id:
+                    continue
+
+                other_area = bbox_area(other.bbox_image)
+                if other_area < block_area:
+                    continue
+
+                intersection = bbox_intersection(block.bbox_image, other.bbox_image)
+                if intersection is None:
+                    continue
+
+                overlap_ratio = bbox_area(intersection) / block_area
+                if overlap_ratio >= containment_threshold:
+                    covered_by_larger = True
+                    break
+
+            if not covered_by_larger:
+                filtered_blocks.append(block)
+
+        return sorted(filtered_blocks, key=lambda item: item.position)
+
+    def _refine_sparse_text_blocks(
+        self,
+        blocks: list[LayoutBlockResult],
+        page_ocr: OCRPageResult,
+        image_bbox: list[float],
+        layout_image_bbox: list[float],
+        page_width: float,
+        page_height: float,
+    ) -> list[LayoutBlockResult]:
+        refined_blocks: list[LayoutBlockResult] = []
+
+        for block in blocks:
+            if block.category not in [
+                ElementCategory.FLOWING_TEXT,
+                ElementCategory.EQUATION,
+            ]:
+                refined_blocks.append(block)
+                continue
+
+            split_label = block.label
+            split_category = block.category
+
+            is_sparse, text_lines = is_sparse_text_block(
+                page_ocr.ocr_result,
+                block.bbox_image,
+            )
+            if not is_sparse:
+                refined_blocks.append(block)
+                continue
+
+            line_blocks = self._make_line_layout_blocks(
+                block,
+                text_lines,
+                split_label,
+                split_category,
+                image_bbox,
+                layout_image_bbox,
+                page_width,
+                page_height,
+            )
+            refined_blocks.extend(line_blocks or [block])
+
+        return refined_blocks
+
+    def _make_line_layout_blocks(
+        self,
+        block: LayoutBlockResult,
+        text_lines: list[Any],
+        label: str,
+        category: ElementCategory,
+        image_bbox: list[float],
+        layout_image_bbox: list[float],
+        page_width: float,
+        page_height: float,
+    ) -> list[LayoutBlockResult]:
+        line_blocks: list[LayoutBlockResult] = []
+
+        for index, line in enumerate(text_lines):
+            line_bbox = get_line_bbox(line)
+            if line_bbox is None or is_degenerate(line_bbox):
+                continue
+
+            bbox_image = self._clamp_image_bbox(line_bbox, image_bbox)
+            bbox_pdf = clamp_bbox(
+                image_bbox_to_pdf(
+                    bbox_image,
+                    image_bbox,
+                    page_width,
+                    page_height,
+                ),
+                page_width,
+                page_height,
+            )
+            bbox_layout = clamp_bbox(
+                convert_bbox(
+                    bbox_image,
+                    image_bbox[2],
+                    image_bbox[3],
+                    layout_image_bbox[2],
+                    layout_image_bbox[3],
+                ),
+                layout_image_bbox[2],
+                layout_image_bbox[3],
+            )
+            line_blocks.append(
+                LayoutBlockResult(
+                    block_id=f"{block.block_id}:line:{index}",
+                    page_index=block.page_index,
+                    position=block.position * 1000 + index,
+                    label=label,
+                    category=category,
+                    bbox_layout=bbox_layout,
+                    bbox_image=bbox_image,
+                    bbox_pdf=bbox_pdf,
+                )
+            )
+
+        return line_blocks
+
+    def _collect_line_fragments(
+        self,
+        lines: list[Any],
+        image_bbox: list[float],
+    ) -> list[tuple[str, list[float]]]:
+        fragments: list[tuple[str, list[float]]] = []
+        for line in lines:
+            text = clean_ocr_text(getattr(line, "text", ""))
+            line_bbox = get_line_bbox(line)
+            if not text or line_bbox is None or is_degenerate(line_bbox):
+                continue
+            fragments.append((text, self._clamp_image_bbox(line_bbox, image_bbox)))
+        return fragments
+
+    def _join_text_fragments(
+        self,
+        *fragment_groups: list[tuple[str, list[float]]],
+    ) -> str:
+        items: list[tuple[list[float], str]] = []
+        seen: set[tuple[Any, ...]] = set()
+        for fragments in fragment_groups:
+            for text, bbox in fragments:
+                cleaned = clean_ocr_text(text)
+                if not cleaned or bbox is None or is_degenerate(bbox):
+                    continue
+                key = (
+                    cleaned,
+                    round(bbox[0], 3),
+                    round(bbox[1], 3),
+                    round(bbox[2], 3),
+                    round(bbox[3], 3),
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append((bbox, cleaned))
+
+        items.sort(key=lambda item: (item[0][1], item[0][0], item[0][3], item[0][2]))
+        return clean_ocr_text(" ".join(text for _, text in items))
+
+    def _collect_equation_words(
+        self,
+        matching_lines: list[Any],
+        page_image_bbox: list[float],
+        page: LayoutPageResult,
+    ) -> list[EquationWordData]:
+        equation_words: list[EquationWordData] = []
+        for line in matching_lines:
+            for word in getattr(line, "words", None) or []:
+                word_text = clean_ocr_text(getattr(word, "text", ""))
+                word_bbox = self._get_word_bbox(word)
+                if not word_text or word_bbox is None or is_degenerate(word_bbox):
+                    continue
+
+                bbox_image, bbox_pdf = self._map_image_bbox(
+                    word_bbox,
+                    page_image_bbox,
+                    page,
+                )
+                equation_words.append(
+                    EquationWordData(
+                        text=word_text,
+                        bbox_image=bbox_image,
+                        bbox_pdf=bbox_pdf,
+                    )
+                )
+
+        return self._dedupe_equation_words(equation_words)
+
+    def _dedupe_equation_words(
+        self,
+        equation_words: list[EquationWordData],
+    ) -> list[EquationWordData]:
+        deduped: list[EquationWordData] = []
+        seen: set[tuple[Any, ...]] = set()
+        for word in equation_words:
+            key = (
+                word.text,
+                round(word.bbox_image[0], 3),
+                round(word.bbox_image[1], 3),
+                round(word.bbox_image[2], 3),
+                round(word.bbox_image[3], 3),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(word)
+        return deduped
+
+    def _map_image_bbox(
+        self,
+        bbox: list[float],
+        page_image_bbox: list[float],
+        page: LayoutPageResult,
+    ) -> tuple[list[float], list[float]]:
+        bbox_image = self._clamp_image_bbox(bbox, page.image_bbox)
+        bbox_pdf = clamp_bbox(
+            image_bbox_to_pdf(
+                bbox_image,
+                page_image_bbox,
                 page.page_width,
                 page.page_height,
-            )
-            equation_crops.append(crop)
-            task_names.append(TaskNames.block_without_boxes)
-            block_ids.append(block.block_id)
+            ),
+            page.page_width,
+            page.page_height,
+        )
+        return bbox_image, bbox_pdf
 
-        predictions = self.ocr_model(
-            equation_crops,
-            task_names=task_names,
-            bboxes=[[[0, 0, crop.size[0], crop.size[1]]] for crop in equation_crops],
-            math_mode=True,
-            ocr_batch_size=self.hardware.equation_batch_size,
-            auto_unload=True,
+    def _clamp_image_bbox(
+        self,
+        bbox: list[float],
+        image_bbox: list[float],
+    ) -> list[float]:
+        return clamp_bbox(bbox, image_bbox[2], image_bbox[3])
+
+    def _get_word_bbox(self, word: Any) -> list[float] | None:
+        if not getattr(word, "bbox_valid", True):
+            return None
+
+        word_bbox = None
+        word_bbox = getattr(word, "bbox", None)
+        if word_bbox is None and hasattr(word, "polygon"):
+            word_bbox = polygon_to_bbox(word.polygon)
+        if word_bbox is None:
+            return None
+
+        return list(word_bbox)
+
+    def _find_best_block_for_bbox(
+        self,
+        bbox: list[float],
+        blocks: list[LayoutBlockResult],
+    ) -> tuple[LayoutBlockResult | None, float]:
+        best_block: LayoutBlockResult | None = None
+        best_ratio = 0.0
+        bbox_area_value = max(1.0, bbox_area(bbox))
+
+        for block in blocks:
+            intersection = bbox_intersection(bbox, block.bbox_image)
+            if intersection is None:
+                continue
+
+            overlap_ratio = bbox_area(intersection) / bbox_area_value
+            if overlap_ratio > best_ratio:
+                best_ratio = overlap_ratio
+                best_block = block
+
+        return best_block, best_ratio
+
+    def _create_orphan_element_from_words(
+        self,
+        words: list[tuple[str, list[float]]],
+        page_ocr: OCRPageResult,
+        layout_page: LayoutPageResult,
+    ) -> ElementData | None:
+        if not words:
+            return None
+
+        bbox = self._merge_bboxes([bbox for _, bbox in words])
+        if bbox is None or is_degenerate(bbox):
+            return None
+
+        bbox_pdf = clamp_bbox(
+            image_bbox_to_pdf(
+                bbox,
+                page_ocr.image_bbox,
+                layout_page.page_width,
+                layout_page.page_height,
+            ),
+            layout_page.page_width,
+            layout_page.page_height,
+        )
+        return ElementData(
+            label="Text",
+            category=DEFAULT_CATEGORY,
+            bbox_pdf=bbox_pdf,
+            source_text=clean_ocr_text(" ".join(text for text, _ in words)),
+            translated_text="",
         )
 
-        for block_id, prediction in zip(block_ids, predictions):
-            latex_content = collect_ocr_text(prediction)
-            latex = latex_content if latex_content else "[EQUATION_PLACEHOLDER]"
-            equations[block_id] = EquationBlockResult(block_id=block_id, latex=latex)
+    def _create_orphan_element_from_line(
+        self,
+        line: Any,
+        line_bbox: list[float],
+        page_ocr: OCRPageResult,
+        layout_page: LayoutPageResult,
+    ) -> ElementData | None:
+        line_text = clean_ocr_text(getattr(line, "text", ""))
+        if not line_text or is_degenerate(line_bbox):
+            return None
 
-        return EquationParseResult(pdf_path="", equations=equations)
+        orphan_bbox_pdf = clamp_bbox(
+            image_bbox_to_pdf(
+                line_bbox,
+                page_ocr.image_bbox,
+                layout_page.page_width,
+                layout_page.page_height,
+            ),
+            layout_page.page_width,
+            layout_page.page_height,
+        )
+        return ElementData(
+            label="Text",
+            category=DEFAULT_CATEGORY,
+            bbox_pdf=orphan_bbox_pdf,
+            source_text=line_text,
+            translated_text="",
+        )
+
+    def _collect_orphan_table_lines(
+        self,
+        ocr_result: Any,
+        table_bbox_image: list[float],
+        cell_bboxes_image: list[list[float]],
+        table_overlap_threshold: float = 0.5,
+        cell_overlap_threshold: float = 0.3,
+    ) -> list[Any]:
+        orphan_lines: list[Any] = []
+        for line in getattr(ocr_result, "text_lines", None) or []:
+            line_bbox = get_line_bbox(line)
+            if line_bbox is None or is_degenerate(line_bbox):
+                continue
+
+            intersection = bbox_intersection(line_bbox, table_bbox_image)
+            if intersection is None:
+                continue
+
+            if (
+                bbox_area(intersection) / max(1.0, bbox_area(line_bbox))
+                < table_overlap_threshold
+            ):
+                continue
+
+            overlaps_cell = False
+            for cell_bbox in cell_bboxes_image:
+                cell_intersection = bbox_intersection(line_bbox, cell_bbox)
+                if cell_intersection is None:
+                    continue
+                if (
+                    bbox_area(cell_intersection) / max(1.0, bbox_area(line_bbox))
+                    >= cell_overlap_threshold
+                ):
+                    overlaps_cell = True
+                    break
+
+            if not overlaps_cell:
+                orphan_lines.append(line)
+
+        orphan_lines = sort_text_lines(orphan_lines)
+        return orphan_lines
+
+    def _collect_orphan_ocr_data(
+        self,
+        elements: list[ElementData],
+        layout_page: LayoutPageResult,
+        page_ocr: OCRPageResult,
+        overlap_threshold: float = 0.5,
+        word_overlap_threshold: float = 0.5,
+    ) -> list[ElementData]:
+        text_lines = getattr(page_ocr.ocr_result, "text_lines", None)
+        if not text_lines:
+            return []
+
+        orphan_elements: list[ElementData] = []
+        layout_bboxes = [block.bbox_image for block in layout_page.blocks]
+        # assignable_blocks = [
+        #     block
+        #     for block in layout_page.blocks
+        #     if block.category not in [ElementCategory.BYPASS, ElementCategory.TABLE]
+        # ]
+        # block_id_to_element = {
+        #     block.block_id: element
+        #     for block, element in zip(layout_page.blocks, elements)
+        #     if block.category not in [ElementCategory.BYPASS, ElementCategory.TABLE]
+        # }
+
+        for line in text_lines:
+            line_bbox = get_line_bbox(line)
+            if line_bbox is None or is_degenerate(line_bbox):
+                continue
+
+            line_area = bbox_area(line_bbox)
+            if line_area <= 0:
+                continue
+
+            covered_regions: list[list[float]] = []
+            for layout_bbox in layout_bboxes:
+                intersection = bbox_intersection(line_bbox, layout_bbox)
+                if intersection is not None:
+                    covered_regions.append(intersection)
+
+            covered_ratio = bbox_union_area(covered_regions) / line_area
+            # This condition ensures that lines can't duplicate with function extract_text_from_region
+            if covered_ratio >= overlap_threshold:
+                continue
+
+            # assigned_by_block: dict[str, list[tuple[str, list[float]]]] = {}
+            # unassigned_words: list[tuple[str, list[float]]] = []
+            # for word in getattr(line, "words", None) or []:
+            #     word_text = clean_ocr_text(getattr(word, "text", ""))
+            #     word_bbox = self._get_word_bbox(word)
+            #     if not word_text or word_bbox is None or is_degenerate(word_bbox):
+            #         continue
+
+            #     best_block, best_ratio = self._find_best_block_for_bbox(
+            #         word_bbox, assignable_blocks
+            #     )
+            #     if best_block is not None and best_ratio >= word_overlap_threshold:
+            #         assigned_by_block.setdefault(best_block.block_id, []).append(
+            #             (word_text, word_bbox)
+            #         )
+            #     else:
+            #        unassigned_words.append((word_text, word_bbox))
+
+            # if assigned_by_block:
+            #     for block_id, word_entries in assigned_by_block.items():
+            #         element = block_id_to_element.get(block_id)
+            #         if element is None:
+            #             continue
+
+            #         text_fragment = clean_ocr_text(
+            #             " ".join(text for text, _ in word_entries)
+            #         )
+            #         if text_fragment:
+            #             if element.source_text:
+            #                 element.source_text = clean_ocr_text(
+            #                     f"{element.source_text} {text_fragment}"
+            #                 )
+            #             else:
+            #                 element.source_text = text_fragment
+
+            #         if element.category == ElementCategory.EQUATION:
+            #             for word_text, word_bbox in word_entries:
+            #                 bbox_image, bbox_pdf = self._map_image_bbox(
+            #                     word_bbox,
+            #                     page_ocr.image_bbox,
+            #                     layout_page,
+            #                 )
+            #                 element.equation_words.append(
+            #                     EquationWordData(
+            #                         text=word_text,
+            #                         bbox_image=bbox_image,
+            #                         bbox_pdf=bbox_pdf,
+            #                     )
+            #                 )
+
+            # if unassigned_words:
+            #     orphan = self._create_orphan_element_from_words(
+            #         unassigned_words,
+            #         page_ocr,
+            #         layout_page,
+            #     )
+            #     if orphan is not None:
+            #         orphan_elements.append(orphan)
+            # continue
+
+            orphan = self._create_orphan_element_from_line(
+                line,
+                line_bbox,
+                page_ocr,
+                layout_page,
+            )
+
+            # if orphan is None and unassigned_words:
+            #     orphan = self._create_orphan_element_from_words(
+            #         unassigned_words,
+            #         page_ocr,
+            #         layout_page,
+            #     )
+
+            if orphan is not None:
+                orphan_elements.append(orphan)
+
+        return orphan_elements
+
+    def _insert_orphan_elements(
+        self,
+        elements: list[ElementData],
+        orphan_elements: list[ElementData],
+    ) -> list[ElementData]:
+        """Insert orphan OCR elements without disturbing layout block order."""
+
+        if not orphan_elements:
+            return elements
+
+        merged_elements = list(elements)
+        for orphan in orphan_elements:
+            insert_at = len(merged_elements)
+            for index, element in enumerate(merged_elements):
+                if self._bbox_precedes_in_reading_order(
+                    orphan.bbox_pdf,
+                    element.bbox_pdf,
+                ):
+                    insert_at = index
+                    break
+            merged_elements.insert(insert_at, orphan)
+
+        return merged_elements
+
+    def _bbox_precedes_in_reading_order(
+        self,
+        first_bbox: list[float],
+        second_bbox: list[float],
+        row_overlap_ratio: float = 0.35,
+    ) -> bool:
+        """Return True when the first bbox should be read before the second."""
+
+        first_height = max(1.0, first_bbox[3] - first_bbox[1])
+        second_height = max(1.0, second_bbox[3] - second_bbox[1])
+        row_overlap = max(
+            0.0,
+            min(first_bbox[3], second_bbox[3]) - max(first_bbox[1], second_bbox[1]),
+        )
+
+        same_row = row_overlap >= min(first_height, second_height) * row_overlap_ratio
+        if same_row:
+            return first_bbox[0] < second_bbox[0]
+
+        first_center_y = (first_bbox[1] + first_bbox[3]) / 2.0
+        second_center_y = (second_bbox[1] + second_bbox[3]) / 2.0
+        return first_center_y < second_center_y
+
+    def _merge_bboxes(self, boxes: list[list[float]]) -> list[float] | None:
+        if not boxes:
+            return None
+
+        return [
+            min(bbox[0] for bbox in boxes),
+            min(bbox[1] for bbox in boxes),
+            max(bbox[2] for bbox in boxes),
+            max(bbox[3] for bbox in boxes),
+        ]
 
     def _resolve_pdf_path(self, pdf_path: str | Path) -> Path:
         pdf_path = Path(pdf_path)
         if not pdf_path.exists():
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
         return pdf_path
-
-    def _release_obj(self, *objects: Any) -> None:
-        for obj in objects:
-            if obj is None:
-                continue
-            del obj
 
     def _chunked(self, items: list[Any], size: int) -> Iterable[list[Any]]:
         for start in range(0, len(items), size):

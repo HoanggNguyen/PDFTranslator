@@ -67,6 +67,30 @@ class CellData:
 
 
 @dataclass
+class EquationWordData:
+    """Word-level OCR data extracted from an equation region."""
+
+    text: str
+    bbox_pdf: list[float]
+    bbox_image: list[float]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "text": self.text,
+            "bbox_pdf": self.bbox_pdf,
+            "bbox_image": self.bbox_image,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> EquationWordData:
+        return cls(
+            text=data["text"],
+            bbox_pdf=data["bbox_pdf"],
+            bbox_image=data["bbox_image"],
+        )
+
+
+@dataclass
 class ElementData:
     """A layout element detected by Surya.
 
@@ -76,9 +100,8 @@ class ElementData:
         bbox_pdf: [x0, y0, x1, y1] in PDF points; x0 < x1, y0 < y1
         source_text: OCR text; always "" for BYPASS and optional for EQUATION
         translated_text: Empty string after Stage A; filled by Stage C
-        latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
-        font_size: Estimated font size for text elements; 0.0 if not computed or non-text
+        equation_words: Word-level OCR boxes extracted from EQUATION blocks; [] otherwise
     """
 
     label: str
@@ -86,19 +109,11 @@ class ElementData:
     bbox_pdf: list[float]
     source_text: str
     translated_text: str = ""
-    latex: str = ""
     cells: list[CellData] = field(default_factory=list)
+    equation_words: list[EquationWordData] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize this element to a JSON-compatible dictionary.
-
-        The ``category`` field is stored as its string value so the output is
-        JSON-serializable without custom encoders.
-
-        Returns:
-            Dict with keys ``label``, ``category``, ``bbox_pdf``,
-            ``source_text``, ``translated_text``, ``latex`` and ``cells``.
-        """
+        """Serialize this element to a JSON-compatible dictionary."""
 
         return {
             "label": self.label,
@@ -110,29 +125,24 @@ class ElementData:
             "bbox_pdf": self.bbox_pdf,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
-            "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
+            "equation_words": [word.to_dict() for word in self.equation_words],
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ElementData:
-        """Deserialize an :class:`ElementData` from a plain dictionary.
-
-        Args:
-            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``translated_text``, ``latex``, ``cells`` default to ``""``, ``""`` and ``[]`` respectively.
-
-        Returns:
-            New :class:`ElementData` instance.
-        """
+        """Deserialize an :class:`ElementData` from a plain dictionary."""
         return cls(
             label=data["label"],
             category=ElementCategory(data["category"]),
             bbox_pdf=data["bbox_pdf"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
-            latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
+            equation_words=[
+                EquationWordData.from_dict(word)
+                for word in data.get("equation_words", [])
+            ],
         )
 
 
@@ -432,22 +442,6 @@ class TableParseResult:
 
     pdf_path: str
     tables: dict[str, TableBlockResult] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class EquationBlockResult:
-    """Equation phase output for one layout equation block."""
-
-    block_id: str
-    latex: str
-
-
-@dataclass(slots=True)
-class EquationParseResult:
-    """Equation phase output indexed by layout block id."""
-
-    pdf_path: str
-    equations: dict[str, EquationBlockResult] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

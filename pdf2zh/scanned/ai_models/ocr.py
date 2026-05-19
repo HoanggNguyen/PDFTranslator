@@ -93,7 +93,7 @@ class SuryaOCRModel(BaseImageToTextModel):
         """
         images, highres_images = prepared_inputs
 
-        run_kwargs: dict[str, Any] = {"math_mode": math_mode}
+        run_kwargs: dict[str, Any] = {"math_mode": True, "return_words": True}
 
         if not math_mode:
             logger.info("Running OCR with detection + recognition")
