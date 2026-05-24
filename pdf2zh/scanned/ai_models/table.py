@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import os
 import numpy as np
 from PIL import Image
 
@@ -105,7 +106,16 @@ class PaddleCellTableModule(BaseImageToTextModel):
 
         from paddleocr import TableCellsDetection
 
-        self.model = TableCellsDetection(model_name="RT-DETR-L_wireless_table_cell_det")
+        model_dir = "pdf2zh/scanned/model_path/cekk_table_detection"
+
+        if not os.path.exists(model_dir):
+            logger.warning(
+                "Paddle table detection model directory not found at %s. "
+                "Please ensure the model is downloaded and placed correctly.",
+                model_dir,
+            )
+
+        self.model = TableCellsDetection(model_dir=model_dir)
         logger.info("Loaded TableCellsDetection")
 
     def prepare(

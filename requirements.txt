@@ -13,8 +13,8 @@ ollama
 xinference-client
 
 # ── OCR / Scanned PDF (surya pipeline) ───────────────────────────────────────
-surya-ocr
-transformers<=4.56.1
+surya-ocr==0.17.1
+transformers==4.56.1
 torch
 torchvision
 opencv-python-headless

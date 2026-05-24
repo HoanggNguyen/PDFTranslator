@@ -953,47 +953,7 @@ class StageAParser:
                     )
                 )
 
-        if not equation_words:
-            return []
-
-        grouped_by_bbox: dict[tuple[float, float, float, float], list[EquationWordData]] = {}
-        for word in equation_words:
-            key = (
-                round(word.bbox_image[0], 3),
-                round(word.bbox_image[1], 3),
-                round(word.bbox_image[2], 3),
-                round(word.bbox_image[3], 3),
-            )
-            grouped_by_bbox.setdefault(key, []).append(word)
-
-        if len(grouped_by_bbox) == 1 and len(equation_words) > 1:
-            # Surya may return identical bounding boxes for every word in a line.
-            # Collapse the grouped words into a single line-level word entry to
-            # avoid misleading per-word boxes.
-            group = next(iter(grouped_by_bbox.values()))
-            return [
-                EquationWordData(
-                    text=clean_ocr_text(" ".join(word.text for word in group)),
-                    bbox_image=group[0].bbox_image,
-                    bbox_pdf=group[0].bbox_pdf,
-                )
-            ]
-
-        collapsed_words: list[EquationWordData] = []
-        for group in grouped_by_bbox.values():
-            if len(group) == 1:
-                collapsed_words.append(group[0])
-                continue
-
-            collapsed_words.append(
-                EquationWordData(
-                    text=clean_ocr_text(" ".join(word.text for word in group)),
-                    bbox_image=group[0].bbox_image,
-                    bbox_pdf=group[0].bbox_pdf,
-                )
-            )
-
-        return self._dedupe_equation_words(collapsed_words)
+        return self._dedupe_equation_words(equation_words)
 
     def _dedupe_equation_words(
         self,
@@ -1021,10 +981,7 @@ class StageAParser:
         page_image_bbox: list[float],
         page: LayoutPageResult,
     ) -> tuple[list[float], list[float]]:
-        # Word/char bounding boxes are returned in the OCR image coordinate
-        # space, which is the same space recorded in page_ocr.image_bbox.
-        # Use that space for clamping before scaling to PDF.
-        bbox_image = self._clamp_image_bbox(bbox, page_image_bbox)
+        bbox_image = self._clamp_image_bbox(bbox, page.image_bbox)
         bbox_pdf = clamp_bbox(
             image_bbox_to_pdf(
                 bbox_image,
@@ -1186,7 +1143,7 @@ class StageAParser:
         layout_page: LayoutPageResult,
         page_ocr: OCRPageResult,
         overlap_threshold: float = 0.5,
-        word_overlap_threshold: float = 0.5,
+        word_overlap_threshold: float = 0.3,
     ) -> list[ElementData]:
         text_lines = getattr(page_ocr.ocr_result, "text_lines", None)
         if not text_lines:
@@ -1221,12 +1178,12 @@ class StageAParser:
                     covered_regions.append(intersection)
 
             covered_ratio = bbox_union_area(covered_regions) / line_area
+            # This condition ensures that lines can't duplicate with function extract_text_from_region
             if covered_ratio >= overlap_threshold:
                 continue
 
             assigned_by_block: dict[str, list[tuple[str, list[float]]]] = {}
             unassigned_words: list[tuple[str, list[float]]] = []
-
             for word in getattr(line, "words", None) or []:
                 word_text = clean_ocr_text(getattr(word, "text", ""))
                 word_bbox = self._get_word_bbox(word)
@@ -1241,7 +1198,7 @@ class StageAParser:
                         (word_text, word_bbox)
                     )
                 else:
-                    unassigned_words.append((word_text, word_bbox))
+                   unassigned_words.append((word_text, word_bbox))
 
             if assigned_by_block:
                 for block_id, word_entries in assigned_by_block.items():
@@ -1275,23 +1232,23 @@ class StageAParser:
                                 )
                             )
 
-            if unassigned_words:
-                orphan = self._create_orphan_element_from_words(
-                    unassigned_words,
-                    page_ocr,
-                    layout_page,
-                )
-                if orphan is not None:
-                    orphan_elements.append(orphan)
+                if unassigned_words:
+                    orphan = self._create_orphan_element_from_words(
+                        unassigned_words,
+                        page_ocr,
+                        layout_page,
+                    )
+                    if orphan is not None:
+                        orphan_elements.append(orphan)
                 continue
-
-            if not assigned_by_block:
+            else:
                 orphan = self._create_orphan_element_from_line(
                     line,
                     line_bbox,
                     page_ocr,
                     layout_page,
                 )
+
                 if orphan is not None:
                     orphan_elements.append(orphan)
 

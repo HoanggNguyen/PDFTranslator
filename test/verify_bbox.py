@@ -43,6 +43,7 @@ CATEGORY_COLORS = {
     ElementCategory.EQUATION: (1.0, 0.5, 0.0),  # Orange
 }
 
+EQ_WORD_COLOR = (0.0, 1.0, 1.0)   # Cyan for equation words
 CELL_COLOR = (0.8, 0.8, 0.0)  # Yellow for table cells
 
 
@@ -132,6 +133,14 @@ def verify_pdf(
             if elem.category == ElementCategory.TABLE:
                 for cell in elem.cells:
                     draw_bbox(page, cell.bbox_pdf, CELL_COLOR, width=1.0)
+
+            equation_words = elem.equation_words
+            for eq_word in equation_words:
+                eq_bbox = eq_word.bbox_pdf
+                if eq_bbox:
+                    # Dùng nét mỏng hơn (0.5) cho các word để không bị rối
+                    draw_bbox(page, eq_bbox, EQ_WORD_COLOR, width=0.5)
+                    # Hiện thêm text của từ đó để dễ kiểm tra
 
     # Save the annotated PDF
     output_path.parent.mkdir(parents=True, exist_ok=True)

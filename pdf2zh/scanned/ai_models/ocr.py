@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Tuple
+import os
 
 from PIL import Image
 
@@ -151,15 +152,32 @@ class CustomSuryaOCRModel(BaseImageToTextModel):
         from surya.detection import DetectionPredictor
         # from surya.foundation import FoundationPredictor
         # from surya.recognition import RecognitionPredictor
-        from pdf2zh.scanned.ai_models.infrastructure.custom_surya_foundation import RecognitionPredictor
+        from pdf2zh.scanned.infrastructure.custom_surya_recognition import RecognitionPredictor
 
         # self.foundation_predictor = FoundationPredictor()
         # logger.info("Loaded FoundationPredictor (OCR backbone)")
 
-        self.detection_predictor = DetectionPredictor()
+        detection_model_path = "pdf2zh/scanned/model_path/text_detection"
+        recognition_model_path = "pdf2zh/scanned/model_path/text_recognition"
+
+        if not os.path.exists(detection_model_path):
+            logger.error(
+                "Detection model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
+                detection_model_path,
+            )
+            raise FileNotFoundError(f"Detection model checkpoint not found at {detection_model_path}")
+        
+        if not os.path.exists(recognition_model_path):
+            logger.error(
+                "Recognition model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
+                recognition_model_path,
+            )
+            raise FileNotFoundError(f"Recognition model checkpoint not found at {recognition_model_path}")
+
+        self.detection_predictor = DetectionPredictor(checkpoint=detection_model_path)
         logger.info("Loaded DetectionPredictor")
 
-        self.recognition_predictor = RecognitionPredictor()
+        self.recognition_predictor = RecognitionPredictor(checkpoint=recognition_model_path)
         logger.info("Loaded RecognitionPredictor")
 
         self.model = self.recognition_predictor
