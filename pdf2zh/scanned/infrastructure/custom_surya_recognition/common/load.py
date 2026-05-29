@@ -1,8 +1,7 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
 import torch
-
-from custom_surya_recognition.settings import settings
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.settings import settings
 
 
 class ModelLoader:

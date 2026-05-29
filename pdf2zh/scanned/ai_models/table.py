@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
-import os
 import numpy as np
 from PIL import Image
 
@@ -106,7 +106,7 @@ class PaddleCellTableModule(BaseImageToTextModel):
 
         from paddleocr import TableCellsDetection
 
-        model_dir = "pdf2zh/scanned/model_path/cekk_table_detection"
+        model_dir = "pdf2zh/scanned/model_path/cell_table_detection"
 
         if not os.path.exists(model_dir):
             logger.warning(

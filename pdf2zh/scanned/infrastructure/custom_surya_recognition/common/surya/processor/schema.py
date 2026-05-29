@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal, List, Tuple
+from typing import List, Literal, Tuple, TypedDict
 
 import torch
 from PIL import Image

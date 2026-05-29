@@ -1,8 +1,8 @@
 from typing import Callable, Optional, Tuple, Union
 
 import torch
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.decoder.config import SuryaDecoderConfig
 from torch import nn
-
 from transformers.activations import ACT2FN
 from transformers.cache_utils import (
     Cache,
@@ -19,11 +19,9 @@ from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
 from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
 from transformers.processing_utils import Unpack
 from transformers.utils import (
+    is_flash_attn_2_available,
     logging,
 )
-from custom_surya_recognition.common.surya.decoder.config import SuryaDecoderConfig
-
-from transformers.utils import is_flash_attn_2_available
 
 if is_flash_attn_2_available():
     from custom_surya_recognition.common.surya.flash_attn_utils import (

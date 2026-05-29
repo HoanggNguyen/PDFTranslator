@@ -1,6 +1,7 @@
 import logging
 import warnings
-from custom_surya_recognition.settings import settings
+
+from .settings import settings
 
 
 def configure_logging():

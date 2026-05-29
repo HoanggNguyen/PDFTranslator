@@ -5,11 +5,10 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.encoder.config import SuryaEncoderConfig
 from transformers import PreTrainedModel
 from transformers.activations import ACT2FN
 from transformers.utils import is_flash_attn_2_available
-
-from custom_surya_recognition.common.surya.encoder.config import SuryaEncoderConfig
 
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_varlen_func
@@ -305,7 +304,9 @@ class Qwen2_5_VLVisionSdpaAttention(nn.Module):
         batch_indices = torch.tensor(batch_indices, device=device)
         position_indices = torch.tensor(position_indices, device=device)
 
-        batched_q = torch.zeros((batch_size, max_seq_len, num_heads, head_dim), device=device, dtype=dtype)
+        batched_q = torch.zeros(
+            (batch_size, max_seq_len, num_heads, head_dim), device=device, dtype=dtype
+        )
         batched_k = torch.zeros_like(batched_q)
         batched_v = torch.zeros_like(batched_q)
 
@@ -315,15 +316,17 @@ class Qwen2_5_VLVisionSdpaAttention(nn.Module):
         # - If query or key is padding, set to -inf
         attention_mask = torch.full(
             (batch_size, max_seq_len, max_seq_len),
-            fill_value=float('-inf'),
+            fill_value=float("-inf"),
             device=device,
-            dtype=dtype
+            dtype=dtype,
         )
         for b in range(batch_size):
             valid_len = seq_lengths[b].item()
             attention_mask[b, :valid_len, :valid_len] = 0  # Unmasked
 
-        attention_mask = attention_mask.unsqueeze(1)  # (batch_size, 1, max_seq_len, max_seq_len)
+        attention_mask = attention_mask.unsqueeze(
+            1
+        )  # (batch_size, 1, max_seq_len, max_seq_len)
 
         batched_q[batch_indices, position_indices] = q
         batched_k[batch_indices, position_indices] = k
@@ -333,7 +336,7 @@ class Qwen2_5_VLVisionSdpaAttention(nn.Module):
 
     def repack_hidden_states(self, batched_output, cu_seqlens):
         """
-        Reverses the unpacking operation using indexing to convert batched outputs 
+        Reverses the unpacking operation using indexing to convert batched outputs
         back to a flat tensor of shape (total_seq_len, hidden_dim).
 
         Args:
@@ -344,11 +347,10 @@ class Qwen2_5_VLVisionSdpaAttention(nn.Module):
             packed_output: Tensor of shape (total_seq_len, hidden_dim)
         """
         device = batched_output.device
-        dtype = batched_output.dtype
 
         batch_size, max_seq_len, hidden_dim = batched_output.shape
         seq_lengths = cu_seqlens[1:] - cu_seqlens[:-1]
-        total_seq_len = seq_lengths.sum().item()
+        seq_lengths.sum().item()
 
         batch_indices = []
         position_indices = []
@@ -404,7 +406,9 @@ class Qwen2_5_VLVisionSdpaAttention(nn.Module):
             attention_mask,
             dropout_p=0.0,
         )
-        attn_output = attn_output.permute(0, 2, 1, 3).reshape(batch_size, max_seqlen, -1)     # Bring back to (batch_size, max_seqlen, hidden_dim)
+        attn_output = attn_output.permute(0, 2, 1, 3).reshape(
+            batch_size, max_seqlen, -1
+        )  # Bring back to (batch_size, max_seqlen, hidden_dim)
         attn_output = self.proj(attn_output)
         attn_output = self.repack_hidden_states(attn_output, cu_seqlens)
 

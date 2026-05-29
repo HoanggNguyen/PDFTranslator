@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 import os
+from typing import Any
 
 from PIL import Image
 
@@ -31,7 +31,9 @@ class SuryaLayoutModel(BaseImageToTextModel):
                 "Layout model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
                 checkpoint_path,
             )
-            raise FileNotFoundError(f"Layout model checkpoint not found at {checkpoint_path}")
+            raise FileNotFoundError(
+                f"Layout model checkpoint not found at {checkpoint_path}"
+            )
 
         self.layout_foundation_predictor = FoundationPredictor(
             checkpoint=checkpoint_path,

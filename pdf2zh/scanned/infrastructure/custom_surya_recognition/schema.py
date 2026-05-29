@@ -1,10 +1,9 @@
 import math
+from typing import List, Optional
+
 import numpy as np
-from typing import Optional, List
-
+from .common.polygon import PolygonBox
 from pydantic import BaseModel, field_validator
-
-from custom_surya_recognition.common.polygon import PolygonBox
 
 
 class BaseChar(PolygonBox):

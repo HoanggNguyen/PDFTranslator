@@ -1,49 +1,47 @@
 from __future__ import annotations
 
 import re
+from collections import deque
 from dataclasses import dataclass
 from typing import List, Optional
-from collections import deque
 
 import cv2
 import numpy as np
 import torch
-from PIL import Image
-from tqdm import tqdm
 import torch.nn.functional as F
-from transformers import QuantizedCacheConfig
-
-from custom_surya_recognition.common.polygon import PolygonBox
-from custom_surya_recognition.common.surya import SuryaModelOutput
-from custom_surya_recognition.common.surya.processor import NOMATH_TOKEN
-from custom_surya_recognition.common.util import mark_step
-from custom_surya_recognition.common.predictor import BasePredictor
-from surya.detection import DetectionPredictor
-from custom_surya_recognition.processing import (
-    convert_if_not_rgb,
-    slice_polys_from_image,
-    slice_bboxes_from_image,
-)
-
-from custom_surya_recognition.loader import RecognitionModelLoader
-from custom_surya_recognition.postprocessing import fix_unbalanced_tags
-from custom_surya_recognition.util import (
-    sort_text_lines,
-    clean_close_polygons,
-    words_from_chars,
-    detect_repeat_token,
-    prediction_to_polygon_batch,
-    unwrap_math,
-    clean_math_tags,
-)
-from custom_surya_recognition.schema import TextLine, OCRResult, TextChar
-from custom_surya_recognition.common.surya.schema import TaskNames
-from custom_surya_recognition.cache import (
+from .cache import (
     ContinuousBatchingCache,
     ContinuousBatchingQuantizedCache,
 )
-from custom_surya_recognition.settings import settings
-from custom_surya_recognition.logging import get_logger, configure_logging
+from .common.polygon import PolygonBox
+from .common.predictor import BasePredictor
+from .common.surya import SuryaModelOutput
+from .common.surya.processor import NOMATH_TOKEN
+from .common.surya.schema import TaskNames
+from .common.util import mark_step
+from .loader import RecognitionModelLoader
+from .logging import configure_logging, get_logger
+from .postprocessing import fix_unbalanced_tags
+from .processing import (
+    convert_if_not_rgb,
+    slice_bboxes_from_image,
+    slice_polys_from_image,
+)
+from .schema import OCRResult, TextChar, TextLine
+from .settings import settings
+from .util import (
+    clean_close_polygons,
+    clean_math_tags,
+    detect_repeat_token,
+    prediction_to_polygon_batch,
+    sort_text_lines,
+    unwrap_math,
+    words_from_chars,
+)
+from PIL import Image
+from surya.detection import DetectionPredictor
+from tqdm import tqdm
+# from transformers import QuantizedCacheConfig
 
 configure_logging()
 logger = get_logger()
@@ -243,9 +241,7 @@ class RecognitionPredictor(BasePredictor):
             == len(all_polygons)
             == len(all_text)
             == len(all_task_names)
-        ), (
-            f"Mismatch in lengths: {len(all_slices)}, {sum(slice_map)}, {len(all_polygons)}, {len(all_text)}, {len(all_task_names)}"
-        )
+        ), f"Mismatch in lengths: {len(all_slices)}, {sum(slice_map)}, {len(all_polygons)}, {len(all_text)}, {len(all_task_names)}"
 
         return {
             "slices": all_slices,
@@ -385,14 +381,19 @@ class RecognitionPredictor(BasePredictor):
                 )
 
         # Use quantized cache if setting activated
-        cache_config = QuantizedCacheConfig(
-            "HQQ", 8, 1, 1, device=self.model.device, compute_dtype=self.model.dtype
-        )
-        prefill_cache = (
-            ContinuousBatchingCache()
-            if not settings.RECOGNITION_MODEL_QUANTIZE
-            else ContinuousBatchingQuantizedCache(cache_config)
-        )
+        # Khởi tạo hệ thống cache phân cấp dựa trên tùy chọn settings
+        if not settings.RECOGNITION_MODEL_QUANTIZE:
+            prefill_cache = ContinuousBatchingCache()
+        else:
+            # Truyền trực tiếp các tham số khởi tạo cấu hình vào class mới
+            prefill_cache = ContinuousBatchingQuantizedCache(
+                config=self.model.config,
+                nbits=8,
+                axis_key=1,
+                axis_value=1,
+                q_group_size=64,
+                residual_length=128
+            )
 
         with settings.INFERENCE_MODE():
             outputs = self.model(
@@ -415,9 +416,9 @@ class RecognitionPredictor(BasePredictor):
         non_active_idxs = [k for k, v in self.batch_prompt_mapping.items() if v is None]
         idxs_to_merge = non_active_idxs[: len(prompts)]
 
-        assert len(idxs_to_merge) == len(prompts), (
-            "Number of prompts should match number of empty slots"
-        )
+        assert len(idxs_to_merge) == len(
+            prompts
+        ), "Number of prompts should match number of empty slots"
         for i, prompt in zip(idxs_to_merge, prompts):
             self.batch_prompt_mapping[i] = prompt.id
 
@@ -790,18 +791,18 @@ class RecognitionPredictor(BasePredictor):
         if task_names is None:
             task_names = [TaskNames.ocr_with_boxes] * len(images)
 
-        assert all([task_name in allowed_tasks for task_name in task_names]), (
-            f"One or more tasks in {task_names} is not supported. Supported tasks are {allowed_tasks}"
-        )
-        assert len(images) == len(task_names), (
-            "You need to pass in one task name for each image"
-        )
+        assert all(
+            [task_name in allowed_tasks for task_name in task_names]
+        ), f"One or more tasks in {task_names} is not supported. Supported tasks are {allowed_tasks}"
+        assert len(images) == len(
+            task_names
+        ), "You need to pass in one task name for each image"
 
         images = convert_if_not_rgb(images)
         if highres_images is not None:
-            assert len(images) == len(highres_images), (
-                "You need to pass in one highres image for each image"
-            )
+            assert len(images) == len(
+                highres_images
+            ), "You need to pass in one highres image for each image"
 
         highres_images = (
             convert_if_not_rgb(highres_images)
@@ -810,9 +811,9 @@ class RecognitionPredictor(BasePredictor):
         )
 
         if bboxes is None and polygons is None:
-            assert det_predictor is not None, (
-                "You need to pass in a detection predictor if you don't provide bboxes or polygons"
-            )
+            assert (
+                det_predictor is not None
+            ), "You need to pass in a detection predictor if you don't provide bboxes or polygons"
 
             # Detect then slice
             flat = self.detect_and_slice_bboxes(
@@ -824,13 +825,13 @@ class RecognitionPredictor(BasePredictor):
             )
         else:
             if bboxes is not None:
-                assert len(images) == len(bboxes), (
-                    "You need to pass in one list of bboxes for each image"
-                )
+                assert len(images) == len(
+                    bboxes
+                ), "You need to pass in one list of bboxes for each image"
             if polygons is not None:
-                assert len(images) == len(polygons), (
-                    "You need to pass in one list of polygons for each image"
-                )
+                assert len(images) == len(
+                    polygons
+                ), "You need to pass in one list of polygons for each image"
 
             flat = self.slice_bboxes(
                 images,
@@ -843,16 +844,13 @@ class RecognitionPredictor(BasePredictor):
         # No images passed, or no boxes passed, or no text detected in the images
         if len(flat["slices"]) == 0:
             return [
-                OCRResult(
-                    text_lines=[], image_bbox=[0, 0, im.size[0], im.size[1]]
-                )
+                OCRResult(text_lines=[], image_bbox=[0, 0, im.size[0], im.size[1]])
                 for im in images
             ]
 
         # Sort by line widths. Negative so that longer images come first, fits in with continuous batching better
         sorted_pairs = sorted(
-            enumerate(flat["slices"]),
-            key=lambda x: -(x[1].shape[0] * x[1].shape[1])
+            enumerate(flat["slices"]), key=lambda x: -(x[1].shape[0] * x[1].shape[1])
         )
         indices, sorted_slices = zip(*sorted_pairs)
 
@@ -933,9 +931,11 @@ class RecognitionPredictor(BasePredictor):
                             polygon=polygon,
                             chars=text_line,
                             confidence=confidence,
-                            words=words_from_chars(text_line, poly_box)
-                            if return_words
-                            else [],
+                            words=(
+                                words_from_chars(text_line, poly_box)
+                                if return_words
+                                else []
+                            ),
                         )
                     )
 

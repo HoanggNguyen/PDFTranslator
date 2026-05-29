@@ -12,7 +12,7 @@ from PIL import Image
 from pdf2zh.scanned.ai_models import (
     PaddleCellTableModule,
     SuryaLayoutModel,
-    SuryaOCRModel,
+    CustomSuryaOCRModel,
 )
 from pdf2zh.scanned.enums import (
     DEFAULT_CATEGORY,
@@ -57,6 +57,8 @@ from pdf2zh.scanned.utils.ocr_text import (
     extract_text_for_region,
     join_raw_text,
     sort_text_lines,
+    smart_join_text_lines,
+    clean_ocr_word,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,7 +91,7 @@ class StageAParser:
             gpu_memory_utilization=gpu_memory_utilization,
         )
         self.layout_model = SuryaLayoutModel()
-        self.ocr_model = SuryaOCRModel()
+        self.ocr_model = CustomSuryaOCRModel()
         # self.table_model = SuryaTableModel(self.hardware)
         self.table_model = PaddleCellTableModule()
 
@@ -317,19 +319,18 @@ class StageAParser:
                             matching_cell_lines = extract_text_for_region(
                                 page_ocr.ocr_result, cell_bbox_image
                             )
-                            # cell_text = smart_join_text_lines(matching_cell_lines)
-                            cell_text = " ".join(
-                                line.text for line in matching_cell_lines
-                            )
-                            if cell_text:
-                                cells.append(
-                                    CellData(
-                                        bbox_pdf=cell_bbox_pdf,
-                                        source_text=cell_text,
-                                        translated_text="",
-                                    )
+                            cell_text = smart_join_text_lines(matching_cell_lines)
+                            # cell_text = " ".join(
+                            #     line.text for line in matching_cell_lines
+                            # )
+                            cells.append(
+                                CellData(
+                                    bbox_pdf=cell_bbox_pdf,
+                                    source_text=cell_text,
+                                    translated_text="",
                                 )
-                                source_parts.append(cell_text)
+                            )
+                            source_parts.append(cell_text)
 
                         for orphan_line in self._collect_orphan_table_lines(
                             page_ocr.ocr_result,
@@ -374,8 +375,8 @@ class StageAParser:
                             matching_lines = extract_text_for_region(
                                 page_ocr.ocr_result, block.bbox_image
                             )
-                            # source_text = smart_join_text_lines(matching_lines)
-                            source_text = " ".join(line.text for line in matching_lines)
+                            source_text = smart_join_text_lines(matching_lines)
+                            # source_text = " ".join(line.text for line in matching_lines)
                 else:
                     matching_lines = extract_text_for_region(
                         page_ocr.ocr_result, block.bbox_image
@@ -386,12 +387,9 @@ class StageAParser:
                             page_ocr.image_bbox,
                             layout_page,
                         )
-                    source_text = " ".join(line.text for line in matching_lines)
+                    source_text = smart_join_text_lines(matching_lines)
                     # else:
                     #     source_text = smart_join_text_lines(matching_lines)
-
-                    if not source_text:
-                        continue
 
                 elements.append(
                     ElementData(
@@ -557,7 +555,7 @@ class StageAParser:
                     page_width,
                     page_height,
                 )
-                blocks = self._prune_overlapping_layout_blocks(blocks)
+                
                 blocks = self._refine_sparse_text_blocks(
                     blocks,
                     page_ocr,
@@ -566,6 +564,7 @@ class StageAParser:
                     page_width,
                     page_height,
                 )
+                blocks = self._prune_overlapping_layout_blocks(blocks)
 
             layout_pages.append(
                 LayoutPageResult(
@@ -699,7 +698,7 @@ class StageAParser:
                 if overlap_ratio >= overlap_threshold:
                     matched_boxes.append(line_bbox)
 
-            merged_bbox = self._merge_bboxes(matched_boxes)
+            merged_bbox = self._merge_bboxes(matched_boxes, pad_ratio_x=0, pad_ratio_y=0)
             if merged_bbox is None:
                 expanded_blocks.append(block)
                 continue
@@ -733,8 +732,8 @@ class StageAParser:
     def _prune_overlapping_layout_blocks(
         self,
         blocks: list[LayoutBlockResult],
-        overlap_threshold: float = 0.9,
-        containment_threshold: float = 0.98,
+        overlap_threshold: float = 0.7,
+        containment_threshold: float = 0.9,
     ) -> list[LayoutBlockResult]:
         if len(blocks) < 2:
             return blocks
@@ -925,6 +924,7 @@ class StageAParser:
 
         items.sort(key=lambda item: (item[0][1], item[0][0], item[0][3], item[0][2]))
         return clean_ocr_text(" ".join(text for _, text in items))
+    
 
     def _collect_equation_words(
         self,
@@ -934,8 +934,10 @@ class StageAParser:
     ) -> list[EquationWordData]:
         equation_words: list[EquationWordData] = []
         for line in matching_lines:
-            for word in getattr(line, "words", None) or []:
-                word_text = clean_ocr_text(getattr(word, "text", ""))
+            for word in getattr(line, "chars", None) or []:
+                word_text = clean_ocr_word(getattr(word, "text", ""))
+                if not word_text:
+                    continue
                 word_bbox = self._get_word_bbox(word)
                 if not word_text or word_bbox is None or is_degenerate(word_bbox):
                     continue
@@ -953,7 +955,7 @@ class StageAParser:
                     )
                 )
 
-        return self._dedupe_equation_words(equation_words)
+        return equation_words
 
     def _dedupe_equation_words(
         self,
@@ -1143,7 +1145,7 @@ class StageAParser:
         layout_page: LayoutPageResult,
         page_ocr: OCRPageResult,
         overlap_threshold: float = 0.5,
-        word_overlap_threshold: float = 0.3,
+        word_overlap_threshold: float = 0.5,
     ) -> list[ElementData]:
         text_lines = getattr(page_ocr.ocr_result, "text_lines", None)
         if not text_lines:
@@ -1198,7 +1200,7 @@ class StageAParser:
                         (word_text, word_bbox)
                     )
                 else:
-                   unassigned_words.append((word_text, word_bbox))
+                    unassigned_words.append((word_text, word_bbox))
 
             if assigned_by_block:
                 for block_id, word_entries in assigned_by_block.items():
@@ -1301,16 +1303,46 @@ class StageAParser:
         second_center_y = (second_bbox[1] + second_bbox[3]) / 2.0
         return first_center_y < second_center_y
 
-    def _merge_bboxes(self, boxes: list[list[float]]) -> list[float] | None:
-        if not boxes:
+    def _merge_bboxes(
+        self, 
+        boxes: list[list[float]], 
+        pad_ratio_x: float = 0.02, 
+        pad_ratio_y: float = 0.02
+    ) -> list[float] | None:
+        """
+        Gộp các bounding box và nới rộng biên an toàn theo tỷ lệ phần trăm (0.0 -> 1.0)
+        dựa trên kích thước (chiều cao/chiều rộng) của khối chữ được gộp.
+        """
+        valid_boxes = [
+            bbox for bbox in boxes 
+            if len(bbox) >= 4 and bbox[2] > bbox[0] and bbox[3] > bbox[1]
+        ]
+        
+        if not valid_boxes:
             return None
 
-        return [
-            min(bbox[0] for bbox in boxes),
-            min(bbox[1] for bbox in boxes),
-            max(bbox[2] for bbox in boxes),
-            max(bbox[3] for bbox in boxes),
-        ]
+        # 1. Lấy ranh giới gộp thô ban đầu
+        x_min = min(bbox[0] for bbox in valid_boxes)
+        y_min = min(bbox[1] for bbox in valid_boxes)
+        x_max = max(bbox[2] for bbox in valid_boxes)
+        y_max = max(bbox[3] for bbox in valid_boxes)
+
+        # 2. Tính toán kích thước của khối chữ vừa gộp
+        box_width = x_max - x_min
+        box_height = y_max - y_min
+
+        # 3. Tính toán giá trị padding thực tế dựa trên tỷ lệ truyền vào
+        # Ví dụ: pad_ratio_x = 0.1 nghĩa là nới thêm 10% chiều rộng khối chữ về mỗi bên
+        pad_x = box_width * pad_ratio_x
+        pad_y = box_height * pad_ratio_y
+
+        # 4. Áp dụng mở rộng biên
+        x_min = max(0.0, x_min - pad_x)
+        y_min = max(0.0, y_min - pad_y)
+        x_max = x_max + pad_x
+        y_max = y_max + pad_y
+
+        return [x_min, y_min, x_max, y_max]
 
     def _resolve_pdf_path(self, pdf_path: str | Path) -> Path:
         pdf_path = Path(pdf_path)

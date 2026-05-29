@@ -1,25 +1,22 @@
-from typing import Optional, TypedDict
 import warnings
 from dataclasses import dataclass
+from typing import Optional, TypedDict
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.s3 import S3DownloaderMixin
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.config import SuryaModelConfig
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.decoder import SuryaDecoderModel
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.embedder import SimpleTokenEmbedder
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.encoder import SuryaEncoderModel
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.logging import get_logger
+from torch import nn
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
-
-from custom_surya_recognition.common.s3 import S3DownloaderMixin
-from custom_surya_recognition.common.surya.config import SuryaModelConfig
-from custom_surya_recognition.common.surya.decoder import SuryaDecoderModel
-from custom_surya_recognition.common.surya.embedder import SimpleTokenEmbedder
-from custom_surya_recognition.common.surya.encoder import SuryaEncoderModel
-
 from transformers.utils import is_flash_attn_2_available
 
-from surya.logging import get_logger
-
 if is_flash_attn_2_available():
-    from custom_surya_recognition.common.surya.flash_attn_utils import _get_unpad_data
+    from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.flash_attn_utils import _get_unpad_data
 
 logger = get_logger()
 
@@ -150,9 +147,9 @@ class SuryaModel(S3DownloaderMixin, PreTrainedModel):
             chunks.append(pixel_values.shape[0])
             grid_chunks.append(len(grid_thw))
 
-        assert curr_chunk_len + curr_seq_len == pixel_values.shape[0], (
-            f"Mismatch in encoder chunking, {curr_chunk_len} + {curr_seq_len} != {pixel_values.shape[0]}"
-        )
+        assert (
+            curr_chunk_len + curr_seq_len == pixel_values.shape[0]
+        ), f"Mismatch in encoder chunking, {curr_chunk_len} + {curr_seq_len} != {pixel_values.shape[0]}"
 
         logger.debug(
             f"Chunking encoder sequence into {len(chunks) - 1} chunks of size {encoder_chunk_size} with lengths {chunks} and grids {grid_chunks}"
@@ -183,12 +180,12 @@ class SuryaModel(S3DownloaderMixin, PreTrainedModel):
             device=embeddings.device,
             bbox_size=self.config.image_embed_encoding_multiplier,
         )
-        assert embeddings.shape[0] == encoding_2d.shape[0], (
-            f"Mismatch in image embedding seq len: {embeddings.shape} vs {encoding_2d.shape}"
-        )
-        assert embeddings.shape[1] == encoding_2d.shape[1], (
-            f"Mismatch in image embedding token counts: {embeddings.shape} vs {encoding_2d.shape}"
-        )
+        assert (
+            embeddings.shape[0] == encoding_2d.shape[0]
+        ), f"Mismatch in image embedding seq len: {embeddings.shape} vs {encoding_2d.shape}"
+        assert (
+            embeddings.shape[1] == encoding_2d.shape[1]
+        ), f"Mismatch in image embedding token counts: {embeddings.shape} vs {encoding_2d.shape}"
 
         embeddings = embeddings + encoding_2d
 
@@ -224,9 +221,9 @@ class SuryaModel(S3DownloaderMixin, PreTrainedModel):
                 special_image_mask, image_features
             )
         else:
-            assert (input_ids == self.config.image_token_id).sum() == 0, (
-                "Image tokens were present in the input but no input images were provided"
-            )
+            assert (
+                input_ids == self.config.image_token_id
+            ).sum() == 0, "Image tokens were present in the input but no input images were provided"
 
         return inputs_embeds
 

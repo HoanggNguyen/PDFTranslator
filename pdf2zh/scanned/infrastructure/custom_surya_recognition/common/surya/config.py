@@ -1,8 +1,7 @@
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.s3 import S3DownloaderMixin
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.decoder.config import SuryaDecoderConfig
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.encoder.config import SuryaEncoderConfig
 from transformers import PretrainedConfig
-
-from custom_surya_recognition.common.s3 import S3DownloaderMixin
-from custom_surya_recognition.common.surya.encoder.config import SuryaEncoderConfig
-from custom_surya_recognition.common.surya.decoder.config import SuryaDecoderConfig
 
 
 class SuryaModelConfig(S3DownloaderMixin, PretrainedConfig):

@@ -3,9 +3,8 @@ from typing import List, Tuple
 
 import numpy
 import torch
-
-from custom_surya_recognition.common.polygon import PolygonBox
-from custom_surya_recognition.schema import TextLine, TextWord, TextChar
+from .common.polygon import PolygonBox
+from .schema import TextChar, TextLine, TextWord
 
 MATH_SYMBOLS = ["+", "-", "*", "=", "^", "_", "\\", "{", "}"]
 

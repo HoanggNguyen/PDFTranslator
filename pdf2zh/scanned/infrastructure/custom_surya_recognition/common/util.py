@@ -1,9 +1,9 @@
 import copy
 from typing import List
-import torch
 
-from custom_surya_recognition.common.polygon import PolygonBox
-from custom_surya_recognition.settings import settings
+import torch
+from .polygon import PolygonBox
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.settings import settings
 
 
 def clean_boxes(boxes: List[PolygonBox]) -> List[PolygonBox]:

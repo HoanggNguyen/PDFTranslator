@@ -1,16 +1,15 @@
 from typing import Optional
 
 import torch
+from .common.load import ModelLoader
+from .common.surya import SuryaModel
+from .common.surya.config import SuryaModelConfig
+from .common.surya.processor import SuryaOCRProcessor
+from .common.surya.processor.tokenizer import SuryaOCRTokenizer
+from .common.util import is_flash_attn_2_supported
+from .settings import settings
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.logging import get_logger
 from transformers.utils import is_flash_attn_2_available
-
-from custom_surya_recognition.common.load import ModelLoader
-from custom_surya_recognition.common.surya.config import SuryaModelConfig
-from custom_surya_recognition.common.surya import SuryaModel
-from custom_surya_recognition.common.surya.processor import SuryaOCRProcessor
-from custom_surya_recognition.common.surya.processor.tokenizer import SuryaOCRTokenizer
-from custom_surya_recognition.common.util import is_flash_attn_2_supported
-from surya.logging import get_logger
-from custom_surya_recognition.settings import settings
 
 logger = get_logger()
 

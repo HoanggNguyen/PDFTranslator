@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Tuple
 import os
+from typing import Any, Tuple
 
 from PIL import Image
 
@@ -131,6 +131,7 @@ class SuryaOCRModel(BaseImageToTextModel):
         """
         return raw_results
 
+
 class CustomSuryaOCRModel(BaseImageToTextModel):
     """
     Wraps Surya's DetectionPredictor + RecognitionPredictor.
@@ -144,15 +145,20 @@ class CustomSuryaOCRModel(BaseImageToTextModel):
         self.detection_predictor: Any = None
         self.recognition_predictor: Any = None
 
+        from surya.settings import settings
+        settings.DETECTOR_TEXT_THRESHOLD = 0.65
+        settings.DETECTOR_BLANK_THRESHOLD = 0.45
+
     def load_model(self) -> None:
         logger.info(
             "Initializing %s and loading models into memory...", self.model_name
         )
 
         from surya.detection import DetectionPredictor
+
         # from surya.foundation import FoundationPredictor
         # from surya.recognition import RecognitionPredictor
-        from pdf2zh.scanned.infrastructure.custom_surya_recognition import RecognitionPredictor
+        from pdf2zh.scanned.infrastructure import RecognitionPredictor
 
         # self.foundation_predictor = FoundationPredictor()
         # logger.info("Loaded FoundationPredictor (OCR backbone)")
@@ -165,19 +171,25 @@ class CustomSuryaOCRModel(BaseImageToTextModel):
                 "Detection model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
                 detection_model_path,
             )
-            raise FileNotFoundError(f"Detection model checkpoint not found at {detection_model_path}")
-        
+            raise FileNotFoundError(
+                f"Detection model checkpoint not found at {detection_model_path}"
+            )
+
         if not os.path.exists(recognition_model_path):
             logger.error(
                 "Recognition model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
                 recognition_model_path,
             )
-            raise FileNotFoundError(f"Recognition model checkpoint not found at {recognition_model_path}")
+            raise FileNotFoundError(
+                f"Recognition model checkpoint not found at {recognition_model_path}"
+            )
 
         self.detection_predictor = DetectionPredictor(checkpoint=detection_model_path)
         logger.info("Loaded DetectionPredictor")
 
-        self.recognition_predictor = RecognitionPredictor(checkpoint=recognition_model_path)
+        self.recognition_predictor = RecognitionPredictor(
+            checkpoint=recognition_model_path
+        )
         logger.info("Loaded RecognitionPredictor")
 
         self.model = self.recognition_predictor
@@ -263,4 +275,3 @@ class CustomSuryaOCRModel(BaseImageToTextModel):
         Format raw Surya outputs into the final desired structure.
         """
         return raw_results
-

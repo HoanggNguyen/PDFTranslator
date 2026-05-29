@@ -3,10 +3,9 @@ from typing import List
 import cv2
 import numpy as np
 import pypdfium2
+from .settings import settings
 from PIL import Image
-
 from surya.logging import get_logger
-from custom_surya_recognition.settings import settings
 
 logger = get_logger()
 

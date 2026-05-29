@@ -1,25 +1,22 @@
 import math
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
 import torch
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.s3 import S3DownloaderMixin
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.processor.schema import (
+    ImageInput,
+    ProcessorOutput,
+    TextInput,
+)
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.schema import TaskNames
 from PIL import Image
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.logging import get_logger
 from torch.nn.utils.rnn import pad_sequence
-
-from typing import List, Optional, Tuple
-
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.processing_utils import ProcessorMixin
 from transformers.tokenization_utils import PreTrainedTokenizer
-
-from custom_surya_recognition.common.s3 import S3DownloaderMixin
-from custom_surya_recognition.common.surya.processor.schema import (
-    TextInput,
-    ImageInput,
-    ProcessorOutput,
-)
-from custom_surya_recognition.common.surya.schema import TaskNames
-from surya.logging import get_logger
 
 logger = get_logger()
 
@@ -234,15 +231,15 @@ class SuryaOCRProcessor(S3DownloaderMixin, ProcessorMixin):
         rotated = image_input.get("rotated", False)
         image = image_input.get("image", None)
 
-        assert image is not None, (
-            "A PIL Image must be provided when the input type is `image`"
-        )
+        assert (
+            image is not None
+        ), "A PIL Image must be provided when the input type is `image`"
         image_tiles, grid_thw = self._process_and_tile(image)
 
         num_tokens = image_tiles.shape[0] / self.merge_size**2
-        assert num_tokens.is_integer(), (
-            f"Expected number of tokens to be an integer, got {num_tokens}"
-        )
+        assert (
+            num_tokens.is_integer()
+        ), f"Expected number of tokens to be an integer, got {num_tokens}"
 
         input_ids = [self.image_token_id] * int(num_tokens)
         input_ids += self.register_token_ids[: self.num_register_tokens]
@@ -304,9 +301,9 @@ class SuryaOCRProcessor(S3DownloaderMixin, ProcessorMixin):
 
             # Special handling of some delimiter tokens
             if i == 1:
-                assert input_dict["type"] == "text", (
-                    "Expected text input for model input."
-                )
+                assert (
+                    input_dict["type"] == "text"
+                ), "Expected text input for model input."
                 # Case for input - Add task specific bos token + end_of_input token
                 # We do not want the model to learn how to predict inputs. Hence IGNORE_INDEX for these
                 input_ids = [bos_token_id] + input_ids + [self.eoi_token_id]

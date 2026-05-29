@@ -7,10 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import requests
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.settings import settings
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.logging import get_logger
 from tqdm import tqdm
-
-from surya.logging import get_logger
-from custom_surya_recognition.settings import settings
 
 logger = get_logger()
 

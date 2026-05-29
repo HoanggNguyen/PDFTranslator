@@ -1,9 +1,9 @@
 import copy
+import numbers
 from typing import List, Optional
 
 import numpy as np
-from pydantic import BaseModel, field_validator, computed_field
-import numbers
+from pydantic import BaseModel, computed_field, field_validator
 
 
 class PolygonBox(BaseModel):

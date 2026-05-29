@@ -1,16 +1,16 @@
 import html
 import re
-from typing import List, Union, Dict
+from typing import Dict, List, Union
+
 import numpy as np
 import torch
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.s3 import S3DownloaderMixin
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.common.surya.schema import TASK_NAMES, TaskNames
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.settings import settings
+from pdf2zh.scanned.infrastructure.custom_surya_recognition.logging import get_logger
 from tokenizers import AddedToken
-
-from transformers import PreTrainedTokenizer, Qwen2Tokenizer as Qwen2OriginalTokenizer
-
-from custom_surya_recognition.common.s3 import S3DownloaderMixin
-from custom_surya_recognition.common.surya.schema import TASK_NAMES, TaskNames
-from surya.logging import get_logger
-from custom_surya_recognition.settings import settings
+from transformers import PreTrainedTokenizer
+from transformers import Qwen2Tokenizer as Qwen2OriginalTokenizer
 
 logger = get_logger()
 

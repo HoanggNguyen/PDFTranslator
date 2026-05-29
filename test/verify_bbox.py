@@ -43,7 +43,7 @@ CATEGORY_COLORS = {
     ElementCategory.EQUATION: (1.0, 0.5, 0.0),  # Orange
 }
 
-EQ_WORD_COLOR = (0.0, 1.0, 1.0)   # Cyan for equation words
+EQ_WORD_COLOR = (0.0, 1.0, 1.0)  # Cyan for equation words
 CELL_COLOR = (0.8, 0.8, 0.0)  # Yellow for table cells
 
 

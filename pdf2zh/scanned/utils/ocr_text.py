@@ -112,31 +112,58 @@ def collect_ocr_text(ocr_result: Any) -> str:
 
     return clean_ocr_text(" ".join(lines))
 
+def clean_ocr_word(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Có ít nhất một ký tự alphabet
+    if not re.search(r"[^\W\d_]", text, re.UNICODE):
+        return ""
+
+    return text
+
 
 def smart_join_text_lines(lines: list[Any]) -> str:
     if not lines:
         return ""
 
     result = []
-    for i, line in enumerate(lines):
+    last_valid_text = ""  # Lưu lại văn bản của dòng có chữ gần nhất
+
+    for line in lines:
         current_text = getattr(line, "text", "").strip()
 
         if not current_text:
             continue
 
+        # Nếu là dòng chứa chữ đầu tiên, chỉ cần thêm vào kết quả
         if not result:
             result.append(current_text)
+            last_valid_text = current_text
             continue
 
-        prev_text = getattr(lines[i - 1], "text", "").rstrip()
+        # Kiểm tra điều kiện của dòng trước và ký tự đầu của dòng sau
+        ends_with_punctuation = last_valid_text[-1] in {".", "!", "?"}
+        starts_with_upper = current_text[0].isupper()
+        ends_with_hyphen = last_valid_text.endswith("-")
 
-        if prev_text and prev_text[-1] in {".", "!", "?"}:
+        # XUỐNG DÒNG nếu:
+        # 1. Dòng trước kết thúc bằng dấu câu (. ! ?)
+        # 2. HOẶC Dòng trước không có dấu câu NHƯNG dòng sau viết hoa
+        if not ends_with_punctuation and starts_with_upper:
             result.append("\n" + current_text)
+        elif ends_with_hyphen:
+            result.append(current_text)  # Nối liền nếu dòng trước kết thúc bằng dấu gạch nối
         else:
+            # Chỉ CÁCH RA nếu dòng trước không có dấu và dòng sau viết thường
             result.append(" " + current_text)
 
-    return clean_ocr_text("".join(result))
+        # Cập nhật lại dòng hợp lệ gần nhất
+        last_valid_text = current_text
 
+    return clean_ocr_text("".join(result))
 
 def sort_text_lines(lines: list[Any]) -> list[Any]:
     """

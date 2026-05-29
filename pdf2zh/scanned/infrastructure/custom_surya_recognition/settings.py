@@ -1,12 +1,12 @@
 import os
-from typing import Callable, Dict, Optional
+from pathlib import Path
+from typing import Callable, Optional
 
 import torch
 from dotenv import find_dotenv
+from platformdirs import user_cache_dir
 from pydantic import computed_field
 from pydantic_settings import BaseSettings
-from pathlib import Path
-from platformdirs import user_cache_dir
 
 
 class Settings(BaseSettings):
@@ -61,7 +61,6 @@ class Settings(BaseSettings):
     RECOGNITION_CHUNK_SIZE: Optional[int] = None
     RECOGNITION_BENCH_DATASET_NAME: str = "vikp/rec_bench"
     RECOGNITION_PAD_VALUE: int = 255  # Should be 0 or 255
-
 
     @computed_field
     def DETECTOR_STATIC_CACHE(self) -> bool:
