@@ -19,14 +19,18 @@ class _TranslationCache(Model):
 
     class Meta:
         database = db
-        constraints = [SQL("""
+        constraints = [
+            SQL(
+                """
             UNIQUE (
                 translate_engine,
                 translate_engine_params,
                 original_text
                 )
             ON CONFLICT REPLACE
-            """)]
+            """
+            )
+        ]
 
 
 class TranslationCache:

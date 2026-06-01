@@ -27,6 +27,11 @@ class SuryaOCRModel(BaseImageToTextModel):
         self.detection_predictor: Any = None
         self.recognition_predictor: Any = None
 
+        from surya.settings import settings
+
+        settings.DETECTOR_BLANK_THRESHOLD = 0.5
+        settings.DETECTOR_TEXT_THRESHOLD = 0.7
+
     def load_model(self) -> None:
         logger.info(
             "Initializing %s and loading models into memory...", self.model_name
@@ -36,10 +41,33 @@ class SuryaOCRModel(BaseImageToTextModel):
         from surya.foundation import FoundationPredictor
         from surya.recognition import RecognitionPredictor
 
-        self.foundation_predictor = FoundationPredictor()
+        detection_model_path = "pdf2zh/scanned/model_path/text_detection"
+        recognition_model_path = "pdf2zh/scanned/model_path/text_recognition"
+
+        if not os.path.exists(detection_model_path):
+            logger.error(
+                "Detection model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
+                detection_model_path,
+            )
+            raise FileNotFoundError(
+                f"Detection model checkpoint not found at {detection_model_path}"
+            )
+
+        if not os.path.exists(recognition_model_path):
+            logger.error(
+                "Recognition model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
+                recognition_model_path,
+            )
+            raise FileNotFoundError(
+                f"Recognition model checkpoint not found at {recognition_model_path}"
+            )
+
+        self.foundation_predictor = FoundationPredictor(
+            checkpoint=recognition_model_path
+        )
         logger.info("Loaded FoundationPredictor (OCR backbone)")
 
-        self.detection_predictor = DetectionPredictor()
+        self.detection_predictor = DetectionPredictor(checkpoint=detection_model_path)
         logger.info("Loaded DetectionPredictor")
 
         self.recognition_predictor = RecognitionPredictor(self.foundation_predictor)
@@ -94,152 +122,7 @@ class SuryaOCRModel(BaseImageToTextModel):
         """
         images, highres_images = prepared_inputs
 
-        run_kwargs: dict[str, Any] = {"math_mode": True, "return_words": True}
-
-        if not math_mode:
-            logger.info("Running OCR with detection + recognition")
-            run_kwargs.update(
-                {
-                    "det_predictor": self.detection_predictor,
-                    "detection_batch_size": detection_batch_size,
-                    "recognition_batch_size": ocr_batch_size,
-                    "highres_images": highres_images,
-                }
-            )
-        else:
-            logger.info("Running OCR in math mode (LaTeX recognition)")
-            run_kwargs.update(
-                {
-                    "recognition_batch_size": ocr_batch_size,
-                }
-            )
-
-        if task_names is not None:
-            run_kwargs["task_names"] = task_names
-        if bboxes is not None:
-            run_kwargs["bboxes"] = bboxes
-
-        raw_results = self.recognition_predictor(images, **run_kwargs)
-
-        return raw_results
-
-    def postprocess(
-        self, raw_results: list[Any], *args: Any, **kwargs: Any
-    ) -> list[Any]:
-        """
-        Format raw Surya outputs into the final desired structure.
-        """
-        return raw_results
-
-
-class CustomSuryaOCRModel(BaseImageToTextModel):
-    """
-    Wraps Surya's DetectionPredictor + RecognitionPredictor.
-    Models are loaded lazily upon first inference call.
-    """
-
-    model_name = "CustomSuryaOCR"
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.detection_predictor: Any = None
-        self.recognition_predictor: Any = None
-
-        from surya.settings import settings
-        settings.DETECTOR_TEXT_THRESHOLD = 0.65
-        settings.DETECTOR_BLANK_THRESHOLD = 0.45
-
-    def load_model(self) -> None:
-        logger.info(
-            "Initializing %s and loading models into memory...", self.model_name
-        )
-
-        from surya.detection import DetectionPredictor
-
-        # from surya.foundation import FoundationPredictor
-        # from surya.recognition import RecognitionPredictor
-        from pdf2zh.scanned.infrastructure import RecognitionPredictor
-
-        # self.foundation_predictor = FoundationPredictor()
-        # logger.info("Loaded FoundationPredictor (OCR backbone)")
-
-        detection_model_path = "pdf2zh/scanned/model_path/text_detection"
-        recognition_model_path = "pdf2zh/scanned/model_path/text_recognition"
-
-        if not os.path.exists(detection_model_path):
-            logger.error(
-                "Detection model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
-                detection_model_path,
-            )
-            raise FileNotFoundError(
-                f"Detection model checkpoint not found at {detection_model_path}"
-            )
-
-        if not os.path.exists(recognition_model_path):
-            logger.error(
-                "Recognition model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
-                recognition_model_path,
-            )
-            raise FileNotFoundError(
-                f"Recognition model checkpoint not found at {recognition_model_path}"
-            )
-
-        self.detection_predictor = DetectionPredictor(checkpoint=detection_model_path)
-        logger.info("Loaded DetectionPredictor")
-
-        self.recognition_predictor = RecognitionPredictor(
-            checkpoint=recognition_model_path
-        )
-        logger.info("Loaded RecognitionPredictor")
-
-        self.model = self.recognition_predictor
-
-    def unload_model(self) -> None:
-        if self.model is not None:
-            import torch
-
-            logger.info("Unloading all %s predictors from VRAM...", self.model_name)
-
-            del self.detection_predictor
-            del self.recognition_predictor
-            del self.model
-
-            self.detection_predictor = None
-            self.recognition_predictor = None
-            self.model = None
-
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-    def prepare(
-        self,
-        images: list[Image.Image],
-        highres_images: list[Image.Image] | None = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tuple[list[Image.Image], list[Image.Image] | None]:
-        """
-        Preprocess raw images before inference.
-        """
-        return images, highres_images
-
-    def predict(
-        self,
-        prepared_inputs: Tuple[list[Image.Image], list[Image.Image] | None],
-        *args: Any,
-        math_mode: bool = False,
-        task_names: list[Any] | None = None,
-        bboxes: list[Any] | None = None,
-        detection_batch_size: int | None = None,
-        ocr_batch_size: int | None = None,
-        **kwargs: Any,
-    ) -> list[Any]:
-        """
-        Run full-page OCR (detection -> recognition) on prepared images.
-        """
-        images, highres_images = prepared_inputs
-
-        run_kwargs: dict[str, Any] = {"math_mode": True, "return_words": True}
+        run_kwargs: dict[str, Any] = {"math_mode": True, "return_words": False}
 
         if not math_mode:
             logger.info("Running OCR with detection + recognition")

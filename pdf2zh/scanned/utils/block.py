@@ -7,8 +7,12 @@ from pdf2zh.scanned.utils.ocr_text import extract_text_for_region, sort_text_lin
 def is_sparse_text_block(
     ocr_result: Any,
     block_bbox: list[float],
+    is_equation: bool,
 ) -> tuple[bool, list[Any]]:
     text_lines = extract_text_for_region(ocr_result, block_bbox)
+
+    if is_equation and len(text_lines) > 1:
+        return True, text_lines
 
     if len(text_lines) < 2:
         return False, text_lines

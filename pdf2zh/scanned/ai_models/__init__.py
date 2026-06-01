@@ -2,13 +2,12 @@
 
 from .base import BaseImageToTextModel
 from .layout import SuryaLayoutModel
-from .ocr import CustomSuryaOCRModel
+from .ocr import SuryaOCRModel
 from .table import PaddleCellTableModule
 
 __all__ = [
     "BaseImageToTextModel",
     "SuryaLayoutModel",
-    "CustomSuryaOCRModel",
+    "SuryaOCRModel",
     "PaddleCellTableModule",
-    
 ]

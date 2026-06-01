@@ -2,6 +2,57 @@
   "pdf_path": "Calculus.Early.Transcendentals.7th.Edition.James.Stewart.pdf",
   "pages": [
     {
+      "page_index": 0,
+      "page_width": 621.9299926757812,
+      "page_height": 738.1199951171875,
+      "elements": [
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            35.21772247682135,
+            80.93092332249365,
+            118.64355284909169,
+            454.8630426861913
+          ],
+          "source_text": "STEWARI",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            510.2823192918157,
+            226.30684114252855,
+            616.9368602339044,
+            571.0139048619924
+          ],
+          "source_text": "Zalculus H Early Transcendentals",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            39.71360194194748,
+            454.86176348845976,
+            116.39561311652862,
+            478.84257552248573
+          ],
+          "source_text": "JAMES",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        }
+      ],
+      "raw_text": "STEWARI\nZalculus H Early Transcendentals\nJAMES",
+      "chapter_id": ""
+    },
+    {
       "page_index": 1,
       "page_width": 610.0,
       "page_height": 718.0,
@@ -12,8 +63,8 @@
           "bbox_pdf": [
             262.705078125,
             21.736328125,
-            352.060546875,
-            28.748046875
+            353.060546875,
+            29.748046875
           ],
           "source_text": "",
           "translated_text": "",
@@ -24,12 +75,12 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            34.47174447174447,
+            35.221130221130224,
             50.21503131524008,
-            45.712530712530715,
-            65.20459290187891
+            48.212530712530715,
+            66.70459290187891
           ],
-          "source_text": "<math>\\curvearrowleft</math>",
+          "source_text": "X",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -39,9 +90,9 @@
           "category": "BYPASS",
           "bbox_pdf": [
             30.6787109375,
-            66.2607421875,
-            38.4228515625,
-            186.1611328125
+            66.611328125,
+            39.4228515625,
+            186.810546875
           ],
           "source_text": "",
           "translated_text": "",
@@ -52,10 +103,10 @@
           "label": "Picture",
           "category": "BYPASS",
           "bbox_pdf": [
-            54.208984375,
-            50.8349609375,
-            104.248046875,
-            59.9501953125
+            52.421875,
+            49.4326171875,
+            104.65234375,
+            59.5478515625
           ],
           "source_text": "",
           "translated_text": "",
@@ -68,10 +119,66 @@
           "bbox_pdf": [
             53.017578125,
             69.7666015625,
-            142.3832923832924,
-            78.8818359375
+            143.3832923832924,
+            79.8818359375
           ],
-          "source_text": "<b>Arithmetic Operations</b>",
+          "source_text": "Arithmetic Operations",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            89.18789144050105,
+            123.9004914004914,
+            98.9321503131524
+          ],
+          "source_text": "<math>a(b+c) = ab + ac</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            171.60933660933662,
+            86.18997912317327,
+            240.80466830466833,
+            101.18058455114823
+          ],
+          "source_text": "<math>\\frac{a}{b} + \\frac{c}{d} = \\frac{ad + bc}{bd}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            119.1670146137787,
+            114.90786240786241,
+            134.15762004175366
+          ],
+          "source_text": "<math>\\frac{a+c}{b} = \\frac{a}{b} + \\frac{c}{b}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            172.35872235872236,
+            110.92275574112735,
+            243.05282555282557,
+            138.6544885177453
+          ],
+          "source_text": "<math display=\"block\">\\frac{\\frac{a}{b}}{c} = \\frac{a}{b} \\times \\frac{d}{c} = \\frac{ad}{bc}</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -81,11 +188,151 @@
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
             52.1240234375,
-            157.763671875,
-            150.62653562653563,
-            167.580078125
+            157.0625,
+            150.8771498771499,
+            167.87890625
           ],
           "source_text": "<b>Exponents and Radicals</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            53.20638820638821,
+            179.87473903966597,
+            96.92260442260442,
+            187.37056367432152
+          ],
+          "source_text": "<math>\\mathbf{r}^m \\mathbf{r}^n = \\mathbf{r}^{m+n}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            171.60933660933662,
+            173.87891440501045,
+            213.07739557739558,
+            188.8695198329854
+          ],
+          "source_text": "<math display=\"block\">\\frac{x^m}{x^m} = x^{m-n}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            53.20638820638821,
+            200.86012526096033,
+            95.42383292383293,
+            209.85490605427975
+          ],
+          "source_text": "<math>(x^m)^n = x^{mn}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            171.60933660933662,
+            198.61169102296452,
+            207.83169533169533,
+            211.35386221294362
+          ],
+          "source_text": "<math>x^{-n} = \\frac{1}{x}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            53.20638820638821,
+            227.09185803757828,
+            99.92014742014743,
+            237.5855949895616
+          ],
+          "source_text": "<math display=\"block\">(xy)^n = x^n y^n</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            171.60933660933662,
+            221.8455114822547,
+            219.82186732186733,
+            238.33507306889354
+          ],
+          "source_text": "<math>\\left(\\frac{x}{x}\\right)^n = \\frac{x^n}{x^n}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            54.70515970515971,
+            247.3277661795407,
+            90.17813267813268,
+            257.0720250521921
+          ],
+          "source_text": "<math>\\mathbf{r}^{1/n} = \\sqrt[n]{\\mathbf{r}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            171.60933660933662,
+            246.57828810020877,
+            246.05036855036857,
+            257.821503131524
+          ],
+          "source_text": "<math>x^{m/n} = \\sqrt[n]{x^m} = (\\sqrt[n]{x})^m</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            271.31106471816287,
+            102.16830466830467,
+            281.80480167014616
+          ],
+          "source_text": "<math>\\sqrt[n]{xy} = \\sqrt[n]{x}\\sqrt[n]{y}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            176.1056511056511,
+            266.06471816283926,
+            221.32063882063883,
+            286.3016701461378
+          ],
+          "source_text": "<math>\\sqrt[n]{\\frac{x}{y}} = \\frac{\\sqrt[n]{x}}{\\sqrt[n]{y}}</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -96,10 +343,10 @@
           "bbox_pdf": [
             51.70761670761671,
             301.1533203125,
-            176.85503685503687,
-            310.2685546875
+            177.85503685503687,
+            311.2685546875
           ],
-          "source_text": "<b>Factoring Special Polynomials</b>",
+          "source_text": "Factoring Special Polynomials",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -109,11 +356,39 @@
           "category": "EQUATION",
           "bbox_pdf": [
             51.70761670761671,
-            312.021484375,
-            164.11547911547913,
-            352.689453125
+            314.78079331941547,
+            142.63513513513513,
+            324.5250521920668
           ],
-          "source_text": "<math>x^{2} - y^{2} = (x + y)(x - y)</math> <math>x^{3} + y^{3} = (x + y)(x^{2} - xy + y^{2})</math> <math>x^3 - y^3 = (x - y)(x^2 + xy + y^2)</math>",
+          "source_text": "<math>x^2 - y^2 = (x + y)(x - y)</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            328.2713987473904,
+            165.86609336609337,
+            338.01565762004174
+          ],
+          "source_text": "<math>x^3 + v^3 = (x + v)(x^2 - xv + v^2)</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            342.5114822546973,
+            165.86609336609337,
+            351.5062630480167
+          ],
+          "source_text": "<math>r^3 - v^3 = (r - v)(r^2 + rv + v^2)</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -122,12 +397,110 @@
           "label": "SectionHeader",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            52.45700245700246,
+            52.421875,
             363.5576171875,
-            127.48046875,
-            373.2400835073069
+            127.2890625,
+            373.49060542797497
           ],
           "source_text": "<b>Binomial Theorem</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            378.48643006263046,
+            145.63267813267814,
+            388.2306889352818
+          ],
+          "source_text": "<math>(x + y)^2 = x^2 + 2xy + y^2</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            164.86486486486487,
+            379.2359081419624,
+            262.53685503685506,
+            388.98016701461376
+          ],
+          "source_text": "<math>(x-y)^2 = x^2 - 2xy + y^2</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            393.4759916492693,
+            169.6130221130221,
+            403.22025052192066
+          ],
+          "source_text": "<math>(x + y)^3 = x^3 + 3x^2y + 3xy^2 + y</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            52.45700245700246,
+            408.46555323590815,
+            168.11425061425064,
+            418.2098121085595
+          ],
+          "source_text": "<math>(x-y)^3 = x^3 - 3x^2y + 3xy^2 - y</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            51.70761670761671,
+            425.7035490605428,
+            199.5884520884521,
+            439.94467640918583
+          ],
+          "source_text": "<math display=\"block\">(x+y)^n = x^n + nx^{n-1}y + \\frac{n(n-1)}{2}x^{n-2}y^2</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            104.91400491400492,
+            448.937369519833,
+            252.04545454545456,
+            468.4248434237996
+          ],
+          "source_text": "<math>+\\cdots+\\binom{n}{k}x^{n-k}y^k+\\cdots+nxy^{n-1}+y^n</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            51.70761670761671,
+            473.67014613778707,
+            189.0970515970516,
+            493.15762004175366
+          ],
+          "source_text": "where <math>\\binom{n}{k} = \\frac{n(n-1)\\cdots(n-k+1)}{1 \\cdot 2 \\cdot 2}</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -138,10 +511,10 @@
           "bbox_pdf": [
             53.20638820638821,
             506.5966796875,
-            128.8943488943489,
-            515.6409185803758
+            129.14496314496316,
+            515.8914405010438
           ],
-          "source_text": "<b>Quadratic Formula</b>",
+          "source_text": "Quadratic Formula",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -152,115 +525,24 @@
           "bbox_pdf": [
             51.70761670761671,
             522.0224609375,
-            221.005859375,
-            543.7587890625
+            220.814453125,
+            544.7587890625
           ],
-          "source_text": "If <math>ax^2 + bx + c = 0</math>, then <math>x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}</math>",
+          "source_text": "If <math>ax^2 + bx + c = 0</math>, then <math>x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2}</math>",
           "translated_text": "",
           "cells": [],
-          "equation_words": [
-            {
-              "text": "I",
-              "bbox_pdf": [
-                81.68304668304668,
-                527.6325678496869,
-                92.17444717444718,
-                538.125260960334
-              ],
-              "bbox_image": [
-                109.0,
-                704.0,
-                123.0,
-                718.0
-              ]
-            },
-            {
-              "text": "f",
-              "bbox_pdf": [
-                65.94594594594595,
-                528.3820459290188,
-                69.6928746928747,
-                538.125260960334
-              ],
-              "bbox_image": [
-                88.0,
-                705.0,
-                93.0,
-                718.0
-              ]
-            },
-            {
-              "text": "t",
-              "bbox_pdf": [
-                126.64619164619165,
-                528.3820459290188,
-                129.64373464373466,
-                538.125260960334
-              ],
-              "bbox_image": [
-                169.0,
-                705.0,
-                173.0,
-                718.0
-              ]
-            },
-            {
-              "text": "h",
-              "bbox_pdf": [
-                127.3955773955774,
-                528.3820459290188,
-                131.8918918918919,
-                538.125260960334
-              ],
-              "bbox_image": [
-                170.0,
-                705.0,
-                176.0,
-                718.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                131.8918918918919,
-                528.3820459290188,
-                135.63882063882065,
-                538.125260960334
-              ],
-              "bbox_image": [
-                176.0,
-                705.0,
-                181.0,
-                718.0
-              ]
-            },
-            {
-              "text": "n",
-              "bbox_pdf": [
-                135.63882063882065,
-                528.3820459290188,
-                140.13513513513513,
-                538.125260960334
-              ],
-              "bbox_image": [
-                181.0,
-                705.0,
-                187.0,
-                718.0
-              ]
-            }
-          ]
+          "equation_words": []
         },
         {
           "label": "SectionHeader",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            52.45700245700246,
+            51.826171875,
             553.8643006263048,
-            182.85012285012286,
-            561.9892578125
+            183.880859375,
+            562.9892578125
           ],
-          "source_text": "<b>Inequalities and Absolute Value</b>",
+          "source_text": "Inequalities and Absolute Value",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -269,12 +551,12 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            51.826171875,
+            51.5283203125,
             567.94921875,
-            157.37100737100738,
-            576.36328125
+            157.9677734375,
+            577.36328125
           ],
-          "source_text": "If <math>a < b</math> and <math>b < c</math>, then <math>a < c</math>.",
+          "source_text": "If <math>a < b</math> and <math>b < c</math> then <math>a < c</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -285,8 +567,8 @@
           "bbox_pdf": [
             52.45700245700246,
             582.3232421875,
-            152.87469287469287,
-            590.0361328125
+            153.87469287469287,
+            591.0361328125
           ],
           "source_text": "If <math>a < b</math>, then <math>a + c < b + c</math>.",
           "translated_text": "",
@@ -297,10 +579,10 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            52.45700245700246,
+            53.017578125,
             596.3466796875,
-            163.36609336609337,
-            604.0793319415449
+            164.818359375,
+            605.0793319415449
           ],
           "source_text": "If <math>a < b</math> and <math>c > 0</math>, then <math>ca < cb</math>",
           "translated_text": "",
@@ -311,10 +593,10 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            50.9326171875,
-            610.0751565762005,
-            164.11547911547913,
-            618.3194154488518
+            51.5283203125,
+            610.3701171875,
+            165.1162109375,
+            619.3194154488518
           ],
           "source_text": "If <math>a < b</math> and <math>c < 0</math>, then <math>ca > cb</math>.",
           "translated_text": "",
@@ -327,8 +609,8 @@
           "bbox_pdf": [
             50.9326171875,
             624.3935546875,
-            98.91891891891892,
-            632.1064453125
+            99.91891891891892,
+            633.1064453125
           ],
           "source_text": "If <math>a > 0</math> then",
           "translated_text": "",
@@ -340,339 +622,51 @@
           "category": "EQUATION",
           "bbox_pdf": [
             88.42751842751844,
-            637.7158203125,
-            221.06879606879608,
-            652.4404296875
+            639.3048016701462,
+            222.81941031941034,
+            646.8006263048017
           ],
           "source_text": "<math>|x| = a</math> means <math>x = a</math> or <math>x = -a</math>",
           "translated_text": "",
           "cells": [],
-          "equation_words": [
-            {
-              "text": "m",
-              "bbox_pdf": [
-                126.64619164619165,
-                638.5553235908142,
-                134.14004914004914,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                169.0,
-                852.0,
-                179.0,
-                861.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                131.14250614250614,
-                638.5553235908142,
-                134.8894348894349,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                175.0,
-                852.0,
-                180.0,
-                861.0
-              ]
-            },
-            {
-              "text": "a",
-              "bbox_pdf": [
-                134.14004914004914,
-                638.5553235908142,
-                138.63636363636365,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                179.0,
-                852.0,
-                185.0,
-                861.0
-              ]
-            },
-            {
-              "text": "n",
-              "bbox_pdf": [
-                137.8869778869779,
-                638.5553235908142,
-                141.63390663390663,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                184.0,
-                852.0,
-                189.0,
-                861.0
-              ]
-            },
-            {
-              "text": "s",
-              "bbox_pdf": [
-                141.63390663390663,
-                638.5553235908142,
-                145.38083538083538,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                189.0,
-                852.0,
-                194.0,
-                861.0
-              ]
-            },
-            {
-              "text": "o",
-              "bbox_pdf": [
-                180.60196560196562,
-                638.5553235908142,
-                185.0982800982801,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                241.0,
-                852.0,
-                247.0,
-                861.0
-              ]
-            },
-            {
-              "text": "r",
-              "bbox_pdf": [
-                183.5995085995086,
-                638.5553235908142,
-                187.34643734643737,
-                645.3006263048017
-              ],
-              "bbox_image": [
-                245.0,
-                852.0,
-                250.0,
-                861.0
-              ]
-            }
-          ]
+          "equation_words": []
         },
         {
           "label": "Equation",
           "category": "EQUATION",
           "bbox_pdf": [
-            88.1640625,
+            88.42751842751844,
             651.2964509394573,
-            195.390625,
-            660.1533203125
+            197.34029484029486,
+            659.5417536534446
           ],
           "source_text": "<math>|x| < a</math> means <math>-a < x < a</math>",
           "translated_text": "",
           "cells": [],
-          "equation_words": [
-            {
-              "text": "m",
-              "bbox_pdf": [
-                125.14742014742015,
-                651.2964509394573,
-                132.64127764127764,
-                657.2922755741128
-              ],
-              "bbox_image": [
-                167.0,
-                869.0,
-                177.0,
-                877.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                130.3931203931204,
-                651.2964509394573,
-                134.8894348894349,
-                657.2922755741128
-              ],
-              "bbox_image": [
-                174.0,
-                869.0,
-                180.0,
-                877.0
-              ]
-            },
-            {
-              "text": "a",
-              "bbox_pdf": [
-                134.14004914004914,
-                651.2964509394573,
-                137.8869778869779,
-                657.2922755741128
-              ],
-              "bbox_image": [
-                179.0,
-                869.0,
-                184.0,
-                877.0
-              ]
-            },
-            {
-              "text": "n",
-              "bbox_pdf": [
-                137.13759213759215,
-                651.2964509394573,
-                141.63390663390663,
-                657.2922755741128
-              ],
-              "bbox_image": [
-                183.0,
-                869.0,
-                189.0,
-                877.0
-              ]
-            },
-            {
-              "text": "s",
-              "bbox_pdf": [
-                141.63390663390663,
-                651.2964509394573,
-                145.38083538083538,
-                657.2922755741128
-              ],
-              "bbox_image": [
-                189.0,
-                869.0,
-                194.0,
-                877.0
-              ]
-            }
-          ]
+          "equation_words": []
         },
         {
           "label": "Equation",
           "category": "EQUATION",
           "bbox_pdf": [
-            86.97265625,
-            663.2881002087682,
-            221.06879606879608,
-            671.3720703125
+            89.17690417690419,
+            664.0375782881002,
+            222.07002457002457,
+            671.5334029227557
           ],
-          "source_text": "<math>|x| > a</math> means <math>x > a</math> or <math>x < -a</math>",
+          "source_text": "<math>|r| > a</math> means <math>r > a</math> or <math>r < -a</math>",
           "translated_text": "",
           "cells": [],
-          "equation_words": [
-            {
-              "text": "m",
-              "bbox_pdf": [
-                125.8968058968059,
-                663.2881002087682,
-                133.3906633906634,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                168.0,
-                885.0,
-                178.0,
-                894.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                131.14250614250614,
-                663.2881002087682,
-                134.8894348894349,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                175.0,
-                885.0,
-                180.0,
-                894.0
-              ]
-            },
-            {
-              "text": "a",
-              "bbox_pdf": [
-                134.14004914004914,
-                663.2881002087682,
-                137.8869778869779,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                179.0,
-                885.0,
-                184.0,
-                894.0
-              ]
-            },
-            {
-              "text": "n",
-              "bbox_pdf": [
-                137.8869778869779,
-                663.2881002087682,
-                141.63390663390663,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                184.0,
-                885.0,
-                189.0,
-                894.0
-              ]
-            },
-            {
-              "text": "s",
-              "bbox_pdf": [
-                141.63390663390663,
-                663.2881002087682,
-                145.38083538083538,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                189.0,
-                885.0,
-                194.0,
-                894.0
-              ]
-            },
-            {
-              "text": "o",
-              "bbox_pdf": [
-                180.60196560196562,
-                663.2881002087682,
-                184.34889434889436,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                241.0,
-                885.0,
-                246.0,
-                894.0
-              ]
-            },
-            {
-              "text": "r",
-              "bbox_pdf": [
-                183.5995085995086,
-                663.2881002087682,
-                187.34643734643737,
-                670.0334029227557
-              ],
-              "bbox_image": [
-                245.0,
-                885.0,
-                250.0,
-                894.0
-              ]
-            }
-          ]
+          "equation_words": []
         },
         {
           "label": "SectionHeader",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            321.9775390625,
+            319.296875,
             49.783203125,
-            378.5693359375,
-            58.45929018789144
+            378.6904176904177,
+            59.45929018789144
           ],
           "source_text": "GFOMFTRY",
           "translated_text": "",
@@ -685,10 +679,10 @@
           "bbox_pdf": [
             318.4889434889435,
             70.1171875,
-            400.908203125,
-            77.19624217118998
+            401.6103515625,
+            78.19624217118998
           ],
-          "source_text": "<b>Geometric Formulas</b>",
+          "source_text": "Geometric Formulas",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -699,8 +693,8 @@
           "bbox_pdf": [
             318.4889434889435,
             85.1923828125,
-            492.34643734643737,
-            93.6847599164927
+            492.59705159705163,
+            94.6847599164927
           ],
           "source_text": "Formulas for area <math>A</math>, circumference <math>C</math>, and volume <math>V</math>:",
           "translated_text": "",
@@ -708,870 +702,13 @@
           "equation_words": []
         },
         {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            326.1474609375,
-            150.4013671875,
-            412.5244140625,
-            197.3798828125
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            420.56640625,
-            148.2978515625,
-            480.13671875,
-            205.0927734375
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            500.390625,
-            147.947265625,
-            557.578125,
-            199.833984375
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            316.9140625,
-            222.6220703125,
-            359.8046875,
-            254.1748046875
-          ],
-          "source_text": "Sphere <math>V = \\frac{4}{3} \\pi r^3</math> <math>A = A \\pi r^2</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            408.3544921875,
-            219.8173828125,
-            445.13513513513516,
-            245.7607421875
-          ],
-          "source_text": "Cylinder <math>V = \\pi r^2 h</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            489.072265625,
-            223.3232421875,
-            549.2997542997543,
-            256.321503131524
-          ],
-          "source_text": "Cone <math>V = \\frac{1}{3} \\pi r^2 h</math> <math display=\"block\">A = \\pi r \\sqrt{r^2 + h^2}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            320.7861328125,
-            267.4970703125,
-            379.7607421875,
-            324.2919921875
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            403.5888671875,
-            270.65234375,
-            468.5205078125,
-            323.94140625
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Picture",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            494.7314453125,
-            266.7958984375,
-            558.4716796875,
-            322.1884765625
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "SectionHeader",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            317.8076171875,
-            354.79296875,
-            450.3808353808354,
-            364.2463465553236
-          ],
-          "source_text": "<b>Distance and Midpoint Formulas</b>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            318.4033203125,
-            368.81640625,
-            454.8771498771499,
-            379.2359081419624
-          ],
-          "source_text": "Distance between <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            393.4619140625,
-            389.150390625,
-            493.84520884520884,
-            401.771484375
-          ],
-          "source_text": "<math>d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            317.73955773955777,
-            414.392578125,
-            447.0751953125,
-            438.232421875
-          ],
-          "source_text": "Midpoint of <math>\\overline{P_1P_2}</math>: <math>\\left(\\frac{x_1+x_2}{2}, \\frac{y_1+y_2}{2}\\right)</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": [
-            {
-              "text": "M",
-              "bbox_pdf": [
-                324.4840294840295,
-                422.70563674321505,
-                334.2260442260442,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                433.0,
-                564.0,
-                446.0,
-                578.0
-              ]
-            },
-            {
-              "text": "i",
-              "bbox_pdf": [
-                328.980343980344,
-                422.70563674321505,
-                331.977886977887,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                439.0,
-                564.0,
-                443.0,
-                578.0
-              ]
-            },
-            {
-              "text": "d",
-              "bbox_pdf": [
-                330.4791154791155,
-                422.70563674321505,
-                334.97542997543,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                441.0,
-                564.0,
-                447.0,
-                578.0
-              ]
-            },
-            {
-              "text": "p",
-              "bbox_pdf": [
-                334.97542997543,
-                422.70563674321505,
-                339.4717444717445,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                447.0,
-                564.0,
-                453.0,
-                578.0
-              ]
-            },
-            {
-              "text": "o",
-              "bbox_pdf": [
-                338.72235872235876,
-                423.455114822547,
-                343.21867321867325,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                452.0,
-                565.0,
-                458.0,
-                578.0
-              ]
-            },
-            {
-              "text": "i",
-              "bbox_pdf": [
-                343.21867321867325,
-                422.70563674321505,
-                345.46683046683046,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                458.0,
-                564.0,
-                461.0,
-                578.0
-              ]
-            },
-            {
-              "text": "n",
-              "bbox_pdf": [
-                344.7174447174447,
-                422.70563674321505,
-                349.963144963145,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                460.0,
-                564.0,
-                467.0,
-                578.0
-              ]
-            },
-            {
-              "text": "t",
-              "bbox_pdf": [
-                349.2137592137592,
-                422.70563674321505,
-                352.2113022113022,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                466.0,
-                564.0,
-                470.0,
-                578.0
-              ]
-            },
-            {
-              "text": "o",
-              "bbox_pdf": [
-                353.71007371007374,
-                423.455114822547,
-                358.2063882063882,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                472.0,
-                565.0,
-                478.0,
-                578.0
-              ]
-            },
-            {
-              "text": "f",
-              "bbox_pdf": [
-                358.2063882063882,
-                423.455114822547,
-                361.20393120393123,
-                433.1983298538622
-              ],
-              "bbox_image": [
-                478.0,
-                565.0,
-                482.0,
-                578.0
-              ]
-            }
-          ]
-        },
-        {
-          "label": "SectionHeader",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            318.10546875,
-            466.9248434237996,
-            340.970515970516,
-            475.0439453125
-          ],
-          "source_text": "<b>Lines</b>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            316.0205078125,
-            481.3544921875,
-            466.11793611793615,
-            489.40918580375785
-          ],
-          "source_text": "Slope of line through <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            419.6560196560197,
-            504.4931640625,
-            466.8673218673219,
-            522.0224609375
-          ],
-          "source_text": "<math>m = \\frac{y_2 - y_1}{x - x}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            317.509765625,
-            534.6435546875,
-            511.83046683046683,
-            543.3716075156576
-          ],
-          "source_text": "Point-slope equation of line through <math>P_1(x_1, y_1)</math> with slope m.",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            409.1646191646192,
-            554.2763671875,
-            477.3587223587224,
-            563.6075156576201
-          ],
-          "source_text": "<math>y - y_1 = m(x - x_1)</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            318.10546875,
-            576.7138671875,
-            523.8206388206388,
-            584.5929018789144
-          ],
-          "source_text": "Slope-intercept equation of line with slope <math>m</math> and <math>\\nu</math>-intercept <math>b</math>:",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            421.90417690417695,
-            596.3466796875,
-            465.3685503685504,
-            604.0793319415449
-          ],
-          "source_text": "<math>v = mx + b</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "SectionHeader",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            318.4889434889435,
-            627.1982421875,
-            347.7149877149877,
-            637.0563674321503
-          ],
-          "source_text": "<b>Circles</b>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Text",
-          "category": "FLOWING_TEXT",
-          "bbox_pdf": [
-            317.509765625,
-            644.0263671875,
-            489.34889434889436,
-            652.0459290187891
-          ],
-          "source_text": "Equation of the circle with center <math>(h, k)</math> and radius r:",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            400.92137592137595,
-            660.8544921875,
-            487.880859375,
-            669.2839248434238
-          ],
-          "source_text": "<math>(x-h)^2 + (y-k)^2 = r^2</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "PageFooter",
-          "category": "BYPASS",
-          "bbox_pdf": [
-            69.1015625,
-            702.9248046875,
-            540.8984375,
-            716.2470703125
-          ],
-          "source_text": "",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            89.18789144050105,
-            121.4004914004914,
-            97.4321503131524
-          ],
-          "source_text": "<math>a(b + c) = ab + ac</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            171.60933660933662,
-            85.44050104384134,
-            239.05405405405406,
-            100.43006263048017
-          ],
-          "source_text": "<math display=\"block\">\\frac{a}{b} + \\frac{c}{d} = \\frac{ad + bc}{bd}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            51.70761670761671,
-            118.41753653444677,
-            113.15724815724816,
-            133.4070981210856
-          ],
-          "source_text": "<math display=\"block\">\\frac{a+c}{b} = \\frac{a}{b} + \\frac{c}{b}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            171.60933660933662,
-            109.42379958246346,
-            241.3022113022113,
-            137.1544885177453
-          ],
-          "source_text": "<math>rac{a}{c}</math> = <math>rac{a}{b} \\times \\frac{d}{c}</math> = <math>rac{ad}{bc}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            179.12526096033403,
-            95.92137592137593,
-            186.62004175365345
-          ],
-          "source_text": "<math>x^m x^n = x^{m+n}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            170.85995085995086,
-            173.87891440501045,
-            210.57739557739558,
-            187.3695198329854
-          ],
-          "source_text": "<math display=\"block\">\\frac{x^m}{x} = x^{m-n}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            200.86012526096033,
-            92.92383292383293,
-            209.1043841336117
-          ],
-          "source_text": "<math display=\"block\">(x^m)^n = x^{mn}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            170.11056511056512,
-            197.86221294363256,
-            206.0810810810811,
-            210.60334029227556
-          ],
-          "source_text": "<math>x^{-n} = \\frac{1}{a^n}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            226.34237995824634,
-            98.16953316953317,
-            236.83507306889354
-          ],
-          "source_text": "<math>(xy)^n = x^n y^n</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            170.85995085995086,
-            221.09603340292276,
-            217.32186732186733,
-            237.58455114822547
-          ],
-          "source_text": "<math>\\left(\\frac{x}{y}\\right)^n = \\frac{x^n}{y^n}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            246.57828810020877,
-            88.42751842751844,
-            256.321503131524
-          ],
-          "source_text": "<math>x^{1/n} = \\sqrt[n]{x}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            171.60933660933662,
-            246.57828810020877,
-            243.55036855036857,
-            257.07098121085596
-          ],
-          "source_text": "<math>x^{m/n} = \\sqrt[n]{x^m} = (\\sqrt[n]{x})^m</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            51.70761670761671,
-            270.5615866388309,
-            99.66830466830467,
-            280.30480167014616
-          ],
-          "source_text": "<math display=\"block\">\\sqrt[n]{xy} = \\sqrt[n]{x} \\sqrt[n]{v}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            176.1056511056511,
-            266.06471816283926,
-            218.82063882063883,
-            284.05219206680584
-          ],
-          "source_text": "<math>\\sqrt{\\frac{x}{y}} = \\frac{\\sqrt[n]{x}}{\\sqrt[n]{y}}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            378.48643006263046,
-            148.3783783783784,
-            387.48016701461376
-          ],
-          "source_text": "<math>(x + y)^2 = x^2 + 2xy + y^2</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            164.11547911547913,
-            379.2359081419624,
-            260.03685503685506,
-            388.22964509394575
-          ],
-          "source_text": "<math>(x - y)^2 = x^2 - 2xy + y^2</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            392.72651356993737,
-            168.61179361179362,
-            401.72025052192066
-          ],
-          "source_text": "<math>(x + y)3 = x3 + 3x2y + 3xy2 + y3</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            52.45700245700246,
-            408.46555323590815,
-            168.61179361179362,
-            417.45929018789144
-          ],
-          "source_text": "<math>(x - y)^3 = x^3 - 3x^2y + 3xy^2 - y^3</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            51.70761670761671,
-            425.7035490605428,
-            197.83783783783784,
-            438.44467640918583
-          ],
-          "source_text": "<math display=\"block\">(x + y)^n = x^n + nx^{n-1}y + \\frac{n(n-1)}{2}x^{n-2}y^2</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            104.16461916461917,
-            448.18789144050106,
-            249.54545454545456,
-            466.9248434237996
-          ],
-          "source_text": "+ ... + <math>\\binom{n}{k} x^{n-k} y^k</math> + ... + <math>nxy^{n-1}</math> + <math>y^n</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": []
-        },
-        {
-          "label": "Equation",
-          "category": "EQUATION",
-          "bbox_pdf": [
-            51.70761670761671,
-            475.9185803757829,
-            187.34643734643737,
-            490.9081419624217
-          ],
-          "source_text": "where <math>\\binom{n}{k} = \\frac{n(n-1)\\cdots(n-k+1)}{n}</math>",
-          "translated_text": "",
-          "cells": [],
-          "equation_words": [
-            {
-              "text": "w",
-              "bbox_pdf": [
-                74.93857493857494,
-                477.41753653444675,
-                86.92874692874693,
-                489.40918580375785
-              ],
-              "bbox_image": [
-                100.0,
-                637.0,
-                116.0,
-                653.0
-              ]
-            },
-            {
-              "text": "h",
-              "bbox_pdf": [
-                67.44471744471745,
-                478.9164926931106,
-                72.69041769041769,
-                489.40918580375785
-              ],
-              "bbox_image": [
-                90.0,
-                639.0,
-                97.0,
-                653.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                70.44226044226045,
-                478.1670146137787,
-                74.93857493857494,
-                488.6597077244259
-              ],
-              "bbox_image": [
-                94.0,
-                638.0,
-                100.0,
-                652.0
-              ]
-            },
-            {
-              "text": "r",
-              "bbox_pdf": [
-                72.69041769041769,
-                478.9164926931106,
-                75.6879606879607,
-                489.40918580375785
-              ],
-              "bbox_image": [
-                97.0,
-                639.0,
-                101.0,
-                653.0
-              ]
-            },
-            {
-              "text": "e",
-              "bbox_pdf": [
-                77.93611793611794,
-                478.1670146137787,
-                82.43243243243244,
-                488.6597077244259
-              ],
-              "bbox_image": [
-                104.0,
-                638.0,
-                110.0,
-                652.0
-              ]
-            }
-          ]
-        },
-        {
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
             318.4889434889435,
-            99.68058455114823,
-            346.965601965602,
-            107.17536534446764
+            100.43006263048017,
+            349.465601965602,
+            107.9258872651357
           ],
           "source_text": "Triangle",
           "translated_text": "",
@@ -1582,12 +719,12 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            410.66339066339066,
-            99.68058455114823,
-            432.3955773955774,
-            105.67640918580376
+            411.41277641277645,
+            100.43006263048017,
+            434.8955773955774,
+            107.17640918580376
           ],
-          "source_text": "<math>Circl</math>e",
+          "source_text": "Circle",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -1598,8 +735,8 @@
           "bbox_pdf": [
             492.34643734643737,
             99.68058455114823,
-            544.0540540540541,
-            106.4258872651357
+            546.5540540540541,
+            107.9258872651357
           ],
           "source_text": "Sector of Circle",
           "translated_text": "",
@@ -1612,10 +749,10 @@
           "bbox_pdf": [
             318.4889434889435,
             111.6722338204593,
-            348.46437346437347,
-            119.91649269311065
+            350.2149877149877,
+            120.6670146137787
           ],
-          "source_text": "<math>A=\\frac{1}{2}bh</math>",
+          "source_text": "<math>A = \\frac{1}{2} hh</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -1624,10 +761,10 @@
           "label": "Text",
           "category": "FLOWING_TEXT",
           "bbox_pdf": [
-            410.66339066339066,
+            411.41277641277645,
             111.6722338204593,
-            442.8869778869779,
-            118.41753653444677
+            445.3869778869779,
+            119.91753653444677
           ],
           "source_text": "<math>A = \\pi r^2</math>",
           "translated_text": "",
@@ -1640,10 +777,10 @@
           "bbox_pdf": [
             491.59705159705163,
             111.6722338204593,
-            525.3194103194104,
-            119.1670146137787
+            527.0700245700245,
+            120.6670146137787
           ],
-          "source_text": "<math display=\"block\">A = \\frac{1}{2}r^2\\theta</math>",
+          "source_text": "<math>A = \\frac{1}{2}r^2\\theta</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -1654,8 +791,8 @@
           "bbox_pdf": [
             326.73218673218673,
             126.66179540709813,
-            366.44963144963145,
-            134.15657620041753
+            368.94963144963145,
+            135.65657620041753
           ],
           "source_text": "<math>=\\frac{1}{2}ab\\sin\\theta</math>",
           "translated_text": "",
@@ -1668,10 +805,10 @@
           "bbox_pdf": [
             411.41277641277645,
             126.66179540709813,
-            442.8869778869779,
-            134.15657620041753
+            444.63759213759215,
+            136.40605427974947
           ],
-          "source_text": "<math>C=2\\pi r</math>",
+          "source_text": "<math>C = 2\\pi r</math>",
           "translated_text": "",
           "cells": [],
           "equation_words": []
@@ -1682,16 +819,2313 @@
           "bbox_pdf": [
             493.84520884520884,
             126.66179540709813,
-            565.7862407862408,
-            134.15657620041753
+            567.5368550368551,
+            135.65657620041753
           ],
           "source_text": "<math>s = r\\theta</math> (<math>\\theta</math> in radians)",
           "translated_text": "",
           "cells": [],
           "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            325.849609375,
+            149.349609375,
+            413.822265625,
+            198.029296875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            419.6728515625,
+            147.5966796875,
+            482.0302734375,
+            205.3916015625
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            500.0927734375,
+            147.947265625,
+            558.8759765625,
+            200.833984375
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.4889434889435,
+            221.2197265625,
+            363.1875,
+            256.5771484375
+          ],
+          "source_text": "Sphere <math>V = \\frac{4}{3} \\pi r^3</math> <math>A = A\\pi r^2</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            407.7587890625,
+            219.466796875,
+            446.2880859375,
+            247.111328125
+          ],
+          "source_text": "Cylinder <math>V = \\pi r^2 h</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            489.66796875,
+            223.3232421875,
+            550.2997542997543,
+            255.82254697286012
+          ],
+          "source_text": "Cone <math display=\"block\">V = \\frac{1}{3} \\pi r^2 h</math> <math>A = \\pi r \\sqrt{r^2 + h^2}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            320.48828125,
+            268.1982421875,
+            381.05859375,
+            327.3955078125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            403.5888671875,
+            270.3017578125,
+            469.5205078125,
+            325.2919921875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            494.7314453125,
+            267.4970703125,
+            559.4716796875,
+            322.4873046875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            317.2119140625,
+            354.79296875,
+            451.0537109375,
+            365.2463465553236
+          ],
+          "source_text": "<b>Distance and Midpoint Formulas</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.4889434889435,
+            368.81640625,
+            455.1277641277641,
+            380.2359081419624
+          ],
+          "source_text": "Distance between <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            394.0576171875,
+            389.5009765625,
+            494.0958230958231,
+            402.4208984375
+          ],
+          "source_text": "<math>d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.4889434889435,
+            414.7431640625,
+            448.373046875,
+            438.8818359375
+          ],
+          "source_text": "Midpoint of <math>\\overline{P_1P_2}</math>: <math>\\left(\\frac{x_1+x_2}{2}, \\frac{y_1+y_2}{2}\\right)</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.4033203125,
+            467.3310546875,
+            341.22113022113024,
+            476.0439453125
+          ],
+          "source_text": "lines",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            316.0205078125,
+            481.3544921875,
+            466.5419921875,
+            490.40918580375785
+          ],
+          "source_text": "Slope of line through <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            420.4054054054054,
+            504.4931640625,
+            467.11793611793615,
+            523.0224609375
+          ],
+          "source_text": "<math>m = \\frac{y_2 - y_1}{x_1 - x_2}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            317.509765625,
+            534.29296875,
+            512.8304668304668,
+            544.3716075156576
+          ],
+          "source_text": "Point-slope equation of line through <math>P_1(x_1, y_1)</math> with slope m:",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            408.3544921875,
+            554.2763671875,
+            479.0517578125,
+            563.8580375782881
+          ],
+          "source_text": "<math>y - y_1 = m(x - x_1)</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.10546875,
+            576.7138671875,
+            524.0712530712531,
+            585.5929018789144
+          ],
+          "source_text": "Slope-intercept equation of line with slope m and v-intercept b:",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            421.90417690417695,
+            596.3466796875,
+            465.6191646191646,
+            605.0793319415449
+          ],
+          "source_text": "<math>v = mx + b</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.4889434889435,
+            627.1982421875,
+            348.294921875,
+            636.5574112734864
+          ],
+          "source_text": "Circles",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            316.9140625,
+            644.0263671875,
+            490.34889434889436,
+            653.0459290187891
+          ],
+          "source_text": "Equation of the circle with center <math>(h, k)</math> and radius r:",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            401.6707616707617,
+            660.50390625,
+            488.5830078125,
+            670.2839248434238
+          ],
+          "source_text": "<math>(x-h)^2 + (y-k)^2 = r^2</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            69.1015625,
+            702.9248046875,
+            541.8984375,
+            717.2470703125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
         }
       ],
-      "raw_text": "<math>\\curvearrowleft</math>\n<b>Arithmetic Operations</b>\n<b>Exponents and Radicals</b>\n<b>Factoring Special Polynomials</b>\n<b>Binomial Theorem</b>\n<b>Quadratic Formula</b>\n<b>Inequalities and Absolute Value</b>\nIf <math>a < b</math> and <math>b < c</math>, then <math>a < c</math>.\nIf <math>a < b</math>, then <math>a + c < b + c</math>.\nIf <math>a < b</math> and <math>c > 0</math>, then <math>ca < cb</math>\nIf <math>a < b</math> and <math>c < 0</math>, then <math>ca > cb</math>.\nIf <math>a > 0</math> then\nGFOMFTRY\n<b>Geometric Formulas</b>\nFormulas for area <math>A</math>, circumference <math>C</math>, and volume <math>V</math>:\nSphere <math>V = \\frac{4}{3} \\pi r^3</math> <math>A = A \\pi r^2</math>\nCylinder <math>V = \\pi r^2 h</math>\nCone <math>V = \\frac{1}{3} \\pi r^2 h</math> <math display=\"block\">A = \\pi r \\sqrt{r^2 + h^2}</math>\n<b>Distance and Midpoint Formulas</b>\nDistance between <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:\n<b>Lines</b>\nSlope of line through <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:\nPoint-slope equation of line through <math>P_1(x_1, y_1)</math> with slope m.\nSlope-intercept equation of line with slope <math>m</math> and <math>\\nu</math>-intercept <math>b</math>:\n<b>Circles</b>\nEquation of the circle with center <math>(h, k)</math> and radius r:\nTriangle\n<math>Circl</math>e\nSector of Circle\n<math>A=\\frac{1}{2}bh</math>\n<math>A = \\pi r^2</math>\n<math display=\"block\">A = \\frac{1}{2}r^2\\theta</math>\n<math>=\\frac{1}{2}ab\\sin\\theta</math>\n<math>C=2\\pi r</math>\n<math>s = r\\theta</math> (<math>\\theta</math> in radians)",
+      "raw_text": "X\nArithmetic Operations\n<b>Exponents and Radicals</b>\nFactoring Special Polynomials\n<b>Binomial Theorem</b>\nQuadratic Formula\nInequalities and Absolute Value\nIf <math>a < b</math> and <math>b < c</math> then <math>a < c</math>\nIf <math>a < b</math>, then <math>a + c < b + c</math>.\nIf <math>a < b</math> and <math>c > 0</math>, then <math>ca < cb</math>\nIf <math>a < b</math> and <math>c < 0</math>, then <math>ca > cb</math>.\nIf <math>a > 0</math> then\nGFOMFTRY\nGeometric Formulas\nFormulas for area <math>A</math>, circumference <math>C</math>, and volume <math>V</math>:\nTriangle\nCircle\nSector of Circle\n<math>A = \\frac{1}{2} hh</math>\n<math>A = \\pi r^2</math>\n<math>A = \\frac{1}{2}r^2\\theta</math>\n<math>=\\frac{1}{2}ab\\sin\\theta</math>\n<math>C = 2\\pi r</math>\n<math>s = r\\theta</math> (<math>\\theta</math> in radians)\nSphere <math>V = \\frac{4}{3} \\pi r^3</math> <math>A = A\\pi r^2</math>\nCylinder <math>V = \\pi r^2 h</math>\nCone <math display=\"block\">V = \\frac{1}{3} \\pi r^2 h</math> <math>A = \\pi r \\sqrt{r^2 + h^2}</math>\n<b>Distance and Midpoint Formulas</b>\nDistance between <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>:\nMidpoint of <math>\\overline{P_1P_2}</math>: <math>\\left(\\frac{x_1+x_2}{2}, \\frac{y_1+y_2}{2}\\right)</math>\nlines\nSlope of line through <math>P_1(x_1, y_1)</math> and <math>P_2(x_2, y_2)</math>\nPoint-slope equation of line through <math>P_1(x_1, y_1)</math> with slope m:\nSlope-intercept equation of line with slope m and v-intercept b:\nCircles\nEquation of the circle with center <math>(h, k)</math> and radius r:",
+      "chapter_id": ""
+    },
+    {
+      "page_index": 2,
+      "page_width": 610.0,
+      "page_height": 718.0,
+      "elements": [
+        {
+          "label": "PageHeader",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            253.173828125,
+            20.6845703125,
+            348.294921875,
+            30.7998046875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            41.96560196560197,
+            49.4326171875,
+            126.8968058968059,
+            59.5478515625
+          ],
+          "source_text": "TRIGONOMETRY",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            40.466830466830466,
+            75.3759765625,
+            122.5234375,
+            86.8935546875
+          ],
+          "source_text": "<b>Angle Measurement</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            39.912109375,
+            91.15234375,
+            98.42014742014743,
+            100.68058455114823
+          ],
+          "source_text": "<math>\\pi</math> radians = <math>180^{\\circ}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            39.71744471744472,
+            105.17578125,
+            93.92383292383293,
+            127.2109375
+          ],
+          "source_text": "<math>1^{\\circ} = \\frac{\\pi}{100}</math> rad",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            101.91646191646193,
+            107.279296875,
+            159.12039312039312,
+            126.509765625
+          ],
+          "source_text": "1 rad = <math>\\frac{180^{\\circ}}{}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            39.0185546875,
+            131.8203125,
+            64.6977886977887,
+            142.63671875
+          ],
+          "source_text": "<math>s = r\\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            38.4228515625,
+            145.84375,
+            84.18181818181819,
+            155.2578125
+          ],
+          "source_text": "(A in radians)",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            187.05078125,
+            86.9453125,
+            254.76953125,
+            159.46484375
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            40.466830466830466,
+            169.68359375,
+            144.2666015625,
+            180.5
+          ],
+          "source_text": "<b>Right Angle Trigonometry</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            40.466830466830466,
+            186.8623046875,
+            87.17936117936118,
+            206.7939453125
+          ],
+          "source_text": "<math>\\sin \\theta = \\frac{\\text{opp}}{\\text{hyp}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            110.15970515970517,
+            187.9140625,
+            155.5849609375,
+            205.7421875
+          ],
+          "source_text": "<math>\\csc \\theta = \\frac{\\text{hy}}{\\text{on}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            39.6142578125,
+            210.3515625,
+            93.17444717444718,
+            230.984375
+          ],
+          "source_text": "<math>\\cos \\theta = \\frac{\\text{adj}}{\\text{hyp}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            98.91891891891892,
+            210.0009765625,
+            155.287109375,
+            231.3349609375
+          ],
+          "source_text": "<math>\\sec \\theta = \\frac{\\text{hyp}}{\\text{adj}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            40.466830466830466,
+            236.294921875,
+            85.68058968058969,
+            255.525390625
+          ],
+          "source_text": "<math>\\tan \\theta = \\frac{\\text{opp}}{\\text{adj}}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            105.66339066339067,
+            235.59375,
+            155.5849609375,
+            254.32359081419625
+          ],
+          "source_text": "<math>\\cot \\theta = \\frac{\\text{adj}}{}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            187.05078125,
+            188.9658203125,
+            269.06640625,
+            235.5419921875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            39.6142578125,
+            268.548828125,
+            138.9052734375,
+            279.80584551148223
+          ],
+          "source_text": "<b>Trigonometric Functions</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            40.466830466830466,
+            286.779296875,
+            78.18673218673219,
+            303.205078125
+          ],
+          "source_text": "<math>\\sin \\theta = \\frac{y}{}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            110.90909090909092,
+            287.8310546875,
+            147.13022113022114,
+            304.9580078125
+          ],
+          "source_text": "<math>\\csc \\theta = \\frac{r}{}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            38.4228515625,
+            311.78288100208766,
+            78.93611793611794,
+            328.0966796875
+          ],
+          "source_text": "<math>\\cos \\theta = \\frac{x}{-}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            85.42997542997543,
+            311.3203125,
+            148.138671875,
+            329.1484375
+          ],
+          "source_text": "<math>\\sec \\theta = \\frac{r}{r}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            39.71744471744472,
+            336.9130859375,
+            78.93611793611794,
+            354.0400390625
+          ],
+          "source_text": "<math>\\tan \\theta = \\frac{y}{x}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            92.92383292383293,
+            335.5107421875,
+            151.712890625,
+            352.6376953125
+          ],
+          "source_text": "<math>\\cot \\theta = \\frac{x}{x}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            185.5615234375,
+            286.078125,
+            268.1728515625,
+            354.390625
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            39.31640625,
+            368.81640625,
+            180.1031941031941,
+            379.48643006263046
+          ],
+          "source_text": "<b>Graphs of Trigonometric Functions</b>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Figure",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            42.294921875,
+            390.9033203125,
+            117.162109375,
+            468.3310546875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Figure",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            128.076171875,
+            391.25390625,
+            201.751953125,
+            462.37109375
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            76.43734643734643,
+            476.6680584551148,
+            95.42383292383293,
+            481.91544885177456
+          ],
+          "source_text": "= csc",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Figure",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            133.7353515625,
+            469.4345703125,
+            255.6630859375,
+            552.4716796875
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            271.2776412776413,
+            520.8872651356994,
+            283.51965601965605,
+            528.3830897703549
+          ],
+          "source_text": "<math>2\\pi</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            40.466830466830466,
+            580.0960334029228,
+            221.31941031941034,
+            591.38671875
+          ],
+          "source_text": "Trigonometric Functions of Important Angles",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Table",
+          "category": "TABLE",
+          "bbox_pdf": [
+            44.08203125,
+            591.087890625,
+            285.74609375,
+            672.021484375
+          ],
+          "source_text": "ang | 600 | 45° | 300 | U<sub>c</sub> | A |  | <math>\\pi/2</math> | Λ | 1 | 1 | <math>\\sqrt{3}/3</math> | 0 | ./3 | <math>\\sqrt{3}/2</math> | <math>\\sqrt{2}/2</math> | tan A | <math>\\sqrt{2}/2</math> | 1/2 | 0 | <math>\\pi/4</math> | <math>\\pi/3</math> | <math>\\pi/6</math> | <math>\\sin \\theta</math> | 1/2 | 1 | 0 | <math>\\sqrt{3}/2</math> | radians | <math>\\cos \\theta</math>",
+          "translated_text": "",
+          "cells": [
+            {
+              "bbox_pdf": [
+                44.43167223450915,
+                659.5939218269455,
+                73.51162816072028,
+                671.2226898675715
+              ],
+              "source_text": "ang",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                44.19711260353402,
+                646.5710397111596,
+                70.94053239128539,
+                659.6515985020885
+              ],
+              "source_text": "600",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                44.16596961372904,
+                633.4561281939624,
+                71.56315494008109,
+                646.6733403404554
+              ],
+              "source_text": "45°",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                44.28623111944086,
+                619.9967317571519,
+                72.35623022258835,
+                633.5165434820508
+              ],
+              "source_text": "300",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                44.23309815865754,
+                606.2742655329682,
+                72.0684681512623,
+                620.0662204872955
+              ],
+              "source_text": "U<sub>c</sub>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                44.46004692287741,
+                592.0334295298671,
+                71.9329125337741,
+                606.3203002444158
+              ],
+              "source_text": "A",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                233.50937764747962,
+                659.7784608875712,
+                282.53401784188236,
+                670.541895845698
+              ],
+              "source_text": "",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                71.62250600999724,
+                659.8197459065252,
+                122.88810503667354,
+                671.0531702979847
+              ],
+              "source_text": "<math>\\pi/2</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                178.4213670768974,
+                659.7425558994765,
+                233.807711315967,
+                670.5174998928
+              ],
+              "source_text": "Λ",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                123.25748303468013,
+                659.7538591099006,
+                179.03054680100905,
+                670.6284051410578
+              ],
+              "source_text": "1",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                233.73098161346033,
+                633.4230532964898,
+                282.0718130009831,
+                646.0048843702232
+              ],
+              "source_text": "1",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                233.76680631312792,
+                619.8297764211893,
+                281.43231128760533,
+                633.4054695718266
+              ],
+              "source_text": "<math>\\sqrt{3}/3</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                232.96260002928992,
+                606.5293024368584,
+                282.1407909599989,
+                619.7932882629059
+              ],
+              "source_text": "0",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                233.33984393490357,
+                646.0498628003729,
+                282.7068623138286,
+                659.7115792712127
+              ],
+              "source_text": "./3",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                126.32409673412518,
+                646.5965048094039,
+                177.97044165068,
+                659.8099749471854
+              ],
+              "source_text": "<math>\\sqrt{3}/2</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                125.85982552272247,
+                633.5214747005591,
+                178.60317343196633,
+                646.5798215681205
+              ],
+              "source_text": "<math>\\sqrt{2}/2</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                233.3323433524684,
+                592.1646217396009,
+                282.4746981670982,
+                606.3873848268694
+              ],
+              "source_text": "tan A",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                178.2750315127358,
+                633.4657304913358,
+                233.60008103781072,
+                646.2982304098981
+              ],
+              "source_text": "<math>\\sqrt{2}/2</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                125.88656275873952,
+                620.0131720108567,
+                178.53633034192373,
+                633.5524141660167
+              ],
+              "source_text": "1/2",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                125.81385734132938,
+                606.3482523919946,
+                178.09440104806387,
+                620.01940392758
+              ],
+              "source_text": "0",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                70.61695989080627,
+                633.6069977522172,
+                126.09605962019587,
+                646.7370602596137
+              ],
+              "source_text": "<math>\\pi/4</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                70.14443746790428,
+                646.7455962703184,
+                126.22074966792351,
+                659.8184537843422
+              ],
+              "source_text": "<math>\\pi/3</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                71.61704325703644,
+                620.0901276063588,
+                125.84401950083281,
+                633.609796397388
+              ],
+              "source_text": "<math>\\pi/6</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                125.79894750775199,
+                592.1735558211329,
+                178.46822003019113,
+                606.307201784587
+              ],
+              "source_text": "<math>\\sin \\theta</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                177.8575333397455,
+                646.324335851879,
+                233.32354129910837,
+                659.7612059108085
+              ],
+              "source_text": "1/2",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                177.86610706487306,
+                606.3956535512375,
+                233.267121392876,
+                619.9081613553894
+              ],
+              "source_text": "1",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                71.21279097562973,
+                606.3603388800251,
+                126.0297188522646,
+                620.0249526204059
+              ],
+              "source_text": "0",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                178.35589395624933,
+                619.9181810196627,
+                233.9485441697271,
+                633.4809958286307
+              ],
+              "source_text": "<math>\\sqrt{3}/2</math>",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                70.75536104889107,
+                592.2848712002634,
+                126.03978812731457,
+                606.3184449627857
+              ],
+              "source_text": "radians",
+              "translated_text": ""
+            },
+            {
+              "bbox_pdf": [
+                178.11279288718575,
+                592.3023034150247,
+                233.5505109785511,
+                606.3168126579926
+              ],
+              "source_text": "<math>\\cos \\theta</math>",
+              "translated_text": ""
+            }
+          ],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            310.995085995086,
+            76.427734375,
+            403.42014742014743,
+            86.44050104384134
+          ],
+          "source_text": "Fundamental Identities",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.8720703125,
+            91.5029296875,
+            359.3154296875,
+            111.4345703125
+          ],
+          "source_text": "<math>\\csc \\theta = \\frac{1}{\\sin \\theta}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            430.9912109375,
+            94.43423799582463,
+            482.10565110565113,
+            113.5380859375
+          ],
+          "source_text": "<math>\\sec \\theta = \\frac{1}{\\cos \\theta}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.49631449631454,
+            116.7451171875,
+            358.1240234375,
+            138.1544885177453
+          ],
+          "source_text": "<math>\\tan \\theta = \\frac{\\sin \\theta}{\\cos \\theta}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            432.1826171875,
+            119.19921875,
+            481.3562653562654,
+            138.4296875
+          ],
+          "source_text": "<math>\\cot \\theta = \\frac{\\cos \\theta}{\\sin \\theta}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.8720703125,
+            144.44140625,
+            354.71007371007374,
+            165.07421875
+          ],
+          "source_text": "<math>\\cot \\theta = \\frac{1}{1}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            431.884765625,
+            148.9990234375,
+            494.84520884520884,
+            161.9189453125
+          ],
+          "source_text": "<math>\\sin^2\\theta + \\cos^2\\theta = 1</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.4677734375,
+            172.8388671875,
+            374.1941031941032,
+            184.3564453125
+          ],
+          "source_text": "<math>1 + \\tan^2 \\theta = \\sec^2 \\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            432.3955773955774,
+            173.5400390625,
+            497.0933660933661,
+            183.6552734375
+          ],
+          "source_text": "<math>1 + \\cot^2 \\theta = \\csc^2 \\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.57421875,
+            192.4716796875,
+            371.94594594594594,
+            203.9892578125
+          ],
+          "source_text": "<math>\\sin(-\\theta) = -\\sin \\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            432.1826171875,
+            193.1728515625,
+            490.34889434889436,
+            203.2880859375
+          ],
+          "source_text": "<math>\\cos(-\\theta) = \\cos \\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            307.978515625,
+            214.55859375,
+            372.69533169533173,
+            229.58203125
+          ],
+          "source_text": "<math>tan(-\\theta) = -tan \\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            432.3955773955774,
+            212.1044921875,
+            506.8353808353809,
+            234.8408203125
+          ],
+          "source_text": "<math>\\sin\\left(\\frac{\\pi}{2} - \\theta\\right) = \\cos\\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.8720703125,
+            240.1513671875,
+            384.6855036855037,
+            262.8876953125
+          ],
+          "source_text": "<math>\\cos\\left(\\frac{\\pi}{2} - \\theta\\right) = \\sin\\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            431.64619164619165,
+            240.1513671875,
+            506.8353808353809,
+            262.8876953125
+          ],
+          "source_text": "<math display=\"block\">\\tan\\left(\\frac{\\pi}{2} - \\theta\\right) = \\cot\\theta</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            310.2457002457003,
+            277.3134765625,
+            381.654296875,
+            288.0501043841336
+          ],
+          "source_text": "The Law of Sines",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            307.3828125,
+            290.28515625,
+            390.6805896805897,
+            310.91796875
+          ],
+          "source_text": "<math>\\frac{\\sin A}{A} = \\frac{\\sin B}{A} = \\frac{\\sin C}{A}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            310.2457002457003,
+            332.0048828125,
+            390.6805896805897,
+            345.01043841336116
+          ],
+          "source_text": "The Law of Cosines",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.6591796875,
+            349.18359375,
+            400.4189453125,
+            361.40234375
+          ],
+          "source_text": "<math>a^2 = b^2 + c^2 - 2bc \\cos A</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.6591796875,
+            368.74321503131523,
+            400.4189453125,
+            378.23046875
+          ],
+          "source_text": "<math>h^2 = a^2 + c^2 - 2ac \\cos B</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.765625,
+            385.9812108559499,
+            401.3125,
+            395.9749478079332
+          ],
+          "source_text": "<math>c^2 = a^2 + b^2 - 2ab \\cos C</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            442.3095703125,
+            280.46875,
+            516.5810546875,
+            390.8515625
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            310.995085995086,
+            414.0419921875,
+            452.2451171875,
+            422.9561586638831
+          ],
+          "source_text": "Addition and Subtraction Formulas",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.361328125,
+            428.0654296875,
+            438.841796875,
+            437.19624217118997
+          ],
+          "source_text": "<math>\\sin(x + v) = \\sin x \\cos v + \\cos x \\sin v</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.57421875,
+            442.0888671875,
+            437.89189189189193,
+            452.93528183716074
+          ],
+          "source_text": "<math display=\"block\">\\sin(x - y) = \\sin x \\cos y - \\cos x \\sin y</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.2457002457003,
+            458.9169921875,
+            440.14004914004914,
+            467.9248434237996
+          ],
+          "source_text": "<math>\\cos(x + y) = \\cos x \\cos y - \\sin x \\sin y</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.361328125,
+            474.419624217119,
+            439.3906633906634,
+            484.4580078125
+          ],
+          "source_text": "<math display=\"block\">\\cos(x - y) = \\cos x \\cos y + \\sin x \\sin y</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.2457002457003,
+            490.1586638830898,
+            409.3544921875,
+            506.8955078125
+          ],
+          "source_text": "<math display=\"block\">\\tan(x+y) = \\frac{\\tan x + \\tan y}{1 - \\tan x + \\tan y}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.4677734375,
+            516.3903966597077,
+            407.1670761670762,
+            533.189453125
+          ],
+          "source_text": "<math display=\"block\">\\tan(x - y) = \\frac{\\tan x - \\tan y}{1 + \\tan x \\tan x}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            310.6591796875,
+            551.12109375,
+            405.6683046683047,
+            561.6096033402923
+          ],
+          "source_text": "Double-Angle Formulas",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            310.6591796875,
+            567.3549060542798,
+            384.6855036855037,
+            577.0126953125
+          ],
+          "source_text": "<math display=\"block\">\\sin 2x = 2\\sin x \\cos x</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            308.57421875,
+            581.5949895615867,
+            488.28515625,
+            591.0361328125
+          ],
+          "source_text": "<math display=\"block\">\\cos 2x = \\cos^2 x - \\sin^2 x = 2\\cos^2 x - 1 = 1 - 2\\sin^2 x</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.49631449631454,
+            597.7490234375,
+            376.5908203125,
+            614.8759765625
+          ],
+          "source_text": "<math display=\"block\">\\tan 2x = \\frac{2 \\tan x}{1 - \\tan^2 x}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            309.169921875,
+            635.26171875,
+            394.42751842751846,
+            646.3006263048017
+          ],
+          "source_text": "Half-Angle Formulas",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Equation",
+          "category": "EQUATION",
+          "bbox_pdf": [
+            309.49631449631454,
+            650.3369140625,
+            461.478515625,
+            668.8662109375
+          ],
+          "source_text": "<math>\\sin^2 x = \\frac{1 - \\cos 2x}{2}</math> <math>\\cos^2 x = \\frac{1 + \\cos 2x}{2}</math>",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            70.29296875,
+            702.57421875,
+            540.70703125,
+            717.59765625
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        }
+      ],
+      "raw_text": "TRIGONOMETRY\n<b>Angle Measurement</b>\n(A in radians)\n<b>Right Angle Trigonometry</b>\n<b>Trigonometric Functions</b>\n<b>Graphs of Trigonometric Functions</b>\n= csc\n<math>2\\pi</math>\nTrigonometric Functions of Important Angles\nFundamental Identities\nThe Law of Sines\nThe Law of Cosines\nAddition and Subtraction Formulas\nDouble-Angle Formulas\nHalf-Angle Formulas",
+      "chapter_id": ""
+    },
+    {
+      "page_index": 3,
+      "page_width": 576.0,
+      "page_height": 720.0,
+      "elements": [
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            136.6875,
+            261.2109375,
+            408.25,
+            358.5390625
+          ],
+          "source_text": "This is an electronic version of the print textbook. Due to electronic rights restrictions, some third party content may be suppressed. Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. The publisher reserves the right to remove content from this title at any time if subsequent rights restrictions require it. For valuable information on pricing, previous editions, changes to current editions, and alternate formats, please visit www.cengage.com/highered to search by ISBN#, author, title, or keyword for materials in your areas of interest.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            50.625,
+            705.5859375,
+            521.875,
+            718.5390625
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        }
+      ],
+      "raw_text": "This is an electronic version of the print textbook. Due to electronic rights restrictions, some third party content may be suppressed. Editorial review has deemed that any suppressed content does not materially affect the overall learning experience. The publisher reserves the right to remove content from this title at any time if subsequent rights restrictions require it. For valuable information on pricing, previous editions, changes to current editions, and alternate formats, please visit www.cengage.com/highered to search by ISBN#, author, title, or keyword for materials in your areas of interest.",
+      "chapter_id": ""
+    },
+    {
+      "page_index": 4,
+      "page_width": 610.0,
+      "page_height": 718.0,
+      "elements": [
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            226.3671875,
+            60.30078125,
+            532.3671875,
+            128.61328125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            224.81572481572482,
+            150.64509394572025,
+            379.4398034398035,
+            164.7236328125
+          ],
+          "source_text": "SEVENTH EDITION",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            224.81572481572482,
+            230.08977035490605,
+            407.1670761670762,
+            247.4619140625
+          ],
+          "source_text": "JAMES STEWART",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            224.81572481572482,
+            258.56993736951983,
+            365.20147420147424,
+            309.7849686847599
+          ],
+          "source_text": "McMASTER UNIVERSITY\nAND\nUNIVERSITY OF TORONTO",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            199.2626953125,
+            613.1748046875,
+            311.6591796875,
+            638.7158203125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            224.580078125,
+            652.4404296875,
+            515.091796875,
+            661.1533203125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            70.29296875,
+            703.6259765625,
+            540.70703125,
+            716.5458984375
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        }
+      ],
+      "raw_text": "SEVENTH EDITION\nJAMES STEWART\nMcMASTER UNIVERSITY\nAND\nUNIVERSITY OF TORONTO",
+      "chapter_id": ""
+    },
+    {
+      "page_index": 5,
+      "page_width": 610.0,
+      "page_height": 718.0,
+      "elements": [
+        {
+          "label": "Picture",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            27.40234375,
+            25.2421875,
+            136.8203125,
+            50.08203125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.017578125,
+            65.208984375,
+            229.56265356265357,
+            85.841796875
+          ],
+          "source_text": "Calculus: Farly Transcendentals, Seventh Edition\nIames Stewart",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            106.2275390625,
+            178.51953125,
+            164.0224609375
+          ],
+          "source_text": "Executive Editor: Liz Covello\nAssistant Editor: Liza Neustaette\nEditorial Assistant: Jennifer Staller\nMedia Editor : Maureen Ross",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            164.1356993736952,
+            180.1044226044226,
+            173.1304801670146
+          ],
+          "source_text": "Marketing Manager: Jennifer Jones",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            170.384765625,
+            201.0859950859951,
+            184.62212943632568
+          ],
+          "source_text": "Marketing Coordinator: Michael Ledesma",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            188.9658203125,
+            263.109375,
+            200.36116910229646
+          ],
+          "source_text": "Marketing Communications Manager: Mary Anne Payumo",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.61328125,
+            204.3916015625,
+            213.0703125,
+            214.5068359375
+          ],
+          "source_text": "Content Project Manager: Chervll Linthicum",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.017578125,
+            218.4150390625,
+            154.62407862407863,
+            245.3583984375
+          ],
+          "source_text": "Art Director: Vernon T. Roes\nPrint Buyer: Recky Cross",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.017578125,
+            248.07724425887264,
+            216.048828125,
+            257.62890625
+          ],
+          "source_text": "Rights Acquisitions Specialist: Don Schlotman",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            261.5678496868476,
+            163.61670761670763,
+            285.3251953125
+          ],
+          "source_text": "Production Service: TECH-arts\nText Designer: TFCH-arts",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.61328125,
+            290.0480167014614,
+            247.62109375,
+            299.69921875
+          ],
+          "source_text": "Photo Researcher: Terri Wright, www.terriwright.com",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.20638820638821,
+            304.28810020876824,
+            165.7119140625,
+            339.01461377870567
+          ],
+          "source_text": "Copy Editor: Kathi Townes\nCover Designer: Irene Morris\nCover Illustration: Irene Morris",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.3154296875,
+            346.258872651357,
+            201.4541015625,
+            355.4423828125
+          ],
+          "source_text": "Compositor: Stephanie Kuhns, TECH-arts",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            294.873046875,
+            65.91015625,
+            460.3734643734644,
+            75.32421875
+          ],
+          "source_text": "© 2012, 2008 Brooks/Cole, Cengage Learning",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.66015625,
+            81.6865234375,
+            538.32421875,
+            164.7236328125
+          ],
+          "source_text": "ALL RIGHTS RESERVED. No part of this work covered by the copy-right herein may be reproduced, transmitted, stored, or used in any form or by any means graphic, electronic, or mechanical, including but not limited to photocopying, recording, scanning, digitizing, taping. Web distribution, information networks, or information stor-age and retrieval systems, except as permitted under Section 107 or 108 of the 1976 United States Copyright Act, without the prior writ-ten permission of the publisher.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            318.10546875,
+            179.12526096033403,
+            524.0712530712531,
+            197.6787109375
+          ],
+          "source_text": "For product information and technology assistance, contact us at\nCengage Learning Customer & Sales Support, 1-800-354-9706.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            320.48828125,
+            205.7939453125,
+            520.3243243243244,
+            224.3232421875
+          ],
+          "source_text": "For permission to use material from this text or product. submit all requests online at www.cengage.com/permissions.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            343.125,
+            230.685546875,
+            498.5921375921376,
+            249.916015625
+          ],
+          "source_text": "Further permissions questions can be e-mailed to permissionrequest@cengage.com",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            298.25552825552825,
+            266.06471816283926,
+            474.583984375,
+            275.859375
+          ],
+          "source_text": "Library of Congress Control Number: 2010936599",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            298.1494140625,
+            283.6240234375,
+            356.2088452088452,
+            292.3369140625
+          ],
+          "source_text": "Student Edition:",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            298.25552825552825,
+            295.29436325678495,
+            402.8017578125,
+            316.8779296875
+          ],
+          "source_text": "ISBN-13: 978-0-538-49790-9\nISBN-10: 0-538-49790-4",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            297.8515625,
+            321.13671875,
+            365.5703125,
+            330.55078125
+          ],
+          "source_text": "Loose-leaf Edition",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            297.5061425061425,
+            334.1083984375,
+            402.50390625,
+            354.0400390625
+          ],
+          "source_text": "ISBN-13: 978-0-8400-5885-0\nISBN-10: 0-8400-5885-3",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.3623046875,
+            366.3623046875,
+            344.968058968059,
+            375.0751953125
+          ],
+          "source_text": "Brooks/Cole",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.3623046875,
+            376.1787109375,
+            386.1220703125,
+            404.96868475991647
+          ],
+          "source_text": "20 Davis Drive\nBelmont CA 94002-3098\nIISA",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.064453125,
+            414.7431640625,
+            540.5577395577396,
+            456.6826722338205
+          ],
+          "source_text": "Cengage Learning is a leading provider of customized learning solu-tions with office locations around the globe, including Singapore, the\nUnited Kingdom, Australia, Mexico, Brazil, and Japan. Locate your local office at www.cengage.com/global.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.7567567567568,
+            464.5263671875,
+            527.0687960687961,
+            484.4580078125
+          ],
+          "source_text": "Cengage Learning products are represented in Canada by Nelson\nEducation, Ltd.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.66015625,
+            492.923828125,
+            433.48046875,
+            512.154296875
+          ],
+          "source_text": "To learn more about Brooks/Cole visit www.cengage.com/brookscole.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            297.5061425061425,
+            520.6201171875,
+            527.0687960687961,
+            540.6242171189979
+          ],
+          "source_text": "Purchase any of our products at your local college store or at our preferred online store www.cengagebrain.com.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "SectionHeader",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.7567567567568,
+            557.0810546875,
+            342.337890625,
+            565.7939453125
+          ],
+          "source_text": "Trademarks",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.7567567567568,
+            568.2998046875,
+            504.5872235872236,
+            588.2314453125
+          ],
+          "source_text": "ExamView® and ExamViewPro® are registered trademarks of FSCreations Inc.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.7567567567568,
+            590.5887265135699,
+            525.5700245700245,
+            610.318359375
+          ],
+          "source_text": "Windows is a registered trademark of the Microsoft Corporation and used herein under license.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            294.873046875,
+            611.0712890625,
+            517.3267813267813,
+            641.054279749478
+          ],
+          "source_text": "Macintosh and Power Macintosh are registered trademarks of\nApple Computer, Inc. Used herein under license. Derive is a registered trademark of Soft Warehouse, Inc.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            297.5061425061425,
+            643.0521920668059,
+            497.09459459459464,
+            652.0469728601253
+          ],
+          "source_text": "Maple is a registered trademark of Waterloo Maple, Inc.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            296.7567567567568,
+            653.1416015625,
+            527.8181818181819,
+            671.7828810020877
+          ],
+          "source_text": "Mathematica is a registered trademark of Wolfram Research, Inc. Tools for Enriching is a trademark used herein under license.",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "Text",
+          "category": "FLOWING_TEXT",
+          "bbox_pdf": [
+            53.9111328125,
+            649.28515625,
+            189.0958230958231,
+            671.0334029227557
+          ],
+          "source_text": "Printed in the United States of America 1 2 3 4 5 6 7 14 13 12 11 10",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            561.4501953125,
+            619.134765625,
+            569.0029296875,
+            643.974609375
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        },
+        {
+          "label": "PageFooter",
+          "category": "BYPASS",
+          "bbox_pdf": [
+            71.484375,
+            702.9248046875,
+            539.515625,
+            717.2470703125
+          ],
+          "source_text": "",
+          "translated_text": "",
+          "cells": [],
+          "equation_words": []
+        }
+      ],
+      "raw_text": "Calculus: Farly Transcendentals, Seventh Edition\nIames Stewart\nExecutive Editor: Liz Covello\nAssistant Editor: Liza Neustaette\nEditorial Assistant: Jennifer Staller\nMedia Editor : Maureen Ross\nMarketing Manager: Jennifer Jones\nMarketing Coordinator: Michael Ledesma\nMarketing Communications Manager: Mary Anne Payumo\nContent Project Manager: Chervll Linthicum\nArt Director: Vernon T. Roes\nPrint Buyer: Recky Cross\nRights Acquisitions Specialist: Don Schlotman\nProduction Service: TECH-arts\nText Designer: TFCH-arts\nPhoto Researcher: Terri Wright, www.terriwright.com\nCopy Editor: Kathi Townes\nCover Designer: Irene Morris\nCover Illustration: Irene Morris\nCompositor: Stephanie Kuhns, TECH-arts\n© 2012, 2008 Brooks/Cole, Cengage Learning\nALL RIGHTS RESERVED. No part of this work covered by the copy-right herein may be reproduced, transmitted, stored, or used in any form or by any means graphic, electronic, or mechanical, including but not limited to photocopying, recording, scanning, digitizing, taping. Web distribution, information networks, or information stor-age and retrieval systems, except as permitted under Section 107 or 108 of the 1976 United States Copyright Act, without the prior writ-ten permission of the publisher.\nFor product information and technology assistance, contact us at\nCengage Learning Customer & Sales Support, 1-800-354-9706.\nFor permission to use material from this text or product. submit all requests online at www.cengage.com/permissions.\nFurther permissions questions can be e-mailed to permissionrequest@cengage.com\nLibrary of Congress Control Number: 2010936599\nStudent Edition:\nISBN-13: 978-0-538-49790-9\nISBN-10: 0-538-49790-4\nLoose-leaf Edition\nISBN-13: 978-0-8400-5885-0\nISBN-10: 0-8400-5885-3\nBrooks/Cole\n20 Davis Drive\nBelmont CA 94002-3098\nIISA\nCengage Learning is a leading provider of customized learning solu-tions with office locations around the globe, including Singapore, the\nUnited Kingdom, Australia, Mexico, Brazil, and Japan. Locate your local office at www.cengage.com/global.\nCengage Learning products are represented in Canada by Nelson\nEducation, Ltd.\nTo learn more about Brooks/Cole visit www.cengage.com/brookscole.\nPurchase any of our products at your local college store or at our preferred online store www.cengagebrain.com.\nTrademarks\nExamView® and ExamViewPro® are registered trademarks of FSCreations Inc.\nWindows is a registered trademark of the Microsoft Corporation and used herein under license.\nMacintosh and Power Macintosh are registered trademarks of\nApple Computer, Inc. Used herein under license. Derive is a registered trademark of Soft Warehouse, Inc.\nMaple is a registered trademark of Waterloo Maple, Inc.\nMathematica is a registered trademark of Wolfram Research, Inc. Tools for Enriching is a trademark used herein under license.\nPrinted in the United States of America 1 2 3 4 5 6 7 14 13 12 11 10",
       "chapter_id": ""
     }
   ],
