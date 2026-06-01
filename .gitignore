@@ -42,6 +42,7 @@ claude
 
 # File
 output.json
+math.json
 *.pdf
 SURYAOCR_README.md
 test.py
