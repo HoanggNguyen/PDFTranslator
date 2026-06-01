@@ -20,6 +20,7 @@ COLORS = {
     "BYPASS": (1.0, 0.0, 0.0),  # red
 }
 CELL_COLOR = (0.8, 0.7, 0.0)  # yellow
+EQ_LINE_COLOR = (0.0, 0.8, 0.8)  # cyan — equation_text_lines
 
 
 def parse_pages(s: str) -> list[int] | None:
@@ -82,13 +83,28 @@ def main():
                     if cb:
                         page.draw_rect(fitz.Rect(*cb), color=CELL_COLOR, width=0.8)
 
+            if cat == "EQUATION":
+                for line in elem.get("equation_text_lines", []) or []:
+                    lb = line.get("bbox_pdf")
+                    if not lb:
+                        continue
+                    page.draw_rect(fitz.Rect(*lb), color=EQ_LINE_COLOR, width=0.8)
+                    label_text = line.get("text", "")[:20]
+                    page.insert_text(
+                        fitz.Point(lb[0], lb[1] - 1),
+                        label_text,
+                        fontsize=5,
+                        color=EQ_LINE_COLOR,
+                    )
+
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(out))
     doc.close()
     print(f"Saved → {out}")
     print(
-        "Legend: blue=FLOWING_TEXT  green=IN_PLACE  orange=EQUATION  purple=TABLE  red=BYPASS"
+        "Legend: blue=FLOWING_TEXT  green=IN_PLACE  orange=EQUATION  purple=TABLE  "
+        "red=BYPASS  yellow=cell  cyan=equation_text_line"
     )
 
 

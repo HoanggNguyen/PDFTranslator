@@ -152,18 +152,21 @@ def sample_text_color(
         arr = np.frombuffer(pm.samples, dtype=np.uint8).reshape(-1, 3).astype(np.int32)
         bg_arr = np.array(bg, dtype=np.int32)
         dist = np.sqrt(((arr - bg_arr) ** 2).sum(axis=1))
-        text_pixels = arr[dist > 80]
+        text_mask = dist > 80
+        text_pixels = arr[text_mask]
+        text_dist = dist[text_mask]
         if len(text_pixels) < 5 or len(text_pixels) / max(1, len(arr)) < 0.02:
             return cfg.fallback
-        # Return darkest mode: quantize and find most common dark pixel
-        brightness = text_pixels.mean(axis=1)
-        dark_mask = brightness < np.percentile(brightness, 30)
-        dark = text_pixels[dark_mask]
-        if len(dark) == 0:
-            return cfg.fallback
-        r = int(np.median(dark[:, 0]))
-        g = int(np.median(dark[:, 1]))
-        b = int(np.median(dark[:, 2]))
+        # Select pixels most different from background (core text, not antialiased edges).
+        # Distance-based selection works for any text color including teal, blue, red…
+        # "Darkest" heuristic would fail for non-dark colored text on light backgrounds.
+        dist_threshold = np.percentile(text_dist, 50)
+        core = text_pixels[text_dist >= dist_threshold]
+        if len(core) == 0:
+            core = text_pixels
+        r = int(np.median(core[:, 0]))
+        g = int(np.median(core[:, 1]))
+        b = int(np.median(core[:, 2]))
         return (r, g, b)
     except Exception:
         return cfg.fallback

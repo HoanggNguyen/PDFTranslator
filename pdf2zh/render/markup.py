@@ -77,8 +77,8 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     if is_equation:
         result = _wrap_bare_latex(result)
 
-    # 6. Strip any remaining unknown HTML tags
-    result = _ANY_TAG.sub("", result)
+    # 6. Strip any remaining unknown HTML tags (preserving < > inside $...$)
+    result = _strip_tags_outside_math(result)
 
     # 7. Escape literal < > that remain (comparison operators etc.)
     result = result.replace("\\<", "\x00LT\x00").replace("\\>", "\x00GT\x00")
@@ -99,6 +99,23 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _strip_tags_outside_math(text: str) -> str:
+    """Strip HTML-like tags but preserve $...$ math regions.
+
+    Naive `_ANY_TAG.sub` would treat math relations like ``< b $ ... $ c >``
+    as an HTML tag and erase the whole span; splitting on math first keeps
+    the operators intact.
+    """
+    parts = _split_math(text)
+    out = []
+    for kind, chunk in parts:
+        if kind == "math":
+            out.append(chunk)
+        else:
+            out.append(_ANY_TAG.sub("", chunk))
+    return "".join(out)
 
 
 def _convert_sup_sub(text: str) -> str:
@@ -230,7 +247,10 @@ _TYPST_BLOCK = re.compile(r"<typst>(.*?)</typst>", re.DOTALL | re.IGNORECASE)
 # Detect translatable prose: word run after stripping math/tags. Anything left
 # means there's real text to render; otherwise the element is pure math and we
 # should preserve the original PDF text layer.
-_PROSE_LETTER_RUN = re.compile(r"[A-Za-zÀ-ɏͰ-ϿЀ-ӿ" r"؀-ۿऀ-ॿ฀-๿⺀-鿿]{2,}")
+_PROSE_LETTER_RUN = re.compile(
+    r"[A-Za-zÀ-ɏḀ-ỿ"  # Latin + Latin Extended Additional (Vietnamese)
+    r"Ͱ-ϿЀ-ӿ؀-ۿऀ-ॿ฀-๿⺀-鿿]{2,}"
+)
 _DOLLAR_BLOCK_RE = re.compile(r"\$\$.*?\$\$", re.DOTALL)
 _DOLLAR_INLINE_RE = re.compile(r"\$[^$\n]*\$")
 _LATEX_CMD_RE = re.compile(r"\\[a-zA-Z]+(?:\s*\{[^{}]*\})*")
@@ -438,12 +458,12 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "exists",
     "therefore",
     "because",
-    # Dots & special symbols
+    # Dots & special symbols (Typst names)
     "dots",
-    "cdots",
-    "ddots",
-    "vdots",
-    "ldots",
+    "dots.c",
+    "dots.b",
+    "dots.v",
+    "dots.down",
     "infty",
     "partial",
     "nabla",
@@ -461,6 +481,14 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
 _IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
 
 
+_LATEX_IDENT_RENAME: dict[str, str] = {
+    "cdots": "dots.c",
+    "ldots": "dots.b",
+    "vdots": "dots.v",
+    "ddots": "dots.down",
+}
+
+
 def _split_math_vars(math_content: str) -> str:
     """Insert spaces between consecutive-letter variable products in Typst math.
 
@@ -472,6 +500,9 @@ def _split_math_vars(math_content: str) -> str:
 
     def _replace(m: re.Match) -> str:
         word = m.group(0)
+        # LaTeX identifier with a different Typst name — rename
+        if word in _LATEX_IDENT_RENAME:
+            return _LATEX_IDENT_RENAME[word]
         # Known Typst math identifier — keep as-is
         if word in _TYPST_MATH_IDENTIFIERS:
             return word
@@ -525,13 +556,14 @@ def to_typst_native(text: str) -> str:
 
     result = _TYPST_BLOCK.sub(_stash_typst, result)
 
-    # 1. Display + inline math → $ ... $
+    # 1. Display math → $ content $ (spaces = display/block in Typst).
+    #    Inline math → $content$ (no spaces = inline in Typst, stays in text flow).
     #    Also split multi-letter variable products (e.g. bh → b h) inside math.
     result = _MATH_TYPST_DISPLAY.sub(
         lambda m: f"$ {_split_math_vars(m.group(1).strip())} $", result
     )
     result = _MATH_TYPST_INLINE.sub(
-        lambda m: f"$ {_split_math_vars(m.group(1).strip())} $", result
+        lambda m: f"${_split_math_vars(m.group(1).strip())}$", result
     )
 
     # 2. Bold / italic / sup / sub → function-call syntax.
@@ -541,8 +573,8 @@ def to_typst_native(text: str) -> str:
     result = _SUP.sub(lambda m: f"{PH}super[{m.group(1)}]", result)
     result = _SUB.sub(lambda m: f"{PH}sub[{m.group(1)}]", result)
 
-    # 3. Strip remaining unknown HTML tags
-    result = _ANY_TAG.sub("", result)
+    # 3. Strip remaining unknown HTML tags (preserving < > inside $...$)
+    result = _strip_tags_outside_math(result)
 
     # 4. Escape Typst-special chars in user content (outside math)
     result = _escape_typst_outside_math(result)

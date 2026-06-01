@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from statistics import median as _median
 
 from .background import RGB
 from .config import RenderConfig, StyleSpec
@@ -86,7 +87,7 @@ _FIT_HELPERS = """\
     }
   })
 }
-#let pdftr_fit_typst(markup, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt) = {
+#let pdftr_fit_typst(markup, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, no_wrap: false) = {
   layout(size => {
     let allowed-height = if fit_height == none { size.height } else { calc.min(size.height, fit_height) }
     let render(text_size, leading) = block(width: size.width)[#{
@@ -94,38 +95,60 @@ _FIT_HELPERS = """\
       set par(leading: leading)
       eval(markup, mode: "markup")
     }]
-    let fits(text_size, leading) = measure(width: size.width, render(text_size, leading)).height <= allowed-height
-    if fits(max_size, max_leading) {
-      render(max_size, max_leading)
+    if no_wrap {
+      // Single-line mode: find largest font where content does not wrap.
+      // Compare height at container width vs height at huge width — equal means no wrap.
+      let no_wrap_fits(text_size) = {
+        let h_narrow = measure(width: size.width, render(text_size, max_leading)).height
+        let h_wide = measure(width: 10000pt, block(width: 10000pt)[#{
+          set text(size: text_size, weight: weight, style: style)
+          set par(leading: max_leading)
+          eval(markup, mode: "markup")
+        }]).height
+        h_narrow <= h_wide
+      }
+      let chosen_size = if no_wrap_fits(max_size) {
+        max_size
+      } else if not no_wrap_fits(min_size) {
+        min_size
+      } else {
+        pdftr_fit_size(min_size, max_size, eps, size_pt => no_wrap_fits(size_pt))
+      }
+      render(chosen_size, max_leading)
     } else {
-      let fallback_min_size = pdftr_floor_size(min_size - 1.6pt, 5.4pt)
-      let fallback_min_leading = pdftr_floor_leading(min_leading - 0.12em, 0.14em)
-      let emergency_min_size = pdftr_floor_size(fallback_min_size - 1.2pt, 4.8pt)
-      let emergency_min_leading = pdftr_floor_leading(fallback_min_leading - 0.08em, 0.10em)
-      let chosen_leading = if fits(min_size, max_leading) { max_leading } else { min_leading }
-      let chosen_size = if not fits(min_size, chosen_leading) {
-        let fallback_leading = pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-        let emergency_leading = pdftr_floor_leading(fallback_leading - 0.08em, emergency_min_leading)
-        if not fits(fallback_min_size, fallback_leading) {
-          if not fits(emergency_min_size, emergency_leading) {
-            emergency_min_size
+      let fits(text_size, leading) = measure(width: size.width, render(text_size, leading)).height <= allowed-height
+      if fits(max_size, max_leading) {
+        render(max_size, max_leading)
+      } else {
+        let fallback_min_size = pdftr_floor_size(min_size - 1.6pt, 5.4pt)
+        let fallback_min_leading = pdftr_floor_leading(min_leading - 0.12em, 0.14em)
+        let emergency_min_size = pdftr_floor_size(fallback_min_size - 1.2pt, 4.8pt)
+        let emergency_min_leading = pdftr_floor_leading(fallback_min_leading - 0.08em, 0.10em)
+        let chosen_leading = if fits(min_size, max_leading) { max_leading } else { min_leading }
+        let chosen_size = if not fits(min_size, chosen_leading) {
+          let fallback_leading = pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
+          let emergency_leading = pdftr_floor_leading(fallback_leading - 0.08em, emergency_min_leading)
+          if not fits(fallback_min_size, fallback_leading) {
+            if not fits(emergency_min_size, emergency_leading) {
+              emergency_min_size
+            } else {
+              pdftr_fit_size(emergency_min_size, fallback_min_size, eps, size_pt => fits(size_pt, emergency_leading))
+            }
           } else {
-            pdftr_fit_size(emergency_min_size, fallback_min_size, eps, size_pt => fits(size_pt, emergency_leading))
+            pdftr_fit_size(fallback_min_size, min_size, eps, size_pt => fits(size_pt, fallback_leading))
           }
         } else {
-          pdftr_fit_size(fallback_min_size, min_size, eps, size_pt => fits(size_pt, fallback_leading))
+          pdftr_fit_size(min_size, max_size, eps, size_pt => fits(size_pt, chosen_leading))
         }
-      } else {
-        pdftr_fit_size(min_size, max_size, eps, size_pt => fits(size_pt, chosen_leading))
+        let final_leading = if fits(min_size, chosen_leading) {
+          chosen_leading
+        } else if fits(fallback_min_size, pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)) {
+          pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
+        } else {
+          emergency_min_leading
+        }
+        render(chosen_size, final_leading)
       }
-      let final_leading = if fits(min_size, chosen_leading) {
-        chosen_leading
-      } else if fits(fallback_min_size, pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)) {
-        pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-      } else {
-        emergency_min_leading
-      }
-      render(chosen_size, final_leading)
     }
   })
 }"""
@@ -173,20 +196,26 @@ def _text_block(
     style_: str,
     text_color: RGB,
     font_family: str,
+    expanded_w: float | None = None,
+    valign: str = "top",
 ) -> str:
-    w = max(4.0, x1 - x0)
+    w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
     h = max(4.0, y1 - y0)
     # Ensure min_size <= max_size; otherwise the binary-search fit helper
     # gets lo > hi and behaves incorrectly.
     effective_min = min(min_font, font_size)
     escaped = escape_typst_string(markdown)
+    fit_call = (
+        f"pdftr_fit_markdown({var}_md,"
+        f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
+        f' weight: "{weight}", style: "{style_}")'
+    )
+    content = f"align(bottom + left, {fit_call})" if valign == "bottom" else fit_call
     return (
         f'#let {var}_md = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
         f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
-        f"  pdftr_fit_markdown({var}_md,"
-        f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
-        f' weight: "{weight}", style: "{style_}")\n'
+        f"  {content}\n"
         f"}}]\n"
         f"#context {{ place(top + left, dx: {x0:.2f}pt, dy: {y0:.2f}pt, {var}_body) }}\n"
     )
@@ -205,18 +234,21 @@ def _text_block_typst(
     style_: str,
     text_color: RGB,
     font_family: str,
+    no_wrap: bool = False,
+    expanded_w: float | None = None,
 ) -> str:
-    w = max(4.0, x1 - x0)
+    w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
     h = max(4.0, y1 - y0)
     effective_min = min(min_font, font_size)
     escaped = escape_typst_string(typst_markup)
+    no_wrap_arg = ", no_wrap: true" if no_wrap else ""
     return (
         f'#let {var}_tm = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
         f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
         f"  pdftr_fit_typst({var}_tm,"
         f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
-        f' weight: "{weight}", style: "{style_}")\n'
+        f' weight: "{weight}", style: "{style_}"{no_wrap_arg})\n'
         f"}}]\n"
         f"#context {{ place(top + left, dx: {x0:.2f}pt, dy: {y0:.2f}pt, {var}_body) }}\n"
     )
@@ -313,7 +345,16 @@ def build_typst_source(
         # Anchor for TOC links — page number is 1-indexed (user-facing).
         lines.append(f"#metadata(none)<pdftr-page-{page_idx + 1}>")
 
-        for elem_idx, elem in enumerate(page.get("elements", [])):
+        elems = page.get("elements", [])
+        _text_sizes = [
+            sizes[f"p{page_idx}:e{i}"]
+            for i, e in enumerate(elems)
+            if e.get("category") in ("FLOWING_TEXT", "IN_PLACE")
+            and f"p{page_idx}:e{i}" in sizes
+        ]
+        page_text_size = _median(_text_sizes) if _text_sizes else cfg.sizing.fallback_size
+
+        for elem_idx, elem in enumerate(elems):
             category = elem.get("category", "")
             label = normalize_label(elem.get("label", "Text"))
             uid = f"p{page_idx}:e{elem_idx}"
@@ -324,12 +365,58 @@ def build_typst_source(
 
             bbox = elem.get("bbox_pdf", [0, 0, 100, 20])
             x0, y0, x1, y1 = bbox
+
+            # Elements covering >50% of the page are likely cover images or
+            # mis-detections — keep original, don't overlay.
+            elem_w, elem_h = x1 - x0, y1 - y0
+            if (elem_w * elem_h) / (pw * ph) >= 0.50:
+                continue
             bg = bg_colors.get(uid, cfg.background.fallback_bg)
             tc = text_colors.get(uid, (0, 0, 0))
             style = _style_for(label, cfg)
             font_size = sizes.get(uid, cfg.sizing.fallback_size)
 
             if category == "EQUATION":
+                # Per-line mode: equation has text fragments with their own
+                # bboxes. Replace each fragment in place and leave the math
+                # regions untouched (no full-equation cover/overlay).
+                text_lines = elem.get("equation_words") or []
+                if text_lines:
+                    for line_idx, line in enumerate(text_lines):
+                        line_translated = line.get("translated_text") or ""
+                        if not line_translated:
+                            continue
+                        line_uid = f"{uid}:l{line_idx}"
+                        line_var = f"{var}_l{line_idx}"
+                        lbbox = line.get("bbox_pdf", bbox)
+                        lx0, ly0, lx1, ly1 = lbbox
+                        line_tc = text_colors.get(line_uid, tc)
+                        line_size = sizes.get(line_uid, font_size)
+                        n_chars = max(1, len(line_translated.strip()))
+                        lx1 = lx0 + n_chars * page_text_size * cfg.sizing.char_width_ratio
+                        line_markdown = to_typst_markup(line_translated)
+                        is_single_line = (ly1 - ly0) < line_size * 1.8
+                        exp_w = (pw - lx0) if is_single_line else None
+                        lines.append(
+                            _text_block(
+                                line_var,
+                                lx0,
+                                ly0,
+                                lx1,
+                                ly1,
+                                line_markdown,
+                                line_size,
+                                cfg.min_font_size_pt,
+                                style.weight,
+                                style.style_,
+                                line_tc,
+                                cfg.font_family,
+                                expanded_w=exp_w,
+                                valign="bottom",
+                            )
+                        )
+                    continue
+
                 translated = elem.get("translated_text") or ""
                 source = elem.get("source_text") or ""
                 if not translated or translated == source:
@@ -429,7 +516,11 @@ def build_typst_source(
 
             else:  # FLOWING_TEXT, IN_PLACE
                 translated = elem.get("translated_text") or ""
+                source = elem.get("source_text") or ""
                 if not translated:
+                    continue
+                # LLM returned text unchanged → pure math notation, keep original.
+                if translated.strip() == source.strip():
                     continue
                 # Pure math / malformed LLM / bare LaTeX outside tags →
                 # preserve original PDF text layer.
@@ -464,6 +555,10 @@ def build_typst_source(
                     )
                 elif "<typst" in translated or "<math" in translated:
                     typst_markup = to_typst_native(translated)
+                    is_single_line = (y1 - y0) < font_size * 1.8
+                    # Single-line: expand block width to available horizontal
+                    # space so text flows right instead of wrapping down.
+                    exp_w = (pw - x0) if is_single_line else None
                     lines.append(
                         _text_block_typst(
                             var,
@@ -478,11 +573,15 @@ def build_typst_source(
                             style.style_,
                             tc,
                             cfg.font_family,
+                            no_wrap=is_single_line,
+                            expanded_w=exp_w,
                         )
                     )
                 elif _BARE_TYPST_MATH.search(translated):
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
-                    typst_markup = f"$ {_split_math_vars(translated)} $"
+                    typst_markup = f"${_split_math_vars(translated)}$"
+                    is_single_line = (y1 - y0) < font_size * 1.8
+                    exp_w = (pw - x0) if is_single_line else None
                     lines.append(
                         _text_block_typst(
                             var,
@@ -497,11 +596,15 @@ def build_typst_source(
                             style.style_,
                             tc,
                             cfg.font_family,
+                            no_wrap=is_single_line,
+                            expanded_w=exp_w,
                         )
                     )
                 else:
                     # No <math> tags, no Typst functions — plain text/LaTeX, use cmarker/mitex
                     markdown = to_typst_markup(translated)
+                    is_single_line = (y1 - y0) < font_size * 1.8
+                    exp_w = (pw - x0) if is_single_line else None
                     lines.append(
                         _text_block(
                             var,
@@ -516,6 +619,7 @@ def build_typst_source(
                             style.style_,
                             tc,
                             cfg.font_family,
+                            expanded_w=exp_w,
                         )
                     )
 

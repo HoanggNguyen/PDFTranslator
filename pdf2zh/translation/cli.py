@@ -71,3 +71,7 @@ def main() -> None:
     with open(output, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, indent=2)
     logger.info(f"Saved to {output}")
+
+
+if __name__ == "__main__":
+    main()

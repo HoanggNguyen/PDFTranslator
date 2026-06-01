@@ -70,6 +70,12 @@ def render_document(
                         stats["cells_rendered"] += 1
                     else:
                         stats["elements_skipped"] += 1
+            elif category == "EQUATION" and elem.get("equation_words"):
+                for line in elem.get("equation_words") or []:
+                    if line.get("translated_text"):
+                        stats["elements_rendered"] += 1
+                    else:
+                        stats["elements_skipped"] += 1
             else:
                 translated = elem.get("translated_text") or ""
                 source = elem.get("source_text") or ""
@@ -154,6 +160,8 @@ def _redact_text_layer(
             if page_idx >= doc.page_count:
                 continue
             page = doc[page_idx]
+            pw = page_data.get("page_width", page.rect.width)
+            ph = page_data.get("page_height", page.rect.height)
             had_annot = False
 
             for elem_idx, elem in enumerate(page_data.get("elements", [])):
@@ -176,12 +184,33 @@ def _redact_text_layer(
                             fill=[c / 255 for c in fill],
                         )
                         had_annot = True
+                elif (
+                    category == "EQUATION" and elem.get("equation_words")
+                ):
+                    # Per-line redact: only erase text fragments that have a
+                    # translation; leave formula regions of the original text
+                    # layer intact.
+                    for line_idx, line in enumerate(
+                        elem.get("equation_words") or []
+                    ):
+                        if not line.get("translated_text"):
+                            continue
+                        line_uid = f"{uid}:l{line_idx}"
+                        lx0, ly0, lx1, ly1 = line.get(
+                            "bbox_pdf", elem.get("bbox_pdf", [0, 0, 10, 10])
+                        )
+                        fill = bg_colors.get(line_uid, (255, 255, 255))
+                        page.add_redact_annot(
+                            fitz.Rect(lx0 - pad, ly0 - pad, lx1 + pad, ly1 + pad),
+                            fill=[c / 255 for c in fill],
+                        )
+                        had_annot = True
                 else:
                     translated = elem.get("translated_text") or ""
                     source = elem.get("source_text") or ""
                     if not translated:
                         continue
-                    if category == "EQUATION" and translated == source:
+                    if translated.strip() == source.strip():
                         continue
                     if (
                         is_pure_math_text(translated)
@@ -190,6 +219,9 @@ def _redact_text_layer(
                     ):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
+                    elem_w, elem_h = x1 - x0, y1 - y0
+                    if (elem_w * elem_h) / (pw * ph) >= 0.50:
+                        continue
                     fill = bg_colors.get(uid, (255, 255, 255))
                     page.add_redact_annot(
                         fitz.Rect(x0 - pad, y0 - pad, x1 + pad, y1 + pad),
@@ -250,6 +282,19 @@ def _sample_colors(
                             page, cbbox, pw, ph, bg.rgb, cfg.text_color
                         )
                         text_colors[cell_uid] = tc
+                        stats["bg_samples"] += 1
+                elif category == "EQUATION" and elem.get("equation_words"):
+                    for line_idx, line in enumerate(
+                        elem.get("equation_words") or []
+                    ):
+                        line_uid = f"{uid}:l{line_idx}"
+                        lbbox = line.get("bbox_pdf", bbox)
+                        bg = prepare_cover(page, lbbox, pw, ph, cfg.background)
+                        bg_colors[line_uid] = bg.rgb
+                        tc = sample_text_color(
+                            page, lbbox, pw, ph, bg.rgb, cfg.text_color
+                        )
+                        text_colors[line_uid] = tc
                         stats["bg_samples"] += 1
                 else:
                     bg = prepare_cover(page, bbox, pw, ph, cfg.background)
