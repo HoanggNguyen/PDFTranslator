@@ -67,30 +67,6 @@ class CellData:
 
 
 @dataclass
-class EquationWordData:
-    """Word-level OCR data extracted from an equation region."""
-
-    text: str
-    bbox_pdf: list[float]
-    bbox_image: list[float]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "text": self.text,
-            "bbox_pdf": self.bbox_pdf,
-            "bbox_image": self.bbox_image,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> EquationWordData:
-        return cls(
-            text=data["text"],
-            bbox_pdf=data["bbox_pdf"],
-            bbox_image=data["bbox_image"],
-        )
-
-
-@dataclass
 class ElementData:
     """A layout element detected by Surya.
 
@@ -101,7 +77,6 @@ class ElementData:
         source_text: OCR text; always "" for BYPASS and optional for EQUATION
         translated_text: Empty string after Stage A; filled by Stage C
         cells: Non-empty only for TABLE category; empty list otherwise
-        equation_words: Word-level OCR boxes extracted from EQUATION blocks; [] otherwise
     """
 
     label: str
@@ -110,7 +85,6 @@ class ElementData:
     source_text: str
     translated_text: str = ""
     cells: list[CellData] = field(default_factory=list)
-    equation_words: list[EquationWordData] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this element to a JSON-compatible dictionary."""
@@ -126,7 +100,6 @@ class ElementData:
             "source_text": self.source_text,
             "translated_text": self.translated_text,
             "cells": [c.to_dict() for c in self.cells],
-            "equation_words": [word.to_dict() for word in self.equation_words],
         }
 
     @classmethod
@@ -139,10 +112,6 @@ class ElementData:
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
-            equation_words=[
-                EquationWordData.from_dict(word)
-                for word in data.get("equation_words", [])
-            ],
         )
 
 

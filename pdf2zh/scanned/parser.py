@@ -24,7 +24,6 @@ from pdf2zh.scanned.enums import (
 from pdf2zh.scanned.models import (
     CellData,
     ElementData,
-    EquationWordData,
     LayoutBlockResult,
     LayoutPageResult,
     LayoutParseResult,
@@ -268,7 +267,6 @@ class StageAParser:
             for block in layout_page.blocks:
                 source_text = ""
                 cells: list[CellData] = []
-                equation_words: list[EquationWordData] = []
 
                 if block.category == ElementCategory.BYPASS:
                     pass
@@ -395,7 +393,6 @@ class StageAParser:
                         source_text=source_text,
                         translated_text="",
                         cells=cells,
-                        equation_words=equation_words,
                     )
                 )
 
@@ -523,6 +520,8 @@ class StageAParser:
                         layout_image_bbox[3],
                         image_bbox[2],
                         image_bbox[3],
+                        pad_right=1.0,
+                        pad_bottom=1.0,
                     ),
                     image_bbox[2],
                     image_bbox[3],

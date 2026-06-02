@@ -25,22 +25,22 @@ _DEFAULT_BATCHES = {
     "cuda": {
         "layout": 32,
         "detection": 32,
-        "recognition": 128,
-        "table": 32,
+        "recognition": 256,
+        "table": 256,
         "equation": 256,
     },
     "mps": {
         "layout": 4,
         "detection": 8,
         "recognition": 64,
-        "table": 8,
+        "table": 64,
         "equation": 64,
     },
     "cpu": {
         "layout": 4,
         "detection": 8,
         "recognition": 32,
-        "table": 8,
+        "table": 32,
         "equation": 32,
     },
 }

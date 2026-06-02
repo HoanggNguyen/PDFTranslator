@@ -102,9 +102,7 @@
         "bbox_pdf",
         "source_text",
         "translated_text",
-        "cells",
-        "equation_words",
-        "font_size"
+        "cells"
       ],
       "additionalProperties": false,
       "properties": {
@@ -128,16 +126,6 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/CellData"
-          }
-        },
-        "font_size": {
-          "type": "number",
-          "minimum": 0
-        },
-        "equation_words": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/EquationWordData"
           }
         }
       }
