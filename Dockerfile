@@ -76,6 +76,13 @@ RUN mkdir -p /app/.cache/typst && \
 RUN mkdir -p /app/.cache/datalab/models /app/.cache/paddlex /app/.cache/huggingface \
         /app/.cache/typst && chmod -R 777 /app/.cache
 
+# Force UTF-8 so the app can write Vietnamese text / .typ files on a minimal locale
+# (placed after pip so the heavy install layer stays cached). Avoids
+# UnicodeEncodeError: 'ascii' codec can't encode ... at render time.
+ENV PYTHONUTF8=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
 # Entrypoint: prefer HF Persistent Storage (/data) for the model caches so they
 # survive sleep/restart and download only once. Falls back to /app/.cache (ephemeral)
 # when persistent storage is not enabled.
