@@ -1,14 +1,16 @@
 # syntax=docker/dockerfile:1
 # E2E PDF translator (OCR -> Translate -> Render) for a GPU Hugging Face Space.
-# Base: CUDA 13 runtime to match paddlepaddle-gpu (cu130 wheels in requirements.txt)
-# so torch / paddle both see the Space's Nvidia T4 (Turing sm_75, supported by CUDA 13).
+# Base: CUDA 13 runtime + Ubuntu 24.04 (Python 3.12) to match the local "thesis"
+# env's cp312 wheels, and paddlepaddle-gpu (cu130) so torch/paddle see the GPU
+# (Nvidia T4 = Turing sm_75, supported by CUDA 13).
 # NOTE: if this tag 404s at build, pick an existing one from
-#   https://hub.docker.com/r/nvidia/cuda/tags  (e.g. 13.0.1-cudnn-runtime-ubuntu22.04).
-FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu22.04
+#   https://hub.docker.com/r/nvidia/cuda/tags  (e.g. 13.0.1-cudnn-runtime-ubuntu24.04).
+FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
     TORCH_DEVICE=cuda \
     TYPST_BIN=typst \
     PDF2ZH_FONT_DIR=/app/fonts \
@@ -22,7 +24,7 @@ WORKDIR /app
 EXPOSE 7860
 
 # ── System deps ───────────────────────────────────────────────────────────────
-#  - python 3.10 + pip
+#  - python 3.12 + pip (Ubuntu 24.04 default)
 #  - OpenCV / PyMuPDF runtime libs (libgl1, libglib2.0-0, ...)
 #  - fonts: Noto Sans/Serif + Noto CJK (covers Vietnamese + CJK), fontconfig
 #  - wget/xz to fetch the typst binary
