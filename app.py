@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
+import traceback
 import uuid
 from pathlib import Path
 
@@ -108,14 +109,23 @@ def handle_translate(
             gr.update(value=out, visible=True),
             "✅ Dịch xong.",
         )
+    except UnicodeError as exc:  # encoding bug, not user input — show where it failed
+        logger.exception("pipeline failed (unicode)")
+        tail = "".join(traceback.format_exc().splitlines(keepends=True)[-6:])
+        return (
+            gr.update(visible=False),
+            gr.update(visible=False),
+            f"❌ {type(exc).__name__}: {exc}\n```\n{tail}\n```",
+        )
     except ValueError as exc:  # user-facing input errors
         return gr.update(visible=False), gr.update(visible=False), f"⚠️ {exc}"
     except Exception as exc:  # noqa: BLE001 — surface anything else to the UI
         logger.exception("pipeline failed")
+        tail = "".join(traceback.format_exc().splitlines(keepends=True)[-6:])
         return (
             gr.update(visible=False),
             gr.update(visible=False),
-            f"❌ Lỗi: {type(exc).__name__}: {exc}",
+            f"❌ Lỗi: {type(exc).__name__}: {exc}\n```\n{tail}\n```",
         )
 
 
