@@ -10,7 +10,8 @@ FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu24.04
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:$PATH \
     TORCH_DEVICE=cuda \
     TYPST_BIN=typst \
     PDF2ZH_FONT_DIR=/app/fonts \
@@ -29,7 +30,7 @@ EXPOSE 7860
 #  - fonts: Noto Sans/Serif + Noto CJK (covers Vietnamese + CJK), fontconfig
 #  - wget/xz to fetch the typst binary
 RUN apt-get update && apt-get install --no-install-recommends -y \
-        python3 python3-pip python3-dev \
+        python3 python3-pip python3-dev python3-venv \
         libgl1 libglib2.0-0 libxext6 libsm6 libxrender1 \
         fontconfig fonts-noto-core fonts-noto-cjk \
         wget xz-utils ca-certificates && \
@@ -54,10 +55,12 @@ RUN mkdir -p /app/fonts && \
     cp -n /usr/share/fonts/opentype/noto/*.otf /app/fonts/ 2>/dev/null || true && \
     fc-cache -f
 
-# ── Python deps ──────────────────────────────────────────────────────────────────
+# ── Python venv + deps ─────────────────────────────────────────────────────────
+# Ubuntu 24.04 marks system python as externally-managed (PEP 668) and its apt pip
+# cannot self-upgrade; use a clean virtualenv (already on PATH) for all installs.
+RUN python3 -m venv /opt/venv && pip install --upgrade pip
 COPY requirements.txt .
-RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 # ── App code ─────────────────────────────────────────────────────────────────────
 # Running from /app puts the pdf2zh package on sys.path, so no editable install is
