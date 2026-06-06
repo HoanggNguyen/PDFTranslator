@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     rm -rf /var/lib/apt/lists/*
 
 # ── Typst binary ────────────────────────────────────────────────────────────────
-ARG TYPST_VERSION=v0.12.0
+ARG TYPST_VERSION=v0.14.2
 RUN wget -qO /tmp/typst.tar.xz \
         "https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" && \
     tar -xJf /tmp/typst.tar.xz -C /tmp && \
