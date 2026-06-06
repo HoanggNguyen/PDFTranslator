@@ -1,64 +1,58 @@
-# ── Core PDF processing ──────────────────────────────────────────────────────
-pymupdf<1.25.3
-pdfminer.six==20250416
-pikepdf
-pypdfium2
+# Versions pinned to the working local env (conda env "thesis") for reproducible
+# builds on the Hugging Face Space. Exception: paddlepaddle-gpu (GPU build for the
+# Space's CUDA GPU) replaces the local CPU paddlepaddle — same version 3.3.1.
 
-# ── Translation providers ─────────────────────────────────────────────────────
-deepl
-openai>=1.0.0
-azure-ai-translation-text<=1.0.1
-tencentcloud-sdk-python-tmt
-ollama
-xinference-client
+# ── Core PDF processing ──────────────────────────────────────────────────────
+pymupdf==1.25.2
+pdfminer.six==20250416
+pikepdf==10.5.0
+pypdfium2==4.30.0
+
+# ── Translation provider SDKs (present in the working env) ────────────────────
+deepl==1.28.0
+openai==2.28.0
+azure-ai-translation-text==1.0.1
+tencentcloud-sdk-python-tmt==3.1.54
+ollama==0.6.1
+xinference-client==2.3.0
 
 # ── OCR / Scanned PDF (surya pipeline) ───────────────────────────────────────
-surya-ocr
-transformers<=4.56.1
-torch
-torchvision
-opencv-python-headless
-pillow
-numpy
+# surya-ocr 0.18+ dropped settings.*_BATCH_SIZE used by hardware.py — keep 0.17.1.
+surya-ocr==0.17.1
+transformers==4.56.1
+torch==2.10.0
+torchvision==0.25.0
+opencv-python-headless==4.11.0.86
+pillow==10.4.0
+numpy==2.3.5
 
-# ── Table recognition ───────────────────────────────────────
+# ── Table recognition (GPU paddle for the Space) ─────────────────────────────
 --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu130/
 paddlepaddle-gpu==3.3.1
-paddleocr
-langchain-community
-
+paddleocr==3.6.0
+paddlex==3.6.1
+# langchain-community  # not installed in the working env — omitted
 
 # ── Layout & document parsing ─────────────────────────────────────────────────
-babeldoc>=0.1.22,<0.3.0
-onnx
-onnxruntime
-fonttools
-peewee>=3.17.8
+babeldoc==0.2.33
+onnx==1.20.1
+onnxruntime==1.24.3
+fonttools==4.62.1
+peewee==4.0.1
 
 # ── UI ────────────────────────────────────────────────────────────────────────
-gradio<5.36
-gradio_pdf>=0.0.21
-rich
+gradio==5.35.0
+gradio_pdf==0.0.22
+rich==14.3.3
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
-requests
-httpx
-json_repair
-tqdm
-tenacity
-huggingface_hub
-python-dotenv
+requests==2.32.5
+httpx==0.28.1
+json_repair==0.59.4
+tqdm==4.67.3
+tenacity==9.1.4
+huggingface_hub==0.36.2
+python-dotenv==1.2.2
 
-# ── Optional: Backend (flask/celery) ─────────────────────────────────────────
-# flask
-# celery
-# redis
-
-# ── Optional: MCP ─────────────────────────────────────────────────────────────
-# mcp>=1.6.0
-
-# ── Dev / Testing ─────────────────────────────────────────────────────────────
-pytest
-pytest-cov
-pre-commit
-ruff
+# ── Dev / Testing (not needed at runtime; omitted from the image) ─────────────
+# pytest  pytest-cov  pre-commit  ruff
