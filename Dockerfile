@@ -1,17 +1,15 @@
 # syntax=docker/dockerfile:1
 # E2E PDF translator (OCR -> Translate -> Render) for a GPU Hugging Face Space.
-# Base: CUDA 13 runtime + Ubuntu 24.04 (Python 3.12) to match the local "thesis"
-# env's cp312 wheels, and paddlepaddle-gpu (cu130) so torch/paddle see the GPU
-# (Nvidia T4 = Turing sm_75, supported by CUDA 13).
+# Base: CUDA 13 runtime + Ubuntu 22.04 (Python 3.10) — the config that builds cleanly.
+# Only surya-ocr/paddleocr are pinned (in requirements.txt); torch/paddle/numpy stay
+# unpinned so pip resolves a mutually compatible CUDA stack. T4 = Turing sm_75 (OK on CUDA 13).
 # NOTE: if this tag 404s at build, pick an existing one from
-#   https://hub.docker.com/r/nvidia/cuda/tags  (e.g. 13.0.1-cudnn-runtime-ubuntu24.04).
-FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu24.04
+#   https://hub.docker.com/r/nvidia/cuda/tags  (e.g. 13.0.1-cudnn-runtime-ubuntu22.04).
+FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    VIRTUAL_ENV=/opt/venv \
-    PATH=/opt/venv/bin:$PATH \
     TORCH_DEVICE=cuda \
     TYPST_BIN=typst \
     PDF2ZH_FONT_DIR=/app/fonts \
@@ -25,12 +23,12 @@ WORKDIR /app
 EXPOSE 7860
 
 # ── System deps ───────────────────────────────────────────────────────────────
-#  - python 3.12 + pip (Ubuntu 24.04 default)
+#  - python 3.10 + pip (Ubuntu 22.04 default)
 #  - OpenCV / PyMuPDF runtime libs (libgl1, libglib2.0-0, ...)
 #  - fonts: Noto Sans/Serif + Noto CJK (covers Vietnamese + CJK), fontconfig
 #  - wget/xz to fetch the typst binary
 RUN apt-get update && apt-get install --no-install-recommends -y \
-        python3 python3-pip python3-dev python3-venv \
+        python3 python3-pip python3-dev \
         libgl1 libglib2.0-0 libxext6 libsm6 libxrender1 \
         fontconfig fonts-noto-core fonts-noto-cjk \
         wget xz-utils ca-certificates && \
@@ -55,12 +53,10 @@ RUN mkdir -p /app/fonts && \
     cp -n /usr/share/fonts/opentype/noto/*.otf /app/fonts/ 2>/dev/null || true && \
     fc-cache -f
 
-# ── Python venv + deps ─────────────────────────────────────────────────────────
-# Ubuntu 24.04 marks system python as externally-managed (PEP 668) and its apt pip
-# cannot self-upgrade; use a clean virtualenv (already on PATH) for all installs.
-RUN python3 -m venv /opt/venv && pip install --upgrade pip
+# ── Python deps ──────────────────────────────────────────────────────────────────
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r requirements.txt
 
 # ── App code ─────────────────────────────────────────────────────────────────────
 # Running from /app puts the pdf2zh package on sys.path, so no editable install is
@@ -76,16 +72,13 @@ RUN mkdir -p /app/.cache/typst && \
 # OCR models (~3-5GB) are NOT baked in — they download on the first request:
 #   - Surya (layout/detection/recognition) -> Datalab's servers, cached in MODEL_CACHE_DIR
 #   - Paddle table-cell model              -> PaddleX model server, cached in PADDLE_PDX_CACHE_HOME
-# Keeping them out of the image keeps the build fast. Make caches writable in case
-# the Space runs the container as a non-root user. For persistence across restarts,
-# enable HF persistent storage and point these dirs at /data.
+# Make caches writable in case the Space runs the container as a non-root user.
 RUN mkdir -p /app/.cache/datalab/models /app/.cache/paddlex /app/.cache/huggingface \
         /app/.cache/typst && chmod -R 777 /app/.cache
 
 # Entrypoint: prefer HF Persistent Storage (/data) for the model caches so they
-# survive sleep/restart and are downloaded only once. Falls back to /app/.cache
-# (ephemeral) when persistent storage is not enabled. Typst packages stay baked
-# in the image (/app/.cache/typst), so only the large OCR weights live on /data.
+# survive sleep/restart and download only once. Falls back to /app/.cache (ephemeral)
+# when persistent storage is not enabled.
 RUN cat > /usr/local/bin/entrypoint.sh <<'EOF'
 #!/usr/bin/env bash
 set -e
