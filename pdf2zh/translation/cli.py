@@ -25,6 +25,16 @@ def main() -> None:
     parser.add_argument("--concurrent", type=int, default=30)
     parser.add_argument("--chunk-bytes", type=int, default=3000)
     parser.add_argument("--no-glossary", action="store_true")
+    parser.add_argument(
+        "--no-math-fix",
+        action="store_true",
+        help="Skip post-translation math/layout fix pass",
+    )
+    parser.add_argument(
+        "--no-toc-fix",
+        action="store_true",
+        help="Skip post-translation table-of-contents fix pass",
+    )
     parser.add_argument("--length-tolerance", type=float, default=0.15)
     parser.add_argument("--rpm", type=int, default=None)
     parser.add_argument("--tpm", type=int, default=None)
@@ -48,6 +58,8 @@ def main() -> None:
         concurrent=args.concurrent,
         chunk_bytes=args.chunk_bytes,
         glossary_enabled=not args.no_glossary,
+        math_fix_enabled=not args.no_math_fix,
+        toc_fix_enabled=not args.no_toc_fix,
         length_tolerance=args.length_tolerance,
         rpm=args.rpm,
         tpm=args.tpm,
@@ -59,3 +71,7 @@ def main() -> None:
     with open(output, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, indent=2)
     logger.info(f"Saved to {output}")
+
+
+if __name__ == "__main__":
+    main()

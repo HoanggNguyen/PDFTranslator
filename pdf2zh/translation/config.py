@@ -37,6 +37,8 @@ class TranslatorConfig:
     tpm: int | None = None
     chunk_bytes: int = 3000
     glossary_enabled: bool = True
+    math_fix_enabled: bool = True
+    toc_fix_enabled: bool = True
     length_tolerance: float = 0.15
     timeout: int = 300
     retry: int = 2
