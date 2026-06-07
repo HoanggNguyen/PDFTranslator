@@ -13,20 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class SuryaLayoutModel(BaseImageToTextModel):
-    """
-    Wraps Surya's LayoutPredictor.
-
-    Layout detection uses its own FoundationPredictor checkpoint (separate
-    from the OCR backbone), loaded immediately on initialization.
-    """
-
     model_name = "SuryaLayout"
 
-    def __init__(self, hardware: Any) -> None:
-        """Initialize hardware config and load Surya layout models immediately."""
-        super().__init__(hardware)
-        logger.info("Initializing %s...", self.model_name)
+    def __init__(self) -> None:
+        super().__init__()
 
+    def load_model(self) -> None:
+        logger.info("Initializing %s into VRAM...", self.model_name)
         from surya.foundation import FoundationPredictor
         from surya.layout import LayoutPredictor
         from surya.settings import settings
@@ -39,34 +32,23 @@ class SuryaLayoutModel(BaseImageToTextModel):
 
         # 2. Load layout predictor
         self.model = LayoutPredictor(self.layout_foundation_predictor)
-        logger.info("Loaded LayoutPredictor")
+        logger.info("Loaded LayoutPredictor successfully.")
 
-    def prepare(self, images: list[Image.Image]) -> list[Image.Image]:
-        """Preprocess a batch of page images."""
-        # Surya models accept raw PIL images directly
+    def prepare(
+        self, images: list[Image.Image], *args: Any, **kwargs: Any
+    ) -> list[Image.Image]:
         return images
 
-    def predict(self, images: list[Image.Image]) -> list[Any]:
-        """
-        Detect layout regions for a batch of prepared page images.
-        """
-        try:
-            images = self.prepare(images)
+    def predict(
+        self,
+        prepared_inputs: list[Image.Image],
+        batch_size: int | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> list[Any]:
+        return self.model(prepared_inputs, batch_size=batch_size)
 
-            raw_results = self.model(
-                images,
-                batch_size=self.hardware.layout_batch_size,
-            )
-            return self.postprocess(raw_results)
-
-        except Exception:
-            logger.exception(
-                "Layout detection failed for batch of %d images — returning nulls.",
-                len(images),
-            )
-            return [None] * len(images)
-
-    def postprocess(self, raw_results: list[Any]) -> list[Any]:
-        """Format raw Surya layout outputs."""
-        # Custom formatting logic can go here in the future
+    def postprocess(
+        self, raw_results: list[Any], *args: Any, **kwargs: Any
+    ) -> list[Any]:
         return raw_results

@@ -41,25 +41,9 @@ def convert_bbox(
     image_height: float,
     pdf_width: float,
     pdf_height: float,
+    pad_right: float = 0.0,  # Thêm padding bên phải (đơn vị: points)
+    pad_bottom: float = 0.0,  # Thêm padding bên dưới (đơn vị: points)
 ) -> list[float]:
-    """Convert Surya pixel coordinates to fitz PDF points.
-
-    Both coordinate systems use top-left origin with Y increasing downward,
-    so only scaling is needed (no Y-axis flip).
-
-    Args:
-        surya_bbox: [x0, y0, x1, y1] in the source image pixel space
-        image_width: Width of the source image in pixels
-        image_height: Height of the source image in pixels
-        pdf_width: Width in PDF points (from page.rect.width)
-        pdf_height: Height in PDF points (from page.rect.height)
-
-    Returns:
-        [x0, y0, x1, y1] in PDF points
-
-    Raises:
-        ValueError: If image dimensions are zero or negative
-    """
     if image_width <= 0 or image_height <= 0:
         raise ValueError(f"Invalid image dimensions: {image_width}x{image_height}")
 
@@ -69,11 +53,15 @@ def convert_bbox(
     scale_x = pdf_width / image_width
     scale_y = pdf_height / image_height
 
-    # Convert coordinates (no Y flip needed)
+    # Convert coordinates và cộng padding trực tiếp vào x1, y1
     x0 = sx0 * scale_x
     y0 = sy0 * scale_y
-    x1 = sx1 * scale_x
-    y1 = sy1 * scale_y
+    x1 = (sx1 * scale_x) + pad_right
+    y1 = (sy1 * scale_y) + pad_bottom
+
+    # Giới hạn tọa độ không vượt quá kích thước trang PDF
+    x1 = min(x1, pdf_width)
+    y1 = min(y1, pdf_height)
 
     return [x0, y0, x1, y1]
 
@@ -102,6 +90,8 @@ def image_bbox_to_pdf(
     image_bbox: list[float],
     pdf_width: float,
     pdf_height: float,
+    pad_right: float = 0.0,  # Thêm padding bên phải (đơn vị: points)
+    pad_bottom: float = 0.0,  # Thêm padding bên dưới (đơn vị: points)
 ) -> list[float]:
     """Scale a bbox from Surya's ``result.image_bbox`` space to PDF points.
 
@@ -127,7 +117,9 @@ def image_bbox_to_pdf(
     """
     # image_bbox = [0, 0, image_w, image_h]
     _, _, iw, ih = image_bbox
-    return convert_bbox(surya_bbox, iw, ih, pdf_width, pdf_height)
+    return convert_bbox(
+        surya_bbox, iw, ih, pdf_width, pdf_height, pad_right, pad_bottom
+    )
 
 
 def clamp_bbox(
@@ -286,3 +278,47 @@ def bbox_iou(bbox1: list[float], bbox2: list[float]) -> float:
         return 0.0
 
     return inter_area / union_area
+
+
+def bbox_union_area(bboxes: list[list[float]]) -> float:
+    """Calculate the union area of multiple axis-aligned bboxes."""
+
+    valid_bboxes = [bbox for bbox in bboxes if bbox_area(bbox) > 0]
+    if not valid_bboxes:
+        return 0.0
+
+    x_points = sorted(
+        {bbox[0] for bbox in valid_bboxes} | {bbox[2] for bbox in valid_bboxes}
+    )
+    if len(x_points) < 2:
+        return 0.0
+
+    total_area = 0.0
+    for x0, x1 in zip(x_points, x_points[1:]):
+        if x1 <= x0:
+            continue
+
+        y_intervals: list[tuple[float, float]] = []
+        for bbox in valid_bboxes:
+            bx0, by0, bx1, by1 = bbox
+            if bx0 < x1 and bx1 > x0:
+                y_intervals.append((by0, by1))
+
+        if not y_intervals:
+            continue
+
+        y_intervals.sort()
+        covered_height = 0.0
+        current_y0, current_y1 = y_intervals[0]
+        for next_y0, next_y1 in y_intervals[1:]:
+            if next_y0 <= current_y1:
+                current_y1 = max(current_y1, next_y1)
+                continue
+
+            covered_height += current_y1 - current_y0
+            current_y0, current_y1 = next_y0, next_y1
+
+        covered_height += current_y1 - current_y0
+        total_area += (x1 - x0) * covered_height
+
+    return total_area

@@ -42,5 +42,11 @@ claude
 
 # File
 output.json
+math.json
 *.pdf
+SURYAOCR_README.md
+test.py
+
+# Bỏ qua tất cả mọi thứ bên trong thư mục model_path
+pdf2zh/scanned/model_path/*
 test_local/

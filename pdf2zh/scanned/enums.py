@@ -18,8 +18,8 @@ class ElementCategory(str, Enum):
         FLOWING_TEXT: Translate full source_text; may merge adjacent blocks
         IN_PLACE: Translate source_text; render at exact bbox position
         TABLE: Translate each cell's source_text; render cell grid
-        EQUATION: source_text contains any surrounding text to translate;
-            latex holds a placeholder or recognized LaTeX marking math position
+        EQUATION: source_text contains extracted OCR text to translate;
+            equation_words preserves word-level OCR boxes for precise placement
     """
 
     BYPASS = "BYPASS"
@@ -69,7 +69,7 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     SuryaLabel.LIST_ITEM: ElementCategory.FLOWING_TEXT,
     SuryaLabel.FOOTNOTE: ElementCategory.FLOWING_TEXT,
     # IN_PLACE: text that must be rendered at exact position
-    SuryaLabel.SECTION_HEADER: ElementCategory.IN_PLACE,
+    SuryaLabel.SECTION_HEADER: ElementCategory.FLOWING_TEXT,
     SuryaLabel.PAGE_HEADER: ElementCategory.BYPASS,
     SuryaLabel.PAGE_FOOTER: ElementCategory.BYPASS,
     SuryaLabel.CAPTION: ElementCategory.IN_PLACE,
@@ -77,7 +77,7 @@ SURYA_LABEL_MAP: dict[str, ElementCategory] = {
     # BYPASS: graphics that should be copied without modification
     SuryaLabel.PICTURE: ElementCategory.BYPASS,
     SuryaLabel.FIGURE: ElementCategory.BYPASS,
-    SuryaLabel.FORM: ElementCategory.BYPASS,
+    SuryaLabel.FORM: ElementCategory.FLOWING_TEXT,
     # TABLE: structured data requiring cell-level translation
     SuryaLabel.TABLE: ElementCategory.TABLE,
     # EQUATION: math content to be preserved as-is

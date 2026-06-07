@@ -220,7 +220,6 @@ def validate_stage_output(
         3. Element bboxes fit within [0, 0, page_width, page_height]
         4. category == "BYPASS" -> source_text == ""
         5. category == "EQUATION" -> source_text may contain surrounding text
-           that needs translation; latex holds a placeholder or recognized LaTeX
         6. category == "TABLE" -> len(cells) > 0
         7. category != "TABLE" -> cells == []
         8. Cell bboxes contained within parent TABLE bbox
@@ -313,18 +312,6 @@ def validate_stage_output(
                     "source_text must be '' for BYPASS category",
                     "BYPASS_TEXT",
                 )
-
-            # Invariant 5: EQUATION may have source_text (surrounding text
-            # that needs translation). The latex field must be present and
-            # non-empty, either as a placeholder or actual recognized LaTeX.
-            if category == "EQUATION":
-                latex = elem.get("latex", "")
-                if not isinstance(latex, str) or not latex.strip():
-                    result.add_error(
-                        f"{elem_path}.latex",
-                        "EQUATION latex must be a non-empty string",
-                        "EQUATION_LATEX",
-                    )
 
             # Invariant 6: TABLE -> len(cells) > 0
             if category == "TABLE" and len(cells) == 0:

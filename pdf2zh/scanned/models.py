@@ -33,9 +33,8 @@ class CellData:
     """
 
     bbox_pdf: list[float]
-    source_text: str
+    source_text: str = ""
     translated_text: str = ""
-    cell_font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this cell to a JSON-compatible dictionary.
@@ -47,7 +46,6 @@ class CellData:
             "bbox_pdf": self.bbox_pdf,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
-            "cell_font_size": self.cell_font_size,
         }
 
     @classmethod
@@ -65,7 +63,6 @@ class CellData:
             bbox_pdf=data["bbox_pdf"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
-            cell_font_size=data.get("cell_font_size", 0.0),
         )
 
 
@@ -79,9 +76,7 @@ class ElementData:
         bbox_pdf: [x0, y0, x1, y1] in PDF points; x0 < x1, y0 < y1
         source_text: OCR text; always "" for BYPASS and optional for EQUATION
         translated_text: Empty string after Stage A; filled by Stage C
-        latex: Placeholder or recognized LaTeX for EQUATION category; "" otherwise
         cells: Non-empty only for TABLE category; empty list otherwise
-        font_size: Estimated font size for text elements; 0.0 if not computed or non-text
     """
 
     label: str
@@ -89,20 +84,10 @@ class ElementData:
     bbox_pdf: list[float]
     source_text: str
     translated_text: str = ""
-    latex: str = ""
     cells: list[CellData] = field(default_factory=list)
-    font_size: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize this element to a JSON-compatible dictionary.
-
-        The ``category`` field is stored as its string value so the output is
-        JSON-serializable without custom encoders.
-
-        Returns:
-            Dict with keys ``label``, ``category``, ``bbox_pdf``,
-            ``source_text``, ``translated_text``, ``latex`` and ``cells``.
-        """
+        """Serialize this element to a JSON-compatible dictionary."""
 
         return {
             "label": self.label,
@@ -114,31 +99,19 @@ class ElementData:
             "bbox_pdf": self.bbox_pdf,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
-            "latex": self.latex,
             "cells": [c.to_dict() for c in self.cells],
-            "font_size": self.font_size,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ElementData:
-        """Deserialize an :class:`ElementData` from a plain dictionary.
-
-        Args:
-            data: Dictionary as produced by :meth:`to_dict`.  Optional keys
-                  ``translated_text``, ``latex``, ``cells`` default to ``""``, ``""`` and ``[]`` respectively.
-
-        Returns:
-            New :class:`ElementData` instance.
-        """
+        """Deserialize an :class:`ElementData` from a plain dictionary."""
         return cls(
             label=data["label"],
             category=ElementCategory(data["category"]),
             bbox_pdf=data["bbox_pdf"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
-            latex=data.get("latex", ""),
             cells=[CellData.from_dict(c) for c in data.get("cells", [])],
-            font_size=data.get("font_size", 0.0),
         )
 
 
@@ -428,9 +401,8 @@ class TableBlockResult:
     """Merged table output for one layout table block."""
 
     block_id: str
-    source_text: str
-    cells: list[CellData] = field(default_factory=list)
-    used_fallback_ocr: bool = False
+    cells_bbox: list[list[float]]
+    crop_size: tuple[float, float]
 
 
 @dataclass(slots=True)
@@ -439,22 +411,6 @@ class TableParseResult:
 
     pdf_path: str
     tables: dict[str, TableBlockResult] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class EquationBlockResult:
-    """Equation phase output for one layout equation block."""
-
-    block_id: str
-    latex: str
-
-
-@dataclass(slots=True)
-class EquationParseResult:
-    """Equation phase output indexed by layout block id."""
-
-    pdf_path: str
-    equations: dict[str, EquationBlockResult] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -474,5 +430,3 @@ class _TableJob:
     page_width: float
     page_height: float
     table_crop: Image.Image
-    highres_crop: Image.Image
-    page_ocr: OCRPageResult | None

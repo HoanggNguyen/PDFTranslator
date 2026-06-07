@@ -9,8 +9,9 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
-from statistics import median
 from typing import Any
+
+from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
 
 logger = logging.getLogger(__name__)
 
@@ -46,32 +47,32 @@ def clean_ocr_text(text: str) -> str:
             cleaned_chars.append(char)
     text = "".join(cleaned_chars)
 
-    # Step 3: Fix common OCR artifacts
-    # Ligatures
-    text = text.replace("\ufb01", "fi")
-    text = text.replace("\ufb02", "fl")
-    text = text.replace("\ufb00", "ff")
-    text = text.replace("\ufb03", "ffi")
-    text = text.replace("\ufb04", "ffl")
+    # # Step 3: Fix common OCR artifacts
+    # # Ligatures
+    # text = text.replace("\ufb01", "fi")
+    # text = text.replace("\ufb02", "fl")
+    # text = text.replace("\ufb00", "ff")
+    # text = text.replace("\ufb03", "ffi")
+    # text = text.replace("\ufb04", "ffl")
 
-    # Smart quotes to straight quotes
-    text = text.replace("\u2018", "'")  # Left single quote
-    text = text.replace("\u2019", "'")  # Right single quote
-    text = text.replace("\u201c", '"')  # Left double quote
-    text = text.replace("\u201d", '"')  # Right double quote
+    # # Smart quotes to straight quotes
+    # text = text.replace("\u2018", "'")  # Left single quote
+    # text = text.replace("\u2019", "'")  # Right single quote
+    # text = text.replace("\u201c", '"')  # Left double quote
+    # text = text.replace("\u201d", '"')  # Right double quote
 
-    # Dashes
-    text = text.replace("\u2013", "-")  # En dash
-    text = text.replace("\u2014", "-")  # Em dash
-    text = text.replace("\u2212", "-")  # Minus sign
+    # # Dashes
+    # text = text.replace("\u2013", "-")  # En dash
+    # text = text.replace("\u2014", "-")  # Em dash
+    # text = text.replace("\u2212", "-")  # Minus sign
 
-    # Other common artifacts
-    text = text.replace("\u00a0", " ")  # Non-breaking space
-    text = text.replace("\u2026", "...")  # Ellipsis
+    # # Other common artifacts
+    # text = text.replace("\u00a0", " ")  # Non-breaking space
+    # text = text.replace("\u2026", "...")  # Ellipsis
+
+    text = text.replace("<br>", "\n")  # Line break tags
 
     # Step 4: Normalize whitespace
-    # Replace tabs with spaces
-    text = text.replace("\t", " ")
 
     # Collapse multiple spaces into one
     text = re.sub(r" +", " ", text)
@@ -109,7 +110,42 @@ def collect_ocr_text(ocr_result: Any) -> str:
         if hasattr(line, "text") and line.text:
             lines.append(line.text)
 
-    return " ".join(lines)
+    return clean_ocr_text(" ".join(lines))
+
+
+def smart_join_text_lines(lines: list[Any]) -> str:
+    if not lines:
+        return ""
+
+    result = []
+    last_valid_text = ""  # Lưu lại văn bản của dòng có chữ gần nhất
+
+    for line in lines:
+        current_text = getattr(line, "text", "").strip()
+
+        if not current_text:
+            continue
+
+        # Nếu là dòng chứa chữ đầu tiên, chỉ cần thêm vào kết quả
+        if not result:
+            result.append(current_text)
+            last_valid_text = current_text
+            continue
+
+        ends_with_punctuation = last_valid_text[-1] in {".", "!", "?"}
+        starts_with_upper = current_text[0].isupper()
+        ends_with_hyphen = last_valid_text.endswith("-")
+
+        if not ends_with_punctuation and starts_with_upper:
+            result.append("\n" + current_text)
+        elif ends_with_hyphen:
+            result.append(current_text)
+        else:
+            result.append(" " + current_text)
+
+        last_valid_text = current_text
+
+    return clean_ocr_text("".join(result))
 
 
 def sort_text_lines(lines: list[Any]) -> list[Any]:
@@ -176,31 +212,11 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
     return sorted_lines
 
 
-def compute_font_size(lines: list[Any]) -> float:
-    """Compute an estimated font size from OCR text lines.
-
-    Uses the median height of text line bounding boxes as a proxy for font size.
-    """
-    if not lines:
-        return 0.0
-
-    heights = []
-    for line in lines:
-        if hasattr(line, "bbox") and line.bbox:
-            x0, y0, x1, y1 = line.bbox
-            heights.append(y1 - y0)
-
-    if not heights:
-        return 0.0
-
-    return median(heights)
-
-
 def extract_text_for_region(
     ocr_result: Any,
     region_bbox: list[float],
     overlap_threshold: float = 0.5,
-) -> tuple[str, float]:
+) -> list[Any]:
     """Extract OCR text that falls within a region.
 
     Finds all text lines from the OCR result that overlap significantly
@@ -217,43 +233,52 @@ def extract_text_for_region(
         Concatenated text from overlapping lines and estimated font size
     """
     if not hasattr(ocr_result, "text_lines"):
-        return "", 0.0
+        return []
 
-    rx0, ry0, rx1, ry1 = region_bbox
+    matching_lines = _collect_region_matches(
+        getattr(ocr_result, "text_lines", []),
+        region_bbox,
+        overlap_threshold,
+    )
+    return sort_text_lines(matching_lines)
 
-    matching_lines = []
 
-    for line in ocr_result.text_lines:
-        if not hasattr(line, "bbox") or not hasattr(line, "text"):
+def _collect_region_matches(
+    items: list[Any],
+    region_bbox: list[float],
+    overlap_threshold: float,
+) -> list[Any]:
+    matching_items: list[Any] = []
+
+    for item in items:
+        if not hasattr(item, "text"):
             continue
 
-        lx0, ly0, lx1, ly1 = line.bbox
-
-        # Calculate intersection
-        ix0 = max(rx0, lx0)
-        iy0 = max(ry0, ly0)
-        ix1 = min(rx1, lx1)
-        iy1 = min(ry1, ly1)
-
-        if ix0 >= ix1 or iy0 >= iy1:
+        item_bbox = _get_ocr_bbox(item)
+        if item_bbox is None:
             continue
 
-        intersection_area = (ix1 - ix0) * (iy1 - iy0)
-        line_area = max(1.0, (lx1 - lx0) * (ly1 - ly0))
+        intersection = bbox_intersection(region_bbox, item_bbox)
+        if intersection is None:
+            continue
 
-        # Check if enough of the line is within the region
-        line_overlap = intersection_area / line_area
-        if line_overlap >= overlap_threshold:
-            matching_lines.append(line)
+        item_area = max(1.0, bbox_area(item_bbox))
+        overlap_ratio = bbox_area(intersection) / item_area
+        if overlap_ratio >= overlap_threshold:
+            matching_items.append(item)
 
-    # Sort by vertical position and join
-    # matching_lines.sort(key=lambda x: x[0])
-    # Sort with reading order from model.prediction()
-    matching_lines = sort_text_lines(matching_lines)
-    font_size = compute_font_size(matching_lines)
-    text = " ".join(line.text for line in matching_lines)
+    return matching_items
 
-    return text, font_size
+
+def _get_ocr_bbox(item: Any) -> list[float] | None:
+    item_bbox = getattr(item, "bbox", None)
+    if item_bbox is not None:
+        return list(item_bbox)
+
+    if hasattr(item, "polygon"):
+        return polygon_to_bbox(item.polygon)
+
+    return None
 
 
 def log_toc_hints(elements: list[Any], page_index: int) -> None:
