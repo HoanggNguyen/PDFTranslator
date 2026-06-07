@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
 from PIL import Image
@@ -23,21 +22,15 @@ class SuryaLayoutModel(BaseImageToTextModel):
         logger.info("Initializing %s into VRAM...", self.model_name)
         from surya.foundation import FoundationPredictor
         from surya.layout import LayoutPredictor
+        from surya.settings import settings
 
-        checkpoint_path = "pdf2zh/scanned/model_path/layout"
-
-        if not os.path.exists(checkpoint_path):
-            logger.error(
-                "Layout model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
-                checkpoint_path,
-            )
-            raise FileNotFoundError(
-                f"Layout model checkpoint not found at {checkpoint_path}"
-            )
-
+        # 1. Load foundation specifically for layout
         self.layout_foundation_predictor = FoundationPredictor(
-            checkpoint=checkpoint_path,
+            checkpoint=settings.LAYOUT_MODEL_CHECKPOINT,
         )
+        logger.info("Loaded FoundationPredictor (layout backbone)")
+
+        # 2. Load layout predictor
         self.model = LayoutPredictor(self.layout_foundation_predictor)
         logger.info("Loaded LayoutPredictor successfully.")
 

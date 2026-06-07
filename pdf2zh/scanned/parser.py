@@ -70,7 +70,6 @@ class StageAParser:
     def __init__(
         self,
         device: str = "auto",
-        batch_size: int | None = None,
         page_batch_size: int | None = None,
         layout_batch_size: int | None = None,
         detection_batch_size: int | None = None,
@@ -82,7 +81,6 @@ class StageAParser:
 
         self.hardware = configure_settings(
             device=device,
-            batch_size=batch_size,
             page_batch_size=page_batch_size,
             layout_batch_size=layout_batch_size,
             detection_batch_size=detection_batch_size,
@@ -119,6 +117,7 @@ class StageAParser:
                     ocr_pages=None,
                 )
             )
+            self._release_batch(images)
 
         return LayoutParseResult(pdf_path=str(context.pdf_path), pages=parsed_pages)
 
@@ -139,6 +138,7 @@ class StageAParser:
             parsed_pages.extend(
                 self._parse_ocr_batch(batch_indices, images, highres_images)
             )
+            self._release_batch(images, highres_images)
 
         return OCRParseResult(pdf_path=str(context.pdf_path), pages=parsed_pages)
 
@@ -167,6 +167,7 @@ class StageAParser:
                 images,
             )
             tables.update(batch_tables.tables)
+            self._release_batch(images)
 
         return TableParseResult(pdf_path=str(context.pdf_path), tables=tables)
 
@@ -698,7 +699,7 @@ class StageAParser:
                 expanded_blocks.append(block)
                 continue
 
-            bbox_image = self._clamp_image_bbox(merged_bbox, image_bbox)
+            bbox_image = clamp_bbox(merged_bbox, image_bbox[2], image_bbox[3])
             bbox_pdf = clamp_bbox(
                 image_bbox_to_pdf(
                     bbox_image,
@@ -847,7 +848,7 @@ class StageAParser:
             if line_bbox is None or is_degenerate(line_bbox):
                 continue
 
-            bbox_image = self._clamp_image_bbox(line_bbox, image_bbox)
+            bbox_image = clamp_bbox(line_bbox, image_bbox[2], image_bbox[3])
             bbox_pdf = clamp_bbox(
                 image_bbox_to_pdf(
                     bbox_image,
@@ -887,13 +888,6 @@ class StageAParser:
             )
 
         return line_blocks
-
-    def _clamp_image_bbox(
-        self,
-        bbox: list[float],
-        image_bbox: list[float],
-    ) -> list[float]:
-        return clamp_bbox(bbox, image_bbox[2], image_bbox[3])
 
     def _create_orphan_element_from_line(
         self,

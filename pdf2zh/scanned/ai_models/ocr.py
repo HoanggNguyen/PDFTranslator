@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Tuple
 
 from PIL import Image
@@ -41,33 +40,10 @@ class SuryaOCRModel(BaseImageToTextModel):
         from surya.foundation import FoundationPredictor
         from surya.recognition import RecognitionPredictor
 
-        detection_model_path = "pdf2zh/scanned/model_path/text_detection"
-        recognition_model_path = "pdf2zh/scanned/model_path/text_recognition"
-
-        if not os.path.exists(detection_model_path):
-            logger.error(
-                "Detection model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
-                detection_model_path,
-            )
-            raise FileNotFoundError(
-                f"Detection model checkpoint not found at {detection_model_path}"
-            )
-
-        if not os.path.exists(recognition_model_path):
-            logger.error(
-                "Recognition model checkpoint not found at %s. Please ensure the checkpoint is placed correctly.",
-                recognition_model_path,
-            )
-            raise FileNotFoundError(
-                f"Recognition model checkpoint not found at {recognition_model_path}"
-            )
-
-        self.foundation_predictor = FoundationPredictor(
-            checkpoint=recognition_model_path
-        )
+        self.foundation_predictor = FoundationPredictor()
         logger.info("Loaded FoundationPredictor (OCR backbone)")
 
-        self.detection_predictor = DetectionPredictor(checkpoint=detection_model_path)
+        self.detection_predictor = DetectionPredictor()
         logger.info("Loaded DetectionPredictor")
 
         self.recognition_predictor = RecognitionPredictor(self.foundation_predictor)
