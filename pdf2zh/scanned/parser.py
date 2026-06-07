@@ -270,7 +270,6 @@ class StageAParser:
                 cells: list[CellData] = []
 
                 if block.category == ElementCategory.BYPASS:
-                    font_size = 0.0
                     pass
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
@@ -331,7 +330,6 @@ class StageAParser:
                                     bbox_pdf=cell_bbox_pdf,
                                     source_text=cell_text,
                                     translated_text="",
-                                    cell_font_size=fallback_font_size,
                                 )
                             )
                             source_parts.append(cell_text)
@@ -396,7 +394,6 @@ class StageAParser:
                         source_text=source_text,
                         translated_text="",
                         cells=cells,
-                        font_size=font_size,
                     )
                 )
 

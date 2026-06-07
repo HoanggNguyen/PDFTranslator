@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
-from statistics import median
 from typing import Any
 
 from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
