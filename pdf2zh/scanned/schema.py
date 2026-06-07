@@ -220,7 +220,6 @@ def validate_stage_output(
         3. Element bboxes fit within [0, 0, page_width, page_height]
         4. category == "BYPASS" -> source_text == ""
         5. category == "EQUATION" -> source_text may contain surrounding text
-           that needs translation; equation_words stores word-level OCR boxes
         6. category == "TABLE" -> len(cells) > 0
         7. category != "TABLE" -> cells == []
         8. Cell bboxes contained within parent TABLE bbox
@@ -305,7 +304,6 @@ def validate_stage_output(
             category = elem.get("category", "")
             source_text = elem.get("source_text", "")
             cells = elem.get("cells", [])
-            equation_words = elem.get("equation_words", [])
 
             # Invariant 4: BYPASS -> source_text == ""
             if category == "BYPASS" and source_text != "":
@@ -314,49 +312,6 @@ def validate_stage_output(
                     "source_text must be '' for BYPASS category",
                     "BYPASS_TEXT",
                 )
-
-            # Invariant 5: EQUATION may have source_text and word-level OCR boxes.
-            if category == "EQUATION":
-                if not isinstance(equation_words, list):
-                    result.add_error(
-                        f"{elem_path}.equation_words",
-                        "equation_words must be a list",
-                        "EQUATION_WORDS_FORMAT",
-                    )
-                else:
-                    for word_idx, word in enumerate(equation_words):
-                        word_path = f"{elem_path}.equation_words[{word_idx}]"
-                        if not isinstance(word, dict):
-                            result.add_error(
-                                word_path,
-                                "equation_words entries must be objects",
-                                "EQUATION_WORD_FORMAT",
-                            )
-                            continue
-
-                        text = word.get("text", "")
-                        if not isinstance(text, str):
-                            result.add_error(
-                                f"{word_path}.text",
-                                "equation_words.text must be a string",
-                                "EQUATION_WORD_TEXT",
-                            )
-
-                        bbox_pdf = word.get("bbox_pdf", [])
-                        if _check_bbox_valid(bbox_pdf, f"{word_path}.bbox_pdf", result):
-                            _check_bbox_within_page(
-                                bbox_pdf,
-                                page_width,
-                                page_height,
-                                f"{word_path}.bbox_pdf",
-                                result,
-                            )
-
-                        _check_bbox_valid(
-                            word.get("bbox_image", []),
-                            f"{word_path}.bbox_image",
-                            result,
-                        )
 
             # Invariant 6: TABLE -> len(cells) > 0
             if category == "TABLE" and len(cells) == 0:
