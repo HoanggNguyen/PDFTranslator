@@ -1,3 +1,10 @@
+# Only the OCR libs whose APIs the code calls directly are pinned:
+#   - surya-ocr 0.17.1 : 0.18+ dropped settings.*_BATCH_SIZE used by hardware.py
+#   - paddleocr 3.6.0  : matches the working local env
+# torch / numpy / paddlepaddle-gpu are left to pip so it resolves a mutually
+# compatible CUDA stack (pinning torch==2.10.0 forced CUDA 12.9 and clashed with
+# paddlepaddle-gpu's CUDA 13). GPU is kept via paddlepaddle-gpu (cu130).
+
 # ── Core PDF processing ──────────────────────────────────────────────────────
 pymupdf<1.25.3
 pdfminer.six==20250416
@@ -13,7 +20,7 @@ ollama
 xinference-client
 
 # ── OCR / Scanned PDF (surya pipeline) ───────────────────────────────────────
-surya-ocr
+surya-ocr==0.17.1
 transformers<=4.56.1
 torch
 torchvision
@@ -21,12 +28,11 @@ opencv-python-headless
 pillow
 numpy
 
-# ── Table recognition ───────────────────────────────────────
+# ── Table recognition (GPU paddle) ────────────────────────────────────────────
 --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu130/
 paddlepaddle-gpu==3.3.1
-paddleocr
+paddleocr==3.6.0
 langchain-community
-
 
 # ── Layout & document parsing ─────────────────────────────────────────────────
 babeldoc>=0.1.22,<0.3.0
@@ -48,17 +54,3 @@ tqdm
 tenacity
 huggingface_hub
 python-dotenv
-
-# ── Optional: Backend (flask/celery) ─────────────────────────────────────────
-# flask
-# celery
-# redis
-
-# ── Optional: MCP ─────────────────────────────────────────────────────────────
-# mcp>=1.6.0
-
-# ── Dev / Testing ─────────────────────────────────────────────────────────────
-pytest
-pytest-cov
-pre-commit
-ruff

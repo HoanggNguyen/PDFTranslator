@@ -43,3 +43,4 @@ claude
 # File
 output.json
 *.pdf
+test_local/
