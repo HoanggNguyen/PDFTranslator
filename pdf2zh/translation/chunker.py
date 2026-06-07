@@ -22,7 +22,11 @@ def collect_translatables(doc: dict) -> list[Task]:
             # TABLE with cells: translate each cell individually; skip elem.source_text
             # (which is just " | ".join(cells) — translating both wastes API calls).
             is_table_with_cells = category == "TABLE" and cells
-            if not is_table_with_cells and not is_equation_with_lines and category != "EQUATION":
+            if (
+                not is_table_with_cells
+                and not is_equation_with_lines
+                and category != "EQUATION"
+            ):
                 src = elem.get("source_text", "")
                 if src and category != "BYPASS" and not is_equation_only(src):
                     tasks.append(Task(elem, "translated_text", src, str(idx)))

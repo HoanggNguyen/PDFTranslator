@@ -352,7 +352,9 @@ def build_typst_source(
             if e.get("category") in ("FLOWING_TEXT", "IN_PLACE")
             and f"p{page_idx}:e{i}" in sizes
         ]
-        page_text_size = _median(_text_sizes) if _text_sizes else cfg.sizing.fallback_size
+        page_text_size = (
+            _median(_text_sizes) if _text_sizes else cfg.sizing.fallback_size
+        )
 
         for elem_idx, elem in enumerate(elems):
             category = elem.get("category", "")
@@ -393,7 +395,9 @@ def build_typst_source(
                         line_tc = text_colors.get(line_uid, tc)
                         line_size = sizes.get(line_uid, font_size)
                         n_chars = max(1, len(line_translated.strip()))
-                        lx1 = lx0 + n_chars * page_text_size * cfg.sizing.char_width_ratio
+                        lx1 = (
+                            lx0 + n_chars * page_text_size * cfg.sizing.char_width_ratio
+                        )
                         line_markdown = to_typst_markup(line_translated)
                         is_single_line = (ly1 - ly0) < line_size * 1.8
                         exp_w = (pw - lx0) if is_single_line else None

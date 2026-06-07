@@ -35,7 +35,9 @@ def _autofit(text: str, bbox_w: float, bbox_h: float, cfg: SizingConfig) -> floa
     return min(lo, bbox_h * cfg.cap_height_ratio)
 
 
-def _estimate_height(text: str, bbox_w: float, font_size: float, cfg: SizingConfig) -> float:
+def _estimate_height(
+    text: str, bbox_w: float, font_size: float, cfg: SizingConfig
+) -> float:
     """Estimate rendered height of text at font_size in a bbox_w-wide column."""
     n = max(1, len(_TAG_RE.sub("", text).strip()))
     chars_per_line = max(1.0, bbox_w / (font_size * cfg.char_width_ratio))
@@ -220,10 +222,11 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     bbox = meta.get("bbox", [0, 0, 10, 10])
                     translated = meta.get("translated", "")
                     others = [
-                        b for b in page_all_bboxes.get(page_idx, [])
-                        if b is not bbox
+                        b for b in page_all_bboxes.get(page_idx, []) if b is not bbox
                     ]
-                    if _overflow_collides(bbox, translated, source_canonical, cfg, others):
+                    if _overflow_collides(
+                        bbox, translated, source_canonical, cfg, others
+                    ):
                         result[uid] = max(floor, min(source_canonical, t_ceiling))
                     else:
                         result[uid] = source_canonical

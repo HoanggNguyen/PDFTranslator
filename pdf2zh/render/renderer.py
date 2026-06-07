@@ -184,15 +184,11 @@ def _redact_text_layer(
                             fill=[c / 255 for c in fill],
                         )
                         had_annot = True
-                elif (
-                    category == "EQUATION" and elem.get("equation_words")
-                ):
+                elif category == "EQUATION" and elem.get("equation_words"):
                     # Per-line redact: only erase text fragments that have a
                     # translation; leave formula regions of the original text
                     # layer intact.
-                    for line_idx, line in enumerate(
-                        elem.get("equation_words") or []
-                    ):
+                    for line_idx, line in enumerate(elem.get("equation_words") or []):
                         if not line.get("translated_text"):
                             continue
                         line_uid = f"{uid}:l{line_idx}"
@@ -284,9 +280,7 @@ def _sample_colors(
                         text_colors[cell_uid] = tc
                         stats["bg_samples"] += 1
                 elif category == "EQUATION" and elem.get("equation_words"):
-                    for line_idx, line in enumerate(
-                        elem.get("equation_words") or []
-                    ):
+                    for line_idx, line in enumerate(elem.get("equation_words") or []):
                         line_uid = f"{uid}:l{line_idx}"
                         lbbox = line.get("bbox_pdf", bbox)
                         bg = prepare_cover(page, lbbox, pw, ph, cfg.background)
