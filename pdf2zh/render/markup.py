@@ -52,17 +52,30 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     if not text:
         return ""
 
-    # 1. Display math: equation elements wrap in $$...$$; others strip tag only.
-    if is_equation:
-        result = _MATH_DISPLAY.sub(lambda m: f"$${m.group(1).strip()}$$", text)
-    else:
-        result = _MATH_DISPLAY.sub(lambda m: m.group(1).strip(), text)
+    # If not in equation mode, escape literal dollar signs that are outside of <math> tags
+    if not is_equation:
+        _MATH_TAG = re.compile(r"<math\b[^>]*>.*?</math>", re.DOTALL | re.IGNORECASE)
+        math_blocks = []
 
-    # 2. Inline math: same strategy.
-    if is_equation:
-        result = _MATH_INLINE.sub(lambda m: f"${m.group(1).strip()}$", result)
+        def _stash_math(m: re.Match) -> str:
+            math_blocks.append(m.group(0))
+            return f"\x02MATH{len(math_blocks) - 1}\x03"
+
+        result = _MATH_TAG.sub(_stash_math, text)
+        result = result.replace("$", "\\$")
+        result = re.sub(
+            r"\x02MATH(\d+)\x03",
+            lambda m: math_blocks[int(m.group(1))],
+            result,
+        )
     else:
-        result = _MATH_INLINE.sub(lambda m: m.group(1).strip(), result)
+        result = text
+
+    # 1. Display math → $$ ... $$ (double-dollar block math for mitex)
+    result = _MATH_DISPLAY.sub(lambda m: f"$${m.group(1).strip()}$$", result)
+
+    # 2. Inline math → $ ... $
+    result = _MATH_INLINE.sub(lambda m: f"${m.group(1).strip()}$", result)
 
     # 3. Bold / italic
     result = _BOLD.sub(lambda m: f"**{m.group(1)}**", result)
@@ -87,11 +100,7 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     result = result.replace("\x00LT\x00", "\\<").replace("\x00GT\x00", "\\>")
 
     # 8. Escape Typst-special chars in plain text segments (outside $...$)
-    result = _escape_typst_outside_math(result)
-
-    # 9. For non-equation: escape any remaining $ so cmarker never treats them as math.
-    if not is_equation:
-        result = re.sub(r"(?<!\\)\$", r"\\$", result)
+    result = _escape_typst_outside_math(result, clean_math=False)
 
     return result
 
@@ -145,13 +154,16 @@ def _wrap_bare_latex(text: str) -> str:
     return "".join(out)
 
 
-def _escape_typst_outside_math(text: str) -> str:
-    """Escape # and @ outside math delimiters; clean up LaTeX inside math."""
+def _escape_typst_outside_math(text: str, *, clean_math: bool = False) -> str:
+    """Escape # and @ outside math delimiters; clean up LaTeX inside math if clean_math is True."""
     parts = _split_math(text)
     out = []
     for kind, chunk in parts:
         if kind == "math":
-            out.append(_clean_math_chunk(chunk))
+            if clean_math:
+                out.append(_clean_math_chunk(chunk))
+            else:
+                out.append(chunk)
         else:
             chunk = chunk.replace("#", "\\#").replace("@", "\\@")
             out.append(chunk)
@@ -577,7 +589,7 @@ def to_typst_native(text: str) -> str:
     result = _strip_tags_outside_math(result)
 
     # 4. Escape Typst-special chars in user content (outside math)
-    result = _escape_typst_outside_math(result)
+    result = _escape_typst_outside_math(result, clean_math=True)
 
     # 5. Restore # for our generated function calls
     result = result.replace(PH, "#")

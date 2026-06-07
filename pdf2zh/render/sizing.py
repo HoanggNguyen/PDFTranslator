@@ -132,8 +132,11 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                 w = max(1.0, bbox[2] - bbox[0])
                 h = max(1.0, bbox[3] - bbox[1])
 
+                pdf_fs = float(elem.get("font_size") or 0.0)
                 src_fs = (
-                    _autofit(source, w, h, cfg) if source.strip() else cfg.fallback_size
+                    _autofit(source, w, h, cfg)
+                    if source.strip()
+                    else (pdf_fs if pdf_fs > 0 else cfg.fallback_size)
                 )
                 # <typst> blocks contain grid layout syntax — their char count is
                 # meaningless for autofit. Let Typst engine determine the size.
@@ -167,10 +170,11 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     cw = max(1.0, cbbox[2] - cbbox[0])
                     ch = max(1.0, cbbox[3] - cbbox[1])
 
+                    pdf_cs = float(cell.get("cell_font_size") or 0.0)
                     src_cs = (
                         _autofit(cell_source, cw, ch, cfg)
                         if cell_source.strip()
-                        else cfg.fallback_size
+                        else (pdf_cs if pdf_cs > 0 else cfg.fallback_size)
                     )
                     t_cs = (
                         _autofit(cell_translated, cw, ch, cfg)
@@ -194,6 +198,12 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
             continue
 
         clusters = _greedy_cluster([(s, uid) for uid, s in valid], cfg.cluster_eps_pt)
+        uid_to_canonical: dict[str, float] = {}
+        for cluster in clusters:
+            cluster_canonical = _median([s for s, _ in cluster])
+            for _, uid in cluster:
+                uid_to_canonical[uid] = cluster_canonical
+
         best_cluster = max(clusters, key=lambda c: (len(c), _median([s for s, _ in c])))
         source_canonical = _median([s for s, _ in best_cluster])
 
@@ -206,14 +216,15 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
             for uid, _ in items:
                 result[uid] = canonical
         else:
-            # Non-table: use source_canonical for all elements (most popular size).
+            # Non-table: use cluster's canonical size for each element.
             # Only reduce for elements whose overflow would collide with another element.
             floor = fallback
             for uid, _ in items:
+                elem_canonical = uid_to_canonical.get(uid, fallback)
                 t_ceiling = translated_ceiling.get(uid, fallback)
-                if t_ceiling >= source_canonical:
-                    # Translated text fits at source_canonical — no overflow.
-                    result[uid] = source_canonical
+                if t_ceiling >= elem_canonical:
+                    # Translated text fits at elem_canonical — no overflow.
+                    result[uid] = elem_canonical
                 else:
                     # Translated text overflows. Allow it only if the overflow
                     # region doesn't collide with any other element on the page.
@@ -225,11 +236,11 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                         b for b in page_all_bboxes.get(page_idx, []) if b is not bbox
                     ]
                     if _overflow_collides(
-                        bbox, translated, source_canonical, cfg, others
+                        bbox, translated, elem_canonical, cfg, others
                     ):
-                        result[uid] = max(floor, min(source_canonical, t_ceiling))
+                        result[uid] = max(floor, min(elem_canonical, t_ceiling))
                     else:
-                        result[uid] = source_canonical
+                        result[uid] = elem_canonical
 
     return result
 

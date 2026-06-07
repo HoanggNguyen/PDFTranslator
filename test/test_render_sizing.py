@@ -199,6 +199,7 @@ class TestAssignRenderSizes:
             ]
         )
         cfg = self._cfg()
+        cfg.cluster_groups["body"].append("Equation")
         sizes = assign_render_sizes(doc, cfg)
         # Both in "body" group → should cluster together (within eps)
         assert sizes["p0:e0"] == sizes["p0:e1"]
