@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from statistics import median as _median
 
 from .background import RGB
 from .config import RenderConfig, StyleSpec
@@ -10,6 +9,7 @@ from .markup import (
     _split_math_vars,
     escape_typst_string,
     has_bare_latex,
+    has_malformed_typst_math,
     has_unbalanced_math_tags,
     is_pure_math_text,
     parse_toc_entries,
@@ -18,6 +18,37 @@ from .markup import (
 )
 
 CMARKER_VERSION = "0.1.8"
+
+_DISPLAY_MATH_RE = re.compile(r'<math\s+display=["\']block["\'][^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE)
+_ANY_MATH_RE = re.compile(r'<math[^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE)
+_PROSE_WORDS = frozenset(('if', 'where', 'when', 'then', 'and', 'or', 'so', 'but', 'let', 'for'))
+
+
+def _try_label_formula_grid(translated: str, x0: float, y0: float, x1: float, y1: float) -> str | None:
+    """Convert 'Label <math display="block">...</math> ...' to a columns:1 grid.
+
+    Only applies for portrait bboxes (height >= width) where the text before
+    the first <math> tag is a short noun label (not a prose sentence).
+    Returns the converted <typst>...</typst> string, or None if pattern doesn't match.
+    """
+    if (x1 - x0) >= (y1 - y0):  # landscape — skip
+        return None
+    if not _DISPLAY_MATH_RE.search(translated):
+        return None
+    first_math = re.search(r'<math', translated, re.IGNORECASE)
+    if not first_math:
+        return None
+    label = translated[:first_math.start()].strip()
+    if not label or len(label) > 60:
+        return None
+    if any(w in label.lower().split() for w in _PROSE_WORDS):
+        return None
+    formulas = [m.group(1).strip() for m in _ANY_MATH_RE.finditer(translated)]
+    if not formulas:
+        return None
+    label_esc = escape_typst_string(label)
+    cells = [f'[{label_esc}]'] + [f'[${_split_math_vars(f)}$]' for f in formulas]
+    return f'<typst>#grid(columns: 1, row-gutter: 4pt, {", ".join(cells)})</typst>'
 MITEX_VERSION = "0.2.6"
 
 # Detects legacy LaTeX inside <math> tags (backslash commands like \frac, \sum)
@@ -210,7 +241,12 @@ def _text_block(
         f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
         f' weight: "{weight}", style: "{style_}")'
     )
-    content = f"align(bottom + left, {fit_call})" if valign == "bottom" else fit_call
+    if valign == "bottom":
+        content = f"align(bottom + left, {fit_call})"
+    elif valign == "center":
+        content = f"align(center + horizon, {fit_call})"
+    else:
+        content = fit_call
     return (
         f'#let {var}_md = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
@@ -236,19 +272,29 @@ def _text_block_typst(
     font_family: str,
     no_wrap: bool = False,
     expanded_w: float | None = None,
+    valign: str = "top",
 ) -> str:
     w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
     h = max(4.0, y1 - y0)
     effective_min = min(min_font, font_size)
     escaped = escape_typst_string(typst_markup)
     no_wrap_arg = ", no_wrap: true" if no_wrap else ""
+    fit_call = (
+        f"pdftr_fit_typst({var}_tm,"
+        f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
+        f' weight: "{weight}", style: "{style_}"{no_wrap_arg})'
+    )
+    if valign == "center":
+        content = f"align(center + horizon, {fit_call})"
+    elif valign == "bottom":
+        content = f"align(bottom + left, {fit_call})"
+    else:
+        content = fit_call
     return (
         f'#let {var}_tm = "{escaped}"\n'
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
         f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
-        f"  pdftr_fit_typst({var}_tm,"
-        f" max_size: {font_size:.2f}pt, min_size: {effective_min:.2f}pt,"
-        f' weight: "{weight}", style: "{style_}"{no_wrap_arg})\n'
+        f"  {content}\n"
         f"}}]\n"
         f"#context {{ place(top + left, dx: {x0:.2f}pt, dy: {y0:.2f}pt, {var}_body) }}\n"
     )
@@ -346,15 +392,6 @@ def build_typst_source(
         lines.append(f"#metadata(none)<pdftr-page-{page_idx + 1}>")
 
         elems = page.get("elements", [])
-        _text_sizes = [
-            sizes[f"p{page_idx}:e{i}"]
-            for i, e in enumerate(elems)
-            if e.get("category") in ("FLOWING_TEXT", "IN_PLACE")
-            and f"p{page_idx}:e{i}" in sizes
-        ]
-        page_text_size = (
-            _median(_text_sizes) if _text_sizes else cfg.sizing.fallback_size
-        )
 
         for elem_idx, elem in enumerate(elems):
             category = elem.get("category", "")
@@ -379,65 +416,31 @@ def build_typst_source(
             font_size = sizes.get(uid, cfg.sizing.fallback_size)
 
             if category == "EQUATION":
-                # Per-line mode: equation has text fragments with their own
-                # bboxes. Replace each fragment in place and leave the math
-                # regions untouched (no full-equation cover/overlay).
-                text_lines = elem.get("equation_words") or []
-                if text_lines:
-                    for line_idx, line in enumerate(text_lines):
-                        line_translated = line.get("translated_text") or ""
-                        if not line_translated:
-                            continue
-                        line_uid = f"{uid}:l{line_idx}"
-                        line_var = f"{var}_l{line_idx}"
-                        lbbox = line.get("bbox_pdf", bbox)
-                        lx0, ly0, lx1, ly1 = lbbox
-                        line_tc = text_colors.get(line_uid, tc)
-                        line_size = sizes.get(line_uid, font_size)
-                        n_chars = max(1, len(line_translated.strip()))
-                        lx1 = (
-                            lx0 + n_chars * page_text_size * cfg.sizing.char_width_ratio
-                        )
-                        line_markdown = to_typst_markup(line_translated)
-                        is_single_line = (ly1 - ly0) < line_size * 1.8
-                        exp_w = (pw - lx0) if is_single_line else None
-                        lines.append(
-                            _text_block(
-                                line_var,
-                                lx0,
-                                ly0,
-                                lx1,
-                                ly1,
-                                line_markdown,
-                                line_size,
-                                cfg.min_font_size_pt,
-                                style.weight,
-                                style.style_,
-                                line_tc,
-                                cfg.font_family,
-                                expanded_w=exp_w,
-                                valign="bottom",
-                            )
-                        )
-                    continue
-
                 translated = elem.get("translated_text") or ""
                 source = elem.get("source_text") or ""
                 if not translated or translated == source:
                     continue
-                # Pure math / malformed LLM / bare LaTeX outside tags →
-                # preserve original PDF text layer (don't erase, don't overlay).
+                # Malformed / bare-LaTeX output → preserve original text layer.
+                # For EQUATION, skip is_pure_math_text: translated_text is intentionally
+                # Typst math markup and should be rendered even if it has no prose.
                 if (
-                    is_pure_math_text(translated)
-                    or has_unbalanced_math_tags(translated)
+                    has_unbalanced_math_tags(translated)
                     or has_bare_latex(translated)
+                    or has_malformed_typst_math(translated)
                 ):
+                    continue
+                if category != "EQUATION" and is_pure_math_text(translated):
                     continue
                 lines.append(
                     _cover_rect(
                         var, x0, y0, x1, y1, bg, cfg.background.eraser_padding_pt
                     )
                 )
+                # EQUATION elements that reach here always contain prose mixed
+                # with math (pure-math equations have no translated_text and are
+                # skipped above). Fractions make the bbox taller than the actual
+                # text size, so use the cluster font_size, not y1 - y0.
+                eq_max_size = font_size
                 if "<math" in translated or "<typst" in translated:
                     typst_markup = to_typst_native(translated)
                     lines.append(
@@ -448,12 +451,13 @@ def build_typst_source(
                             x1,
                             y1,
                             typst_markup,
-                            font_size,
+                            eq_max_size,
                             cfg.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
                             cfg.font_family,
+                            valign="center",
                         )
                     )
                 else:
@@ -466,12 +470,13 @@ def build_typst_source(
                             x1,
                             y1,
                             markdown,
-                            font_size,
+                            eq_max_size,
                             cfg.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
                             cfg.font_family,
+                            valign="center",
                         )
                     )
 
@@ -532,6 +537,7 @@ def build_typst_source(
                     is_pure_math_text(translated)
                     or has_unbalanced_math_tags(translated)
                     or has_bare_latex(translated)
+                    or has_malformed_typst_math(translated)
                 ):
                     continue
 
@@ -558,6 +564,9 @@ def build_typst_source(
                         )
                     )
                 elif "<typst" in translated or "<math" in translated:
+                    grid = _try_label_formula_grid(translated, x0, y0, x1, y1)
+                    if grid:
+                        translated = grid
                     typst_markup = to_typst_native(translated)
                     is_single_line = (y1 - y0) < font_size * 1.8
                     # Single-line: expand block width to available horizontal

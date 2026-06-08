@@ -286,6 +286,33 @@ def has_unbalanced_math_tags(text: str) -> bool:
     return False
 
 
+# frac() with empty second arg: frac(x, ) — Typst math crash
+_EMPTY_FRAC_RE = re.compile(r"frac\([^)]*,\s*\)")
+
+# Letter-digit-letter inside math regions — unknown variable in Typst (e.g. t2c).
+# Signals garbled LLM output (e.g. \cdot2\cdot converted incorrectly).
+_MATH_REGION = re.compile(
+    r"\$([^$]+)\$|<math\b[^>]*>(.*?)</math>", re.DOTALL | re.IGNORECASE
+)
+_ALPHA_DIGIT_ALPHA = re.compile(r"[a-zA-Z][0-9][a-zA-Z]")
+
+
+def has_malformed_typst_math(text: str) -> bool:
+    """True if text contains Typst math constructs that will cause a compile error.
+
+    Detects:
+    - frac() with empty denominator: frac(x, )
+    - letter-digit-letter identifiers inside math regions: t2c (garbled LLM output)
+    """
+    if _EMPTY_FRAC_RE.search(text):
+        return True
+    for m in _MATH_REGION.finditer(text):
+        content = m.group(1) or m.group(2) or ""
+        if _ALPHA_DIGIT_ALPHA.search(content):
+            return True
+    return False
+
+
 def has_bare_latex(text: str) -> bool:
     """True if text contains LaTeX \\X commands OUTSIDE <math>/<typst>/$...$ regions.
 
@@ -449,6 +476,39 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "bb",
     "cal",
     "frak",
+    # Operator words used in dotted Typst identifiers (plus.minus, minus.plus, etc.)
+    # Must be kept intact so the dot-notation survives _split_math_vars.
+    "plus",
+    "minus",
+    "times",
+    "div",
+    "arrow",
+    "tilde",
+    "hat",
+    "grave",
+    "acute",
+    "breve",
+    "caron",
+    "diaer",
+    "macron",
+    # Unit names — keep intact; LLM should quote them ("rad", "kg") but if bare,
+    # splitting into letters is worse than leaving as a multi-letter identifier.
+    "rad",
+    "radian",
+    "radians",
+    "rpm",
+    "rps",
+    "kg",
+    "mg",
+    "km",
+    "cm",
+    "mm",
+    "ms",
+    "ns",
+    "hz",
+    "khz",
+    "mhz",
+    "ghz",
     # Relational / logical
     "not",
     "and",
@@ -494,6 +554,7 @@ _IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
+    "cdot": "dot.op",
     "cdots": "dots.c",
     "ldots": "dots.b",
     "vdots": "dots.v",

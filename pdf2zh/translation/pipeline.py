@@ -8,6 +8,7 @@ import json_repair
 
 from .chunker import collect_translatables, segments_to_chunks
 from .config import TranslatorConfig, resolve_provider
+from .equation_vision import equation_vision_pass
 from .gateway import Gateway
 from .math_fixer import fix_math_document
 from .models import Task
@@ -202,6 +203,9 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
         "translated": sum(1 for t in tasks if t.id in translations),
     }
     logger.info(f"Token usage stats: {token_stats}")
+
+    if cfg.equation_vision_enabled:
+        equation_vision_pass(doc, cfg)
 
     if cfg.toc_fix_enabled:
         fix_toc_document(doc, cfg)

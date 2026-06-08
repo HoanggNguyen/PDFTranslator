@@ -9,7 +9,7 @@ import fitz
 from .background import RGB, prepare_cover, sample_text_color
 from .compiler import compile_typst
 from .config import RenderConfig
-from .markup import has_bare_latex, has_unbalanced_math_tags, is_pure_math_text
+from .markup import has_bare_latex, has_malformed_typst_math, has_unbalanced_math_tags, is_pure_math_text
 from .overlay import composite_overlay
 from .sizing import assign_render_sizes
 from .source_builder import build_typst_source
@@ -68,12 +68,6 @@ def render_document(
                 for cell in elem.get("cells", []):
                     if cell.get("translated_text"):
                         stats["cells_rendered"] += 1
-                    else:
-                        stats["elements_skipped"] += 1
-            elif category == "EQUATION" and elem.get("equation_words"):
-                for line in elem.get("equation_words") or []:
-                    if line.get("translated_text"):
-                        stats["elements_rendered"] += 1
                     else:
                         stats["elements_skipped"] += 1
             else:
@@ -184,23 +178,6 @@ def _redact_text_layer(
                             fill=[c / 255 for c in fill],
                         )
                         had_annot = True
-                elif category == "EQUATION" and elem.get("equation_words"):
-                    # Per-line redact: only erase text fragments that have a
-                    # translation; leave formula regions of the original text
-                    # layer intact.
-                    for line_idx, line in enumerate(elem.get("equation_words") or []):
-                        if not line.get("translated_text"):
-                            continue
-                        line_uid = f"{uid}:l{line_idx}"
-                        lx0, ly0, lx1, ly1 = line.get(
-                            "bbox_pdf", elem.get("bbox_pdf", [0, 0, 10, 10])
-                        )
-                        fill = bg_colors.get(line_uid, (255, 255, 255))
-                        page.add_redact_annot(
-                            fitz.Rect(lx0 - pad, ly0 - pad, lx1 + pad, ly1 + pad),
-                            fill=[c / 255 for c in fill],
-                        )
-                        had_annot = True
                 else:
                     translated = elem.get("translated_text") or ""
                     source = elem.get("source_text") or ""
@@ -212,6 +189,7 @@ def _redact_text_layer(
                         is_pure_math_text(translated)
                         or has_unbalanced_math_tags(translated)
                         or has_bare_latex(translated)
+                        or has_malformed_typst_math(translated)
                     ):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
@@ -278,17 +256,6 @@ def _sample_colors(
                             page, cbbox, pw, ph, bg.rgb, cfg.text_color
                         )
                         text_colors[cell_uid] = tc
-                        stats["bg_samples"] += 1
-                elif category == "EQUATION" and elem.get("equation_words"):
-                    for line_idx, line in enumerate(elem.get("equation_words") or []):
-                        line_uid = f"{uid}:l{line_idx}"
-                        lbbox = line.get("bbox_pdf", bbox)
-                        bg = prepare_cover(page, lbbox, pw, ph, cfg.background)
-                        bg_colors[line_uid] = bg.rgb
-                        tc = sample_text_color(
-                            page, lbbox, pw, ph, bg.rgb, cfg.text_color
-                        )
-                        text_colors[line_uid] = tc
                         stats["bg_samples"] += 1
                 else:
                     bg = prepare_cover(page, bbox, pw, ph, cfg.background)

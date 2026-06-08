@@ -29,7 +29,7 @@ class SuryaOCRModel(BaseImageToTextModel):
         from surya.settings import settings
 
         settings.DETECTOR_BLANK_THRESHOLD = 0.5
-        settings.DETECTOR_TEXT_THRESHOLD = 0.7
+        settings.DETECTOR_TEXT_THRESHOLD = 0.6
 
     def load_model(self) -> None:
         logger.info(
