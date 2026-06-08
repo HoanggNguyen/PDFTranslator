@@ -42,7 +42,9 @@ Given a cropped image of an equation/formula region from a PDF page:
 """
 
 
-def _crop_bbox_image(pdf_path: str, page_idx: int, bbox_pdf: list, dpi: int = 150) -> str:
+def _crop_bbox_image(
+    pdf_path: str, page_idx: int, bbox_pdf: list, dpi: int = 150
+) -> str:
     """Crop bbox from a PDF page and return base64 PNG."""
     doc = fitz.open(pdf_path)
     try:
@@ -81,10 +83,13 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
     system = _VISION_SYSTEM.format(target_language=cfg.target_language)
 
     async with Gateway(cfg) as gw:
+
         async def _process(page_idx: int, elem: dict) -> None:
             try:
                 img = _crop_bbox_image(pdf_path, page_idx, elem["bbox_pdf"])
-                result = await gw.call_vision(system, "Translate this equation region:", img)
+                result = await gw.call_vision(
+                    system, "Translate this equation region:", img
+                )
                 elem["translated_text"] = result
                 logger.debug("equation_vision p%d: %r", page_idx, result[:60])
             except Exception as exc:

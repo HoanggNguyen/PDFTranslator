@@ -19,12 +19,18 @@ from .markup import (
 
 CMARKER_VERSION = "0.1.8"
 
-_DISPLAY_MATH_RE = re.compile(r'<math\s+display=["\']block["\'][^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE)
-_ANY_MATH_RE = re.compile(r'<math[^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE)
-_PROSE_WORDS = frozenset(('if', 'where', 'when', 'then', 'and', 'or', 'so', 'but', 'let', 'for'))
+_DISPLAY_MATH_RE = re.compile(
+    r'<math\s+display=["\']block["\'][^>]*>(.*?)</math>', re.DOTALL | re.IGNORECASE
+)
+_ANY_MATH_RE = re.compile(r"<math[^>]*>(.*?)</math>", re.DOTALL | re.IGNORECASE)
+_PROSE_WORDS = frozenset(
+    ("if", "where", "when", "then", "and", "or", "so", "but", "let", "for")
+)
 
 
-def _try_label_formula_grid(translated: str, x0: float, y0: float, x1: float, y1: float) -> str | None:
+def _try_label_formula_grid(
+    translated: str, x0: float, y0: float, x1: float, y1: float
+) -> str | None:
     """Convert 'Label <math display="block">...</math> ...' to a columns:1 grid.
 
     Only applies for portrait bboxes (height >= width) where the text before
@@ -35,10 +41,10 @@ def _try_label_formula_grid(translated: str, x0: float, y0: float, x1: float, y1
         return None
     if not _DISPLAY_MATH_RE.search(translated):
         return None
-    first_math = re.search(r'<math', translated, re.IGNORECASE)
+    first_math = re.search(r"<math", translated, re.IGNORECASE)
     if not first_math:
         return None
-    label = translated[:first_math.start()].strip()
+    label = translated[: first_math.start()].strip()
     if not label or len(label) > 60:
         return None
     if any(w in label.lower().split() for w in _PROSE_WORDS):
@@ -47,8 +53,10 @@ def _try_label_formula_grid(translated: str, x0: float, y0: float, x1: float, y1
     if not formulas:
         return None
     label_esc = escape_typst_string(label)
-    cells = [f'[{label_esc}]'] + [f'[${_split_math_vars(f)}$]' for f in formulas]
+    cells = [f"[{label_esc}]"] + [f"[${_split_math_vars(f)}$]" for f in formulas]
     return f'<typst>#grid(columns: 1, row-gutter: 4pt, {", ".join(cells)})</typst>'
+
+
 MITEX_VERSION = "0.2.6"
 
 # Detects legacy LaTeX inside <math> tags (backslash commands like \frac, \sum)

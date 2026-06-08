@@ -29,8 +29,8 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
-import sys
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -284,7 +284,8 @@ def run_full_render(args) -> None:
         (
             el["translated_text"]
             for el in parsed["pages"][0]["elements"]
-            if el["translated_text"] and el["translated_text"] != el.get("source_text", "")
+            if el["translated_text"]
+            and el["translated_text"] != el.get("source_text", "")
         ),
         None,
     )
@@ -293,7 +294,9 @@ def run_full_render(args) -> None:
         if snippet and snippet in text0:
             print(f"  translated snippet found in page 0: {snippet!r}")
         else:
-            print(f"  NOTE: snippet not found in page 0 (may be covered by overlay): {snippet!r}")
+            print(
+                f"  NOTE: snippet not found in page 0 (may be covered by overlay): {snippet!r}"
+            )
 
 
 # ---------------------------------------------------------------------------

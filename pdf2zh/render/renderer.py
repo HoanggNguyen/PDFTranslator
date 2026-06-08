@@ -9,7 +9,12 @@ import fitz
 from .background import RGB, prepare_cover, sample_text_color
 from .compiler import compile_typst
 from .config import RenderConfig
-from .markup import has_bare_latex, has_malformed_typst_math, has_unbalanced_math_tags, is_pure_math_text
+from .markup import (
+    has_bare_latex,
+    has_malformed_typst_math,
+    has_unbalanced_math_tags,
+    is_pure_math_text,
+)
 from .overlay import composite_overlay
 from .sizing import assign_render_sizes
 from .source_builder import build_typst_source

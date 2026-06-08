@@ -39,7 +39,7 @@ def build_translation_prompt(
         f"   - Keep the ENTIRE equation in ONE <math> tag. Never split at = or operator.\n"
         f"     WRONG: `<math>binom(n,k)</math> = <math>frac(...)</math>`\n"
         f"     RIGHT: `<math>binom(n,k) = frac(...)</math>`\n"
-        f"   - Drop any display attribute: always write <math>, never <math display=\"block\">.\n"
+        f'   - Drop any display attribute: always write <math>, never <math display="block">.\n'
         f"   If the entry is a short noun label (shape name, object name) followed by one or more <math> blocks\n"
         f"   AND the bbox is portrait (height >= width), output a Typst grid instead:\n"
         f"   Example: 'Cone <math display=\"block\">V = \\frac{{1}}{{3}} \\pi r^2 h</math> <math>A = \\pi r \\sqrt{{r^2+h^2}}</math>'\n"
@@ -152,7 +152,7 @@ def build_math_fix_prompt(
         "## Rule 3 — Use <typst> blocks for grid layouts\n"
         "Default action: keep <math>...</math> tags + plain text as-is. DO NOT wrap simple\n"
         "text+math entries in <typst>. Emit a <typst> block when the entry matches a pattern below.\n"
-        "IMPORTANT: if the entry contains <math display=\"block\"> AND a noun label before it,\n"
+        'IMPORTANT: if the entry contains <math display="block"> AND a noun label before it,\n'
         "always convert to Pattern B grid — do NOT keep the display attribute as-is.\n\n"
         "Inside <typst>...</typst>: NO LaTeX backslash commands, NO escaped slashes.\n"
         "Use Typst syntax only: pi (not \\\\pi), frac(a,b) or a/b (not \\\\frac{}{}), sqrt(x) (not \\\\sqrt{}).\n\n"

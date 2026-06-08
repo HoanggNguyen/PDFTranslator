@@ -18,7 +18,12 @@ def collect_translatables(doc: dict) -> list[Task]:
             if not is_table_with_cells:
                 src = elem.get("source_text", "")
                 # EQUATION source_text is handled by equation_vision_pass, not here.
-                if src and category != "BYPASS" and category != "EQUATION" and not is_equation_only(src):
+                if (
+                    src
+                    and category != "BYPASS"
+                    and category != "EQUATION"
+                    and not is_equation_only(src)
+                ):
                     tasks.append(Task(elem, "translated_text", src, str(idx)))
                     idx += 1
             latex = elem.get("latex", "")
