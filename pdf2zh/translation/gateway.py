@@ -86,6 +86,12 @@ class Gateway:
             await self._rate.acquire()
             return await self._request(system, user, force_json=force_json)
 
+    async def call_vision(self, system: str, prompt: str, image_b64: str) -> str:
+        """Send a vision request with a base64-encoded PNG image."""
+        async with self._sem:
+            await self._rate.acquire()
+            return await self._request_vision(system, prompt, image_b64)
+
     async def _request(
         self,
         system: str,
@@ -153,6 +159,53 @@ class Gateway:
                 return await self._request(
                     system, user, force_json=force_json, retry=retry + 1
                 )
+            raise
+
+    async def _request_vision(
+        self,
+        system: str,
+        prompt: str,
+        image_b64: str,
+        retry: int = 0,
+    ) -> str:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self._cfg.api_key}",
+        }
+        data: dict = {
+            "model": self._cfg.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{image_b64}"},
+                        },
+                    ],
+                },
+            ],
+            "temperature": 0.2,
+        }
+        try:
+            resp = await self._client.post(
+                f"{self._cfg.base_url}/chat/completions",
+                json=data,
+                headers=headers,
+            )
+            resp.raise_for_status()
+            rdata = json.loads(resp.text.lstrip())
+            choices = rdata.get("choices", [])
+            if not choices:
+                raise ValueError("empty choices in vision response")
+            content = choices[0].get("message", {}).get("content", "")
+            return _THINK_RE.sub("", content).strip()
+        except Exception:
+            if retry < self._cfg.retry:
+                await asyncio.sleep(0.5 * (2**retry))
+                return await self._request_vision(system, prompt, image_b64, retry + 1)
             raise
 
     @staticmethod

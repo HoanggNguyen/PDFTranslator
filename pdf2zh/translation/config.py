@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 PROVIDERS: dict[str, dict[str, str]] = {
     "openrouter": {
         "base_url": "https://openrouter.ai/api/v1",
-        "model": "google/gemini-2.5-flash-lite",
+        "model": "google/gemini-3.1-flash-lite",
         "env_var": "OPENROUTER_API_KEY",
     },
     "gemini": {
@@ -39,6 +39,8 @@ class TranslatorConfig:
     glossary_enabled: bool = True
     math_fix_enabled: bool = True
     toc_fix_enabled: bool = True
+    equation_vision_enabled: bool = True
+    table_vision_enabled: bool = True
     length_tolerance: float = 0.15
     timeout: int = 300
     retry: int = 2

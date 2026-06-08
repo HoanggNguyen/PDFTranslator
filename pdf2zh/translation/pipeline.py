@@ -8,6 +8,7 @@ import json_repair
 
 from .chunker import collect_translatables, segments_to_chunks
 from .config import TranslatorConfig, resolve_provider
+from .equation_vision import equation_vision_pass
 from .gateway import Gateway
 from .math_fixer import fix_math_document
 from .models import Task
@@ -16,6 +17,7 @@ from .prompts import (
     build_translation_prompt,
     glossary_block_for_chunk,
 )
+from .table_vision import table_vision_pass
 from .toc_fixer import fix_toc_document
 
 logger = logging.getLogger("json_translator")
@@ -181,6 +183,9 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
 
     resolve_provider(cfg)
 
+    if cfg.table_vision_enabled:
+        table_vision_pass(doc, cfg)
+
     tasks = collect_translatables(doc)
     if not tasks:
         logger.info("No translatable segments found.")
@@ -202,6 +207,9 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
         "translated": sum(1 for t in tasks if t.id in translations),
     }
     logger.info(f"Token usage stats: {token_stats}")
+
+    if cfg.equation_vision_enabled:
+        equation_vision_pass(doc, cfg)
 
     if cfg.toc_fix_enabled:
         fix_toc_document(doc, cfg)
