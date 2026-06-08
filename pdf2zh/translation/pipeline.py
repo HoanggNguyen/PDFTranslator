@@ -17,6 +17,7 @@ from .prompts import (
     build_translation_prompt,
     glossary_block_for_chunk,
 )
+from .table_vision import table_vision_pass
 from .toc_fixer import fix_toc_document
 
 logger = logging.getLogger("json_translator")
@@ -181,6 +182,9 @@ def translate_document(doc: dict, cfg: TranslatorConfig) -> dict:
         )
 
     resolve_provider(cfg)
+
+    if cfg.table_vision_enabled:
+        table_vision_pass(doc, cfg)
 
     tasks = collect_translatables(doc)
     if not tasks:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from .models import Task
-from .predicates import is_equation_only, is_plain_text
+from .predicates import has_prose_for_equation, is_plain_text
 
 
 def collect_translatables(doc: dict) -> list[Task]:
@@ -22,7 +22,7 @@ def collect_translatables(doc: dict) -> list[Task]:
                     src
                     and category != "BYPASS"
                     and category != "EQUATION"
-                    and not is_equation_only(src)
+                    and has_prose_for_equation(src)
                 ):
                     tasks.append(Task(elem, "translated_text", src, str(idx)))
                     idx += 1
@@ -32,7 +32,7 @@ def collect_translatables(doc: dict) -> list[Task]:
                 idx += 1
             for cell in cells:
                 text = cell.get("source_text", "")
-                if text and is_plain_text(text):
+                if text and has_prose_for_equation(text):
                     tasks.append(Task(cell, "translated_text", text, str(idx)))
                     idx += 1
     return tasks

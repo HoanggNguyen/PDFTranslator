@@ -40,6 +40,7 @@ class TranslatorConfig:
     math_fix_enabled: bool = True
     toc_fix_enabled: bool = True
     equation_vision_enabled: bool = True
+    table_vision_enabled: bool = True
     length_tolerance: float = 0.15
     timeout: int = 300
     retry: int = 2
