@@ -62,7 +62,7 @@ def get_parser() -> StageAParser:
     global _parser
     if _parser is None:
         logger.info("Loading StageAParser models (one-time)...")
-        _parser = StageAParser(device="auto", enable_latex=False)
+        _parser = StageAParser(device="auto")
         logger.info("StageAParser ready.")
     return _parser
 
