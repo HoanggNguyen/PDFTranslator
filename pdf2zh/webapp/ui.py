@@ -45,10 +45,10 @@ def _hide(status_msg: str):
     """Hide the modal + preview/download and show a status message (error cases)."""
     return (
         gr.update(visible=False),  # modal
-        gr.update(),               # modal_msg
+        gr.update(),  # modal_msg
         gr.update(visible=False),  # pdf_out
         gr.update(visible=False),  # download
-        status_msg,                # status
+        status_msg,  # status
     )
 
 
@@ -56,11 +56,11 @@ def _result_outputs(result: Result):
     if result.status == "ok":
         # Separate update dicts per component — don't share one mutable dict.
         return (
-            gr.update(visible=False),                          # modal
-            gr.update(),                                       # modal_msg
-            gr.update(value=result.out_path, visible=True),   # pdf_out (preview)
-            gr.update(value=result.out_path, visible=True),   # download
-            "✅ Dịch xong.",                                    # status
+            gr.update(visible=False),  # modal
+            gr.update(),  # modal_msg
+            gr.update(value=result.out_path, visible=True),  # pdf_out (preview)
+            gr.update(value=result.out_path, visible=True),  # download
+            "✅ Dịch xong.",  # status
         )
     if result.status == "invalid":
         return _hide(f"⚠️ {result.detail}")
@@ -135,8 +135,12 @@ def build_ui() -> gr.Blocks:
                 lang_to = gr.Dropdown(
                     SUPPORTED_LANGUAGES, value="Vietnamese", label="Dịch sang"
                 )
-                font = gr.Dropdown(BUNDLED_FONTS, value=DEFAULT_FONT, label="Font đầu ra")
-                page_choice = gr.Radio(list(PAGE_PRESETS), value="All", label="Số trang")
+                font = gr.Dropdown(
+                    BUNDLED_FONTS, value=DEFAULT_FONT, label="Font đầu ra"
+                )
+                page_choice = gr.Radio(
+                    list(PAGE_PRESETS), value="All", label="Số trang"
+                )
                 page_n = gr.Number(
                     value=10, precision=0, label="First N pages", visible=False
                 )

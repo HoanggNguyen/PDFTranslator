@@ -94,7 +94,9 @@ def stream_translation(req: TranslationRequest) -> Iterator[Progress | Result]:
         except Exception as exc:  # noqa: BLE001 — surface anything else to the UI
             logger.exception("pipeline failed")
             tail = "".join(traceback.format_exc().splitlines(keepends=True)[-6:])
-            q.put(Result("error", detail=f"{type(exc).__name__}: {exc}\n```\n{tail}\n```"))
+            q.put(
+                Result("error", detail=f"{type(exc).__name__}: {exc}\n```\n{tail}\n```")
+            )
 
     threading.Thread(target=worker, daemon=True).start()
     while True:
