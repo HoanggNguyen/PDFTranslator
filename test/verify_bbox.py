@@ -44,6 +44,7 @@ CATEGORY_COLORS = {
 }
 
 CELL_COLOR = (0.8, 0.8, 0.0)  # Yellow for table cells
+TEXT_CELL_COLOR = (1.0, 0.0, 1.0)
 
 
 def draw_bbox(
@@ -131,7 +132,8 @@ def verify_pdf(
             # Draw cell bboxes for tables
             if elem.category == ElementCategory.TABLE:
                 for cell in elem.cells:
-                    draw_bbox(page, cell.bbox_pdf, CELL_COLOR, width=1.0)
+                    draw_bbox(page, cell.bbox_pdf, CELL_COLOR, width=1.5)
+                    draw_bbox(page, cell.bbox_text, TEXT_CELL_COLOR, width=1.0)
 
     # Save the annotated PDF
     output_path.parent.mkdir(parents=True, exist_ok=True)
