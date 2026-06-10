@@ -68,8 +68,7 @@
       "type": "object",
       "required": [
         "bbox_pdf",
-        "row_id",
-        "col_id",
+        "bbox_text",
         "source_text",
         "translated_text"
       ],
@@ -78,13 +77,8 @@
         "bbox_pdf": {
           "$ref": "#/$defs/BboxPdf"
         },
-        "row_id": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "col_id": {
-          "type": "integer",
-          "minimum": 0
+        "bbox_text": {
+          "$ref": "#/$defs/BboxPdf"
         },
         "source_text": {
           "type": "string"
@@ -203,26 +197,6 @@
           "additionalProperties": {
             "type": "string"
           }
-        }
-      }
-    },
-    "EquationWordData": {
-      "type": "object",
-      "required": [
-        "text",
-        "bbox_pdf",
-        "bbox_image"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "text": {
-          "type": "string"
-        },
-        "bbox_pdf": {
-          "$ref": "#/$defs/BboxPdf"
-        },
-        "bbox_image": {
-          "$ref": "#/$defs/BboxImage"
         }
       }
     }

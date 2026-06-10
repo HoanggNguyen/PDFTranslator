@@ -54,6 +54,7 @@ from pdf2zh.parser.utils.block import (
 from pdf2zh.parser.utils.hardware import configure_settings
 from pdf2zh.parser.utils.image import crop_image_to_bbox, get_page_dimensions
 from pdf2zh.parser.utils.ocr_text import (
+    adjust_cell_bbox,
     clean_ocr_text,
     extract_text_for_region,
     join_raw_text,
@@ -327,10 +328,14 @@ class StageAParser:
                             matching_cell_lines = extract_text_for_region(
                                 page_ocr.ocr_result, cell_bbox_image
                             )
+                            cell_bbox_text = adjust_cell_bbox(
+                                matching_cell_lines, cell_bbox_pdf, cell_bbox_image
+                            )
                             cell_text = smart_join_text_lines(matching_cell_lines)
                             cells.append(
                                 CellData(
                                     bbox_pdf=cell_bbox_pdf,
+                                    bbox_text=cell_bbox_text,
                                     source_text=cell_text,
                                     translated_text="",
                                 )
@@ -370,6 +375,7 @@ class StageAParser:
                             cells.append(
                                 CellData(
                                     bbox_pdf=orphan_bbox_pdf,
+                                    bbox_text=orphan_bbox_pdf,
                                     source_text=orphan_text,
                                     translated_text="",
                                 )

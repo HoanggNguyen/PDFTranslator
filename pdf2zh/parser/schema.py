@@ -342,16 +342,6 @@ def validate_stage_output(
                 if cell_bbox_valid and bbox_valid:
                     _check_cell_within_table(cell_bbox, bbox, cell_path, result)
 
-                # Check for NaN/Infinity in row_id, col_id
-                for field_name in ["row_id", "col_id"]:
-                    val = cell.get(field_name)
-                    if val is not None and not _is_finite(val):
-                        result.add_error(
-                            f"{cell_path}.{field_name}",
-                            f"{field_name} contains NaN or Infinity",
-                            "INVALID_NUMBER",
-                        )
-
     # Check chapters (for later stages)
     for ch_idx, chapter in enumerate(chapters):
         ch_path = f"chapters[{ch_idx}]"

@@ -33,6 +33,7 @@ class CellData:
     """
 
     bbox_pdf: list[float]
+    bbox_text: list[float]
     source_text: str = ""
     translated_text: str = ""
 
@@ -40,10 +41,11 @@ class CellData:
         """Serialize this cell to a JSON-compatible dictionary.
 
         Returns:
-            Dict with keys ``bbox_pdf``, ``source_text``, and ``translated_text``.
+            Dict with keys ``bbox_pdf``, ``bbox_text``, ``source_text``, and ``translated_text``.
         """
         return {
             "bbox_pdf": self.bbox_pdf,
+            "bbox_text": self.bbox_text,
             "source_text": self.source_text,
             "translated_text": self.translated_text,
         }
@@ -61,6 +63,7 @@ class CellData:
         """
         return cls(
             bbox_pdf=data["bbox_pdf"],
+            bbox_text=data["bbox_text"],
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
         )
