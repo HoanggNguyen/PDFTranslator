@@ -8,8 +8,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from pdf2zh.scanned.ai_models.base import BaseImageToTextModel
-from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection
+from pdf2zh.parser.ai_models.base import BaseImageToTextModel
+from pdf2zh.parser.utils.bbox import bbox_area, bbox_intersection
 
 logger = logging.getLogger(__name__)
 

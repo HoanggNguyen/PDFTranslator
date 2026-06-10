@@ -17,7 +17,7 @@ from typing import Any
 
 from PIL import Image
 
-from pdf2zh.scanned.enums import ElementCategory
+from pdf2zh.parser.enums import ElementCategory
 
 
 @dataclass

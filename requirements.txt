@@ -54,3 +54,4 @@ tqdm
 tenacity
 huggingface_hub
 python-dotenv
+pydantic-settings

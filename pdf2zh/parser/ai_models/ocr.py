@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 from PIL import Image
 
-from pdf2zh.scanned.ai_models.base import BaseImageToTextModel
+from pdf2zh.parser.ai_models.base import BaseImageToTextModel
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +20,17 @@ class SuryaOCRModel(BaseImageToTextModel):
 
     model_name = "SuryaOCR"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        detector_blank_threshold: Optional[float] = None,
+        detector_text_threshold: Optional[float] = None,
+    ) -> None:
         super().__init__()
+        self.detector_blank_threshold = detector_blank_threshold
+        self.detector_text_threshold = detector_text_threshold
         self.foundation_predictor: Any = None
         self.detection_predictor: Any = None
         self.recognition_predictor: Any = None
-
-        from surya.settings import settings
-
-        settings.DETECTOR_BLANK_THRESHOLD = 0.5
-        settings.DETECTOR_TEXT_THRESHOLD = 0.6
 
     def load_model(self) -> None:
         logger.info(
@@ -39,6 +40,13 @@ class SuryaOCRModel(BaseImageToTextModel):
         from surya.detection import DetectionPredictor
         from surya.foundation import FoundationPredictor
         from surya.recognition import RecognitionPredictor
+        from surya.settings import settings
+
+        if self.detector_text_threshold is not None:
+            settings.DETECTOR_TEXT_THRESHOLD = self.detector_text_threshold
+
+        if self.detector_blank_threshold is not None:
+            settings.DETECTOR_BLANK_THRESHOLD = self.detector_blank_threshold
 
         self.foundation_predictor = FoundationPredictor()
         logger.info("Loaded FoundationPredictor (OCR backbone)")

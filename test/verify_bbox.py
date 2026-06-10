@@ -27,9 +27,9 @@ import fitz  # PyMuPDF
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pdf2zh.scanned.enums import ElementCategory
-from pdf2zh.scanned.parser import StageAParser
-from pdf2zh.scanned.schema import validate_stage_output
+from pdf2zh.parser import StageAParser
+from pdf2zh.parser.enums import ElementCategory
+from pdf2zh.parser.schema import validate_stage_output
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)

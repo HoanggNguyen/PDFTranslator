@@ -11,7 +11,7 @@ import re
 import unicodedata
 from typing import Any
 
-from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
+from pdf2zh.parser.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
 
 logger = logging.getLogger(__name__)
 
@@ -329,7 +329,7 @@ def join_raw_text(elements: list[Any]) -> str:
         Single string with element texts joined by ``"\n"``,
         or an empty string if no translatable elements are present.
     """
-    from pdf2zh.scanned.enums import ElementCategory
+    from pdf2zh.parser.enums import ElementCategory
 
     text_parts = []
 
