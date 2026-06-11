@@ -63,6 +63,12 @@ RUN python3 -m pip install --upgrade pip && \
 # needed (and it avoids pulling pyproject's heavier optional deps like babeldoc).
 COPY . .
 
+# ── Seed .env from the tracked template ────────────────────────────────────────
+# .env is gitignored (absent from the image) but Settings reads env_file=".env".
+# Copy it here as root: the Space runs the container as a non-root user that cannot
+# write to /app at runtime, so seeding only in the entrypoint fails with EACCES.
+RUN cp -n .env.example .env 2>/dev/null || true
+
 # ── Pre-cache typst packages (cmarker + mitex) so runtime needs no network ─────────
 RUN mkdir -p /app/.cache/typst && \
     printf '#import "@preview/cmarker:0.1.8"\n#import "@preview/mitex:0.2.6": *\n#cmarker.render("ok")\n' \
@@ -100,11 +106,13 @@ export HF_HOME="$CACHE_ROOT/huggingface"
 export TRANSFORMERS_CACHE="$CACHE_ROOT/huggingface"
 mkdir -p "$MODEL_CACHE_DIR" "$PADDLE_PDX_CACHE_HOME" "$HF_HOME"
 echo "[entrypoint] model cache root = $CACHE_ROOT"
-# Ensure a real .env exists (Settings reads env_file=".env") before the pipeline
-# starts. .env is gitignored, so seed it from the tracked .env.example on first boot.
+# Fallback seed for writable-/app environments (local runs). On the Space /app is
+# read-only at runtime, so .env is already baked at build time; keep this non-fatal
+# (|| true) so a failed copy never aborts the entrypoint under `set -e`.
 if [ ! -f /app/.env ] && [ -f /app/.env.example ]; then
-  cp /app/.env.example /app/.env
-  echo "[entrypoint] seeded /app/.env from .env.example"
+  cp /app/.env.example /app/.env 2>/dev/null \
+    && echo "[entrypoint] seeded /app/.env from .env.example" \
+    || echo "[entrypoint] /app not writable; using build-time .env"
 fi
 exec python3 app.py
 EOF
