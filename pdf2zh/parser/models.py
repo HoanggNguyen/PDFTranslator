@@ -63,7 +63,7 @@ class CellData:
         """
         return cls(
             bbox_pdf=data["bbox_pdf"],
-            bbox_text=data["bbox_text"],
+            bbox_text=data.get("bbox_text", data["bbox_pdf"]),
             source_text=data["source_text"],
             translated_text=data.get("translated_text", ""),
         )

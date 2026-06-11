@@ -201,10 +201,10 @@ def smart_join_text_lines(lines: list[Any]) -> str:
         starts_with_upper = current_text[0].isupper()
         ends_with_hyphen = last_valid_text.endswith("-")
 
-        if not ends_with_punctuation and starts_with_upper:
-            result.append("\n" + current_text)
-        elif ends_with_hyphen:
+        if ends_with_hyphen:
             result.append(current_text)
+        elif not ends_with_punctuation and starts_with_upper:
+            result.append("\n" + current_text)
         else:
             result.append(" " + current_text)
 
