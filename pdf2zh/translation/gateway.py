@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import random
 import re
 from collections import deque
 from threading import Lock
@@ -92,6 +93,19 @@ class Gateway:
             await self._rate.acquire()
             return await self._request_vision(system, prompt, image_b64)
 
+    def _retry_delay(self, retry: int, response: httpx.Response | None = None) -> float:
+        """Seconds to wait before retrying: honor the server's Retry-After header,
+        else capped exponential backoff with jitter (avoids synchronized retries
+        all hammering the API at once and re-triggering 429)."""
+        if response is not None:
+            retry_after = response.headers.get("retry-after")
+            if retry_after:
+                try:
+                    return min(float(retry_after), 60.0)
+                except ValueError:
+                    pass
+        return min(30.0, 2.0**retry) + random.uniform(0, 1)
+
     async def _request(
         self,
         system: str,
@@ -145,17 +159,18 @@ class Gateway:
                 )
             return content
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 429:
-                await asyncio.sleep(5)
-            if retry < self._cfg.retry:
-                await asyncio.sleep(0.5 * (2**retry))
+            status = e.response.status_code
+            # 429 (rate limit) and 5xx are transient — back off and retry. Other
+            # 4xx (401 auth, 400 bad request) are permanent, so fail fast.
+            if (status == 429 or status >= 500) and retry < self._cfg.retry:
+                await asyncio.sleep(self._retry_delay(retry, e.response))
                 return await self._request(
                     system, user, force_json=force_json, retry=retry + 1
                 )
             raise
         except Exception:
             if retry < self._cfg.retry:
-                await asyncio.sleep(0.5 * (2**retry))
+                await asyncio.sleep(self._retry_delay(retry))
                 return await self._request(
                     system, user, force_json=force_json, retry=retry + 1
                 )
@@ -202,9 +217,15 @@ class Gateway:
                 raise ValueError("empty choices in vision response")
             content = choices[0].get("message", {}).get("content", "")
             return _THINK_RE.sub("", content).strip()
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            if (status == 429 or status >= 500) and retry < self._cfg.retry:
+                await asyncio.sleep(self._retry_delay(retry, e.response))
+                return await self._request_vision(system, prompt, image_b64, retry + 1)
+            raise
         except Exception:
             if retry < self._cfg.retry:
-                await asyncio.sleep(0.5 * (2**retry))
+                await asyncio.sleep(self._retry_delay(retry))
                 return await self._request_vision(system, prompt, image_b64, retry + 1)
             raise
 

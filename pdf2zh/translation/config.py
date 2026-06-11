@@ -32,7 +32,7 @@ class TranslatorConfig:
     model: str | None = None
     api_key: str | None = None
     base_url: str | None = None
-    concurrent: int = 30
+    concurrent: int = 8  # was 30 — 30 bursts most providers straight into 429
     rpm: int | None = None
     tpm: int | None = None
     chunk_bytes: int = 3000
@@ -43,7 +43,7 @@ class TranslatorConfig:
     table_vision_enabled: bool = True
     length_tolerance: float = 0.15
     timeout: int = 300
-    retry: int = 2
+    retry: int = 5  # was 2 — transient 429/5xx need a larger budget to ride out
 
 
 def resolve_provider(cfg: TranslatorConfig) -> None:
