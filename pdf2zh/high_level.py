@@ -26,9 +26,9 @@ from pymupdf import Document, Font
 from pdf2zh.config import ConfigManager
 from pdf2zh.converter import TranslateConverter
 from pdf2zh.doclayout import OnnxModel
+from pdf2zh.parser.detector import PDFTypeDetector
+from pdf2zh.parser.main import StageAParser
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
-from pdf2zh.scanned.detector import PDFTypeDetector
-from pdf2zh.scanned.parser import StageAParser
 
 NOTO_NAME = "noto"
 

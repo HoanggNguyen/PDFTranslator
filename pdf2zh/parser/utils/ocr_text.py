@@ -11,9 +11,74 @@ import re
 import unicodedata
 from typing import Any
 
-from pdf2zh.scanned.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
+from pdf2zh.parser.utils.bbox import bbox_area, bbox_intersection, polygon_to_bbox
 
 logger = logging.getLogger(__name__)
+
+
+def adjust_cell_bbox(
+    matching_cell_lines: list[Any],
+    cell_bbox_pdf: list[float],
+    cell_bbox_image: list[float],
+    padding: float = 2.0,
+) -> list[float]:
+    """
+    Co nhỏ cell_bbox_pdf lại để ôm sát vào phân vùng chứa textlines thực tế,
+    sau đó bổ sung thêm một lượng padding.
+
+    Args:
+        matching_cell_lines: Danh sách các dòng OCR tìm thấy trong ô
+        cell_bbox_pdf: Bounding box của ô ở hệ PDF [x0, y0, x1, y1]
+        cell_bbox_image: Bounding box của ô ở hệ ảnh [x0, y0, x1, y1]
+        padding: Khoảng cách đệm thêm vào các cạnh (đơn vị: points)
+
+    Returns:
+        Bounding box mới hệ PDF [x0, y0, x1, y1] đã được điều chỉnh ôm sát text
+    """
+    if not matching_cell_lines:
+        return cell_bbox_pdf
+
+    text_x0 = float("inf")
+    text_y0 = float("inf")
+    text_x1 = float("-inf")
+    text_y1 = float("-inf")
+
+    for line in matching_cell_lines:
+        line_bbox = _get_ocr_bbox(line)
+        if line_bbox is None:
+            continue
+        text_x0 = min(text_x0, line_bbox[0])
+        text_y0 = min(text_y0, line_bbox[1])
+        text_x1 = max(text_x1, line_bbox[2])
+        text_y1 = max(text_y1, line_bbox[3])
+
+    if text_x0 == float("inf"):
+        return cell_bbox_pdf
+
+    img_w = cell_bbox_image[2] - cell_bbox_image[0]
+    img_h = cell_bbox_image[3] - cell_bbox_image[1]
+    pdf_w = cell_bbox_pdf[2] - cell_bbox_pdf[0]
+    pdf_h = cell_bbox_pdf[3] - cell_bbox_pdf[1]
+
+    scale_x = pdf_w / img_w if img_w > 0 else 1.0
+    scale_y = pdf_h / img_h if img_h > 0 else 1.0
+
+    dx0 = max(0.0, text_x0 - cell_bbox_image[0])
+    dy0 = max(0.0, text_y0 - cell_bbox_image[1])
+    dx1 = max(0.0, cell_bbox_image[2] - text_x1)
+    dy1 = max(0.0, cell_bbox_image[3] - text_y1)
+
+    new_pdf_x0 = cell_bbox_pdf[0] + max(0.0, dx0 * scale_x - padding)
+    new_pdf_y0 = cell_bbox_pdf[1] + max(0.0, dy0 * scale_y - padding)
+    new_pdf_x1 = cell_bbox_pdf[2] - max(0.0, dx1 * scale_x - padding)
+    new_pdf_y1 = cell_bbox_pdf[3] - max(0.0, dy1 * scale_y - padding)
+
+    final_x0 = max(cell_bbox_pdf[0], min(new_pdf_x0, cell_bbox_pdf[2]))
+    final_y0 = max(cell_bbox_pdf[1], min(new_pdf_y0, cell_bbox_pdf[3]))
+    final_x1 = max(final_x0, min(new_pdf_x1, cell_bbox_pdf[2]))
+    final_y1 = max(final_y0, min(new_pdf_y1, cell_bbox_pdf[3]))
+
+    return [final_x0, final_y0, final_x1, final_y1]
 
 
 def clean_ocr_text(text: str) -> str:
@@ -136,10 +201,10 @@ def smart_join_text_lines(lines: list[Any]) -> str:
         starts_with_upper = current_text[0].isupper()
         ends_with_hyphen = last_valid_text.endswith("-")
 
-        if not ends_with_punctuation and starts_with_upper:
-            result.append("\n" + current_text)
-        elif ends_with_hyphen:
+        if ends_with_hyphen:
             result.append(current_text)
+        elif not ends_with_punctuation and starts_with_upper:
+            result.append("\n" + current_text)
         else:
             result.append(" " + current_text)
 
@@ -329,7 +394,7 @@ def join_raw_text(elements: list[Any]) -> str:
         Single string with element texts joined by ``"\n"``,
         or an empty string if no translatable elements are present.
     """
-    from pdf2zh.scanned.enums import ElementCategory
+    from pdf2zh.parser.enums import ElementCategory
 
     text_parts = []
 

@@ -11,17 +11,17 @@ import fitz  # PyMuPDF
 import torch
 from PIL import Image
 
-from pdf2zh.scanned.ai_models import (
+from pdf2zh.parser.ai_models import (
     PaddleCellTableModule,
     SuryaLayoutModel,
     SuryaOCRModel,
 )
-from pdf2zh.scanned.enums import (
+from pdf2zh.parser.enums import (
     DEFAULT_CATEGORY,
     SURYA_LABEL_MAP,
     ElementCategory,
 )
-from pdf2zh.scanned.models import (
+from pdf2zh.parser.models import (
     CellData,
     ElementData,
     LayoutBlockResult,
@@ -36,7 +36,7 @@ from pdf2zh.scanned.models import (
     _DocumentContext,
     _TableJob,
 )
-from pdf2zh.scanned.utils.bbox import (
+from pdf2zh.parser.utils.bbox import (
     bbox_area,
     bbox_intersection,
     bbox_union_area,
@@ -47,13 +47,14 @@ from pdf2zh.scanned.utils.bbox import (
     offset_bbox,
     polygon_to_bbox,
 )
-from pdf2zh.scanned.utils.block import (
+from pdf2zh.parser.utils.block import (
     get_line_bbox,
     is_sparse_text_block,
 )
-from pdf2zh.scanned.utils.hardware import configure_settings
-from pdf2zh.scanned.utils.image import crop_image_to_bbox, get_page_dimensions
-from pdf2zh.scanned.utils.ocr_text import (
+from pdf2zh.parser.utils.hardware import configure_settings
+from pdf2zh.parser.utils.image import crop_image_to_bbox, get_page_dimensions
+from pdf2zh.parser.utils.ocr_text import (
+    adjust_cell_bbox,
     clean_ocr_text,
     extract_text_for_region,
     join_raw_text,
@@ -75,7 +76,8 @@ class StageAParser:
         detection_batch_size: int | None = None,
         ocr_batch_size: int | None = None,
         table_batch_size: int | None = None,
-        gpu_memory_utilization: float = 0.8,
+        detector_blank_threshold: float | None = None,
+        detector_text_threshold: float | None = None,
     ) -> None:
         """Configure settings and initialize predictors."""
 
@@ -86,10 +88,12 @@ class StageAParser:
             detection_batch_size=detection_batch_size,
             ocr_batch_size=ocr_batch_size,
             table_batch_size=table_batch_size,
-            gpu_memory_utilization=gpu_memory_utilization,
         )
         self.layout_model = SuryaLayoutModel()
-        self.ocr_model = SuryaOCRModel()
+        self.ocr_model = SuryaOCRModel(
+            detector_blank_threshold=detector_blank_threshold,
+            detector_text_threshold=detector_text_threshold,
+        )
         # self.table_model = SuryaTableModel(self.hardware)
         self.table_model = PaddleCellTableModule()
 
@@ -324,10 +328,14 @@ class StageAParser:
                             matching_cell_lines = extract_text_for_region(
                                 page_ocr.ocr_result, cell_bbox_image
                             )
+                            cell_bbox_text = adjust_cell_bbox(
+                                matching_cell_lines, cell_bbox_pdf, cell_bbox_image
+                            )
                             cell_text = smart_join_text_lines(matching_cell_lines)
                             cells.append(
                                 CellData(
                                     bbox_pdf=cell_bbox_pdf,
+                                    bbox_text=cell_bbox_text,
                                     source_text=cell_text,
                                     translated_text="",
                                 )
@@ -367,6 +375,7 @@ class StageAParser:
                             cells.append(
                                 CellData(
                                     bbox_pdf=orphan_bbox_pdf,
+                                    bbox_text=orphan_bbox_pdf,
                                     source_text=orphan_text,
                                     translated_text="",
                                 )

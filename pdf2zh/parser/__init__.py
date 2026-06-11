@@ -8,8 +8,8 @@ Main exports:
 - StageAParser and phase result objects: Main parser for Stage A processing
 """
 
-from pdf2zh.scanned.detector import PDFTypeDetector
-from pdf2zh.scanned.parser import StageAParser
+from pdf2zh.parser.detector import PDFTypeDetector
+from pdf2zh.parser.main import StageAParser
 
 __all__ = [
     # Detector

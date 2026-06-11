@@ -7,7 +7,7 @@ from typing import Any
 
 from PIL import Image
 
-from pdf2zh.scanned.ai_models.base import BaseImageToTextModel
+from pdf2zh.parser.ai_models.base import BaseImageToTextModel
 
 logger = logging.getLogger(__name__)
 

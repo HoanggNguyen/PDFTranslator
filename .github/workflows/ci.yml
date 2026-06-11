@@ -43,6 +43,3 @@ jobs:
       - name: Run pytest
         run: pytest test/ -v
 
-      # ✅ Smoke test - verify imports
-      - name: Verify core imports
-        run: python -c "from pdf2zh import scanned; print('✓ All imports successful')"

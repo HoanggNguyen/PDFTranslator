@@ -1,7 +1,7 @@
 from typing import Any
 
-from pdf2zh.scanned.utils.bbox import polygon_to_bbox
-from pdf2zh.scanned.utils.ocr_text import extract_text_for_region, sort_text_lines
+from pdf2zh.parser.utils.bbox import polygon_to_bbox
+from pdf2zh.parser.utils.ocr_text import extract_text_for_region, sort_text_lines
 
 
 def is_sparse_text_block(

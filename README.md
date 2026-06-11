@@ -87,11 +87,13 @@ click **Translate** → preview and download the translated PDF.
 
 ```bash
 # Docker (with GPU) — closest to the Space environment
+cp .env.example .env
 docker build -t pdf2zh .
 docker run --gpus all -p 7860:7860 pdf2zh        # open http://localhost:7860
 
 # Or run directly (needs typst on PATH + a GPU/CPU torch install)
 pip install -r requirements.txt
+cp .env.example .env
 python app.py
 ```
 

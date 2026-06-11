@@ -1,8 +1,36 @@
 import copy
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from threading import RLock  # 改成 RLock
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    # Khai báo các biến tương ứng trong .env (tự động convert kiểu dữ liệu)
+    device: str = "auto"
+    page_batch_size: Optional[int] = None
+    layout_batch_size: Optional[int] = None
+    detection_batch_size: Optional[int] = None
+    ocr_batch_size: Optional[int] = None
+    table_batch_size: Optional[int] = None
+    detector_blank_threshold: Optional[float] = None
+    detector_text_threshold: Optional[float] = None
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # Bỏ qua các biến khác trong file .env nếu có
+    )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
 
 
 class ConfigManager:

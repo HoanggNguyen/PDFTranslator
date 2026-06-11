@@ -16,8 +16,9 @@ import uuid
 from pathlib import Path
 from typing import Callable, Optional
 
+from pdf2zh.config import get_settings
+from pdf2zh.parser import PDFTypeDetector, StageAParser
 from pdf2zh.render import RenderConfig, render_document
-from pdf2zh.scanned import PDFTypeDetector, StageAParser
 from pdf2zh.translation import TranslatorConfig, translate_document
 
 logger = logging.getLogger(__name__)
@@ -60,9 +61,10 @@ _parser: Optional[StageAParser] = None
 def get_parser() -> StageAParser:
     """Process-wide lazy singleton. The Surya/Paddle models load exactly once."""
     global _parser
+    settings = get_settings()
     if _parser is None:
         logger.info("Loading StageAParser models (one-time)...")
-        _parser = StageAParser(device="auto")
+        _parser = StageAParser(**settings.model_dump())
         logger.info("StageAParser ready.")
     return _parser
 

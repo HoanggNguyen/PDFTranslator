@@ -27,9 +27,9 @@ import fitz  # PyMuPDF
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pdf2zh.scanned.enums import ElementCategory
-from pdf2zh.scanned.parser import StageAParser
-from pdf2zh.scanned.schema import validate_stage_output
+from pdf2zh.parser import StageAParser
+from pdf2zh.parser.enums import ElementCategory
+from pdf2zh.parser.schema import validate_stage_output
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -44,20 +44,32 @@ CATEGORY_COLORS = {
 }
 
 CELL_COLOR = (0.8, 0.8, 0.0)  # Yellow for table cells
+TEXT_CELL_COLOR = (1.0, 0.0, 1.0)
 
 
 def draw_bbox(
-    page: fitz.Page, bbox: list[float], color: tuple, width: float = 2.0
+    page: fitz.Page,
+    bbox: list[float],
+    img_width: float,
+    img_height: float,
+    color: tuple,
+    width: float = 2.0,
 ) -> None:
-    """Draw a rectangle on the page.
 
-    Args:
-        page: fitz Page to draw on
-        bbox: [x0, y0, x1, y1] in PDF points
-        color: RGB tuple (0-1 scale)
-        width: Line width in points
-    """
-    rect = fitz.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
+    page_rect = page.rect
+    pdf_width = page_rect.width
+    pdf_height = page_rect.height
+
+    scale_x = pdf_width / img_width
+    scale_y = pdf_height / img_height
+
+    x0 = page_rect.x0 + (bbox[0] * scale_x)
+    y0 = page_rect.y0 + (bbox[1] * scale_y)
+    x1 = page_rect.x0 + (bbox[2] * scale_x)
+    y1 = page_rect.y0 + (bbox[3] * scale_y)
+
+    rect = fitz.Rect(x0, y0, x1, y1)
+
     page.draw_rect(rect, color=color, width=width)
 
 
@@ -125,13 +137,35 @@ def verify_pdf(
         # Draw element bboxes
         for elem in page_data.elements:
             color = CATEGORY_COLORS.get(elem.category, (0.5, 0.5, 0.5))
-            draw_bbox(page, elem.bbox_pdf, color, width=2.0)
+            draw_bbox(
+                page,
+                elem.bbox_pdf,
+                page_data.page_width,
+                page_data.page_height,
+                color,
+                width=2.0,
+            )
             draw_label(page, elem.bbox_pdf, f"{elem.label}", color)
 
             # Draw cell bboxes for tables
             if elem.category == ElementCategory.TABLE:
                 for cell in elem.cells:
-                    draw_bbox(page, cell.bbox_pdf, CELL_COLOR, width=1.0)
+                    draw_bbox(
+                        page,
+                        cell.bbox_pdf,
+                        page_data.page_width,
+                        page_data.page_height,
+                        CELL_COLOR,
+                        width=1.5,
+                    )
+                    draw_bbox(
+                        page,
+                        cell.bbox_text,
+                        page_data.page_width,
+                        page_data.page_height,
+                        TEXT_CELL_COLOR,
+                        width=1.0,
+                    )
 
     # Save the annotated PDF
     output_path.parent.mkdir(parents=True, exist_ok=True)
