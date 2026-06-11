@@ -100,6 +100,12 @@ export HF_HOME="$CACHE_ROOT/huggingface"
 export TRANSFORMERS_CACHE="$CACHE_ROOT/huggingface"
 mkdir -p "$MODEL_CACHE_DIR" "$PADDLE_PDX_CACHE_HOME" "$HF_HOME"
 echo "[entrypoint] model cache root = $CACHE_ROOT"
+# Ensure a real .env exists (Settings reads env_file=".env") before the pipeline
+# starts. .env is gitignored, so seed it from the tracked .env.example on first boot.
+if [ ! -f /app/.env ] && [ -f /app/.env.example ]; then
+  cp /app/.env.example /app/.env
+  echo "[entrypoint] seeded /app/.env from .env.example"
+fi
 exec python3 app.py
 EOF
 RUN chmod +x /usr/local/bin/entrypoint.sh
