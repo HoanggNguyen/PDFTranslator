@@ -99,7 +99,16 @@ def main() -> int:
 
     # 1) Construct parser (declares models, no weights yet — lazy loading).
     init_start = time.perf_counter()
-    parser = StageAParser(device=args.device)
+    parser = StageAParser(
+        device=args.device,
+        page_batch_size=32,
+        layout_batch_size=32,
+        detection_batch_size=32,
+        ocr_batch_size=64,
+        table_batch_size=512,
+        detector_blank_threshold=0.5,
+        detector_text_threshold=0.6,
+    )
     init_seconds = time.perf_counter() - init_start
 
     # 2) Preload ALL model weights before timing anything.
