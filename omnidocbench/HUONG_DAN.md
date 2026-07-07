@@ -62,11 +62,22 @@ os.makedirs(RESULTS, exist_ok=True)
 > Sau bước này Colab có thể yêu cầu **Restart runtime** — bấm restart rồi chạy
 > lại **Cell 2** (mount lại Drive) trước khi tiếp tục.
 
-### Cell 5 — Tải dataset OmniDocBench
+### Cell 5a — Đăng nhập HuggingFace (tránh lỗi 429)
+IP dùng chung của Colab hay bị HF giới hạn tốc độ (`429 Too Many Requests`).
+Đăng nhập bằng token (miễn phí, quyền **Read**, tạo ở
+https://huggingface.co/settings/tokens) để hết bị chặn:
+```python
+import os
+os.environ["HF_TOKEN"] = "hf_xxxxxxxxxxxx"   # dán token của bạn
+```
+
+### Cell 5b — Tải dataset OmniDocBench
 ```bash
 !python omnidocbench/download_dataset.py --out /content/OmniDocBench_data
 ```
 Ra `/content/OmniDocBench_data/images/` (ảnh) và `OmniDocBench.json` (GT).
+> Nếu vẫn 429: đợi vài phút rồi chạy lại — `snapshot_download` có **resume**,
+> nó tải tiếp phần còn dở chứ không tải lại từ đầu.
 
 ### Cell 6 — Gộp ảnh thành PDF (32 ảnh/PDF) + mapping
 ```bash
