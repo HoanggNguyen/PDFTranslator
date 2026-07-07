@@ -35,21 +35,16 @@ Copy từng cell dưới đây vào notebook (mỗi khối = 1 cell).
 !nvidia-smi
 ```
 
-### Cell 2 — Mount Google Drive (để lưu kết quả + cache mô hình bền)
-Colab xóa dữ liệu khi hết phiên, nên lưu kết quả và cache mô hình (~3–5GB) vào Drive:
+### Cell 2 — Mount Google Drive (chỉ để lưu kết quả)
+Mô hình cứ tải bình thường về cache mặc định của Colab (không cache lên Drive).
+Chỉ mount Drive để kết quả không mất khi hết phiên:
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
 
 import os
-CACHE = '/content/drive/MyDrive/odb_cache'
 RESULTS = '/content/drive/MyDrive/odb_results'
-os.environ['HF_HOME'] = f'{CACHE}/huggingface'
-os.environ['MODEL_CACHE_DIR'] = f'{CACHE}/models'
-os.environ['PADDLE_PDX_CACHE_HOME'] = f'{CACHE}/paddlex'
-os.environ['PADDLE_HOME'] = f'{CACHE}/paddle'
-for p in os.environ['HF_HOME'], os.environ['MODEL_CACHE_DIR'], os.environ['PADDLE_PDX_CACHE_HOME'], RESULTS:
-    os.makedirs(p, exist_ok=True)
+os.makedirs(RESULTS, exist_ok=True)
 ```
 
 ### Cell 3 — Clone repo (đúng branch)
@@ -65,7 +60,7 @@ for p in os.environ['HF_HOME'], os.environ['MODEL_CACHE_DIR'], os.environ['PADDL
 ```
 > Nếu `paddlepaddle-gpu` báo lỗi CUDA trên Colab, xem mục **Xử lý sự cố** cuối file.
 > Sau bước này Colab có thể yêu cầu **Restart runtime** — bấm restart rồi chạy
-> lại **Cell 2** (để set lại biến môi trường) trước khi tiếp tục.
+> lại **Cell 2** (mount lại Drive) trước khi tiếp tục.
 
 ### Cell 5 — Tải dataset OmniDocBench
 ```bash
@@ -141,6 +136,7 @@ print('fail      :', d['num_failed'])
   ```bash
   !pip install -q paddlepaddle==3.3.1
   ```
-- **Tải model lại mỗi phiên**: đảm bảo đã mount Drive và set `HF_HOME`/`PADDLE_*`
-  vào Drive (Cell 2) để lần sau dùng lại cache.
+- **Tải model lại mỗi phiên**: bình thường — mô hình dùng cache mặc định của
+  Colab (bị xóa khi hết phiên) nên mỗi phiên mới sẽ tải lại ~3–5GB. Chấp nhận
+  được cho việc chạy 1 lần; không cần cache lên Drive.
 - **Muốn PDF nhẹ hơn (RAM/VRAM)**: build với `--per-pdf 16`.
