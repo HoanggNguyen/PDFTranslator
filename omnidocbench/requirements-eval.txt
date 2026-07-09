@@ -1,0 +1,19 @@
+# Thư viện cho các script đánh giá parser-vs-GT (eval_layout.py + formula/table).
+# Chỉ dùng để CHẤM ĐIỂM, tách khỏi requirements.txt chạy parser.
+
+# Edit distance nhanh (khớp đúng metric OmniDocBench: Levenshtein.distance).
+python-Levenshtein>=0.21
+
+# TEDS cho bảng — tái dùng OmniDocBench/src/metrics/table_metric.py:
+apted>=1.0.3          # tree edit distance
+lxml>=4.9             # parse HTML bảng
+tqdm>=4.66            # progress bar (table_metric import)
+
+# Tiện phân tích / xuất bảng số (tùy chọn, để gom kết quả ra CSV).
+pandas>=2.0
+
+# CDM cho công thức (eval_formula_cdm.py). NGOÀI RA cần dependency HỆ THỐNG:
+#   apt install texlive-latex-base texlive-latex-extra texlive-fonts-recommended imagemagick
+numpy>=1.24
+Pillow>=10.0
+scipy>=1.10

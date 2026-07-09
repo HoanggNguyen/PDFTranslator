@@ -78,9 +78,16 @@ class StageAParser:
         table_batch_size: int | None = None,
         detector_blank_threshold: float | None = None,
         detector_text_threshold: float | None = None,
+        refine_sparse_blocks: bool = True,
     ) -> None:
-        """Configure settings and initialize predictors."""
+        """Configure settings and initialize predictors.
 
+        ``refine_sparse_blocks``: bật/tắt bước tách khối text/equation thưa
+        (``is_sparse_text_block``). Đặt ``False`` để lấy output THÔ của layout
+        model (phục vụ so sánh before/after split).
+        """
+
+        self.refine_sparse_blocks = refine_sparse_blocks
         self.hardware = configure_settings(
             device=device,
             page_batch_size=page_batch_size,
@@ -567,14 +574,15 @@ class StageAParser:
 
                 blocks = self._prune_overlapping_layout_blocks(blocks)
 
-                blocks = self._refine_sparse_text_blocks(
-                    blocks,
-                    page_ocr,
-                    image_bbox,
-                    layout_image_bbox,
-                    page_width,
-                    page_height,
-                )
+                if self.refine_sparse_blocks:
+                    blocks = self._refine_sparse_text_blocks(
+                        blocks,
+                        page_ocr,
+                        image_bbox,
+                        layout_image_bbox,
+                        page_width,
+                        page_height,
+                    )
 
             layout_pages.append(
                 LayoutPageResult(

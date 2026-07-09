@@ -48,6 +48,8 @@ def parse_args() -> argparse.Namespace:
                         help="Re-run PDFs whose JSON already exists (default: skip/resume).")
     parser.add_argument("--no-warmup", dest="warmup", action="store_false",
                         help="Skip the warmup parse of the first PDF.")
+    parser.add_argument("--no-sparse-refine", dest="refine_sparse", action="store_false",
+                        help="Tắt is_sparse_text_block -> dump output THÔ (before split).")
     return parser.parse_args()
 
 
@@ -104,10 +106,11 @@ def main() -> int:
         page_batch_size=32,
         layout_batch_size=32,
         detection_batch_size=32,
-        ocr_batch_size=64,
+        ocr_batch_size=512,
         table_batch_size=512,
         detector_blank_threshold=0.5,
         detector_text_threshold=0.6,
+        refine_sparse_blocks=args.refine_sparse,
     )
     init_seconds = time.perf_counter() - init_start
 
