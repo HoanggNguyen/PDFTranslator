@@ -463,7 +463,12 @@ def build_typst_source(
                     cell_uid = f"{uid}:c{cell_idx}"
                     cell_var = f"{var}_c{cell_idx}"
                     cbbox = cell.get("bbox_pdf", bbox)
+                    # Erase the whole cell, but lay the translated text into
+                    # bbox_text (tight box hugging the original text) so it aligns
+                    # with the source instead of floating in the grid cell.
+                    tbbox = cell.get("bbox_text") or cbbox
                     cx0, cy0, cx1, cy1 = cbbox
+                    tx0, ty0, tx1, ty1 = tbbox
                     cell_bg = bg_colors.get(cell_uid, bg)
                     cell_tc = text_colors.get(cell_uid, tc)
                     cell_size = sizes.get(cell_uid, font_size)
@@ -483,10 +488,10 @@ def build_typst_source(
                     lines.append(
                         _text_block(
                             cell_var,
-                            cx0 + inset,
-                            cy0 + inset,
-                            cx1 - inset,
-                            cy1 - inset,
+                            tx0 + inset,
+                            ty0 + inset,
+                            tx1 - inset,
+                            ty1 - inset,
                             cell_md,
                             cell_size,
                             cfg.min_font_size_pt,

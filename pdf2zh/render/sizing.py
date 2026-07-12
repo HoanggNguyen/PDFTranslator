@@ -166,7 +166,9 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     cell_uid = f"{uid}:c{cell_idx}"
                     cell_source = cell.get("source_text") or ""
                     cell_translated = cell.get("translated_text") or ""
-                    cbbox = cell.get("bbox_pdf", parent_bbox)
+                    # Size the text for bbox_text (tight box hugging the text) so
+                    # it matches where source_builder actually places it.
+                    cbbox = cell.get("bbox_text") or cell.get("bbox_pdf", parent_bbox)
                     cw = max(1.0, cbbox[2] - cbbox[0])
                     ch = max(1.0, cbbox[3] - cbbox[1])
 
