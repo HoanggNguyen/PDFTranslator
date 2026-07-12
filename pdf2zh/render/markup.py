@@ -93,14 +93,8 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     # 6. Strip any remaining unknown HTML tags (preserving < > inside $...$)
     result = _strip_tags_outside_math(result)
 
-    # 7. Escape literal < > that remain (comparison operators etc.)
-    result = result.replace("\\<", "\x00LT\x00").replace("\\>", "\x00GT\x00")
-    result = re.sub(r"<", r"\\<", result)
-    result = re.sub(r">", r"\\>", result)
-    result = result.replace("\x00LT\x00", "\\<").replace("\x00GT\x00", "\\>")
-
-    # 8. Escape Typst-special chars in plain text segments (outside $...$)
-    result = _escape_typst_outside_math(result, clean_math=False)
+    # 7 & 8. Escape Typst-special chars and literal < > in plain text segments (outside $...$)
+    result = _escape_typst_outside_math(result, clean_math=False, escape_lt_gt=True)
 
     return result
 
@@ -154,7 +148,7 @@ def _wrap_bare_latex(text: str) -> str:
     return "".join(out)
 
 
-def _escape_typst_outside_math(text: str, *, clean_math: bool = False) -> str:
+def _escape_typst_outside_math(text: str, *, clean_math: bool = False, escape_lt_gt: bool = False) -> str:
     """Escape # and @ outside math delimiters; clean up LaTeX inside math if clean_math is True."""
     parts = _split_math(text)
     out = []
@@ -166,6 +160,11 @@ def _escape_typst_outside_math(text: str, *, clean_math: bool = False) -> str:
                 out.append(chunk)
         else:
             chunk = chunk.replace("#", "\\#").replace("@", "\\@")
+            if escape_lt_gt:
+                chunk = chunk.replace("\\<", "\x00LT\x00").replace("\\>", "\x00GT\x00")
+                chunk = re.sub(r"<", r"\\<", chunk)
+                chunk = re.sub(r">", r"\\>", chunk)
+                chunk = chunk.replace("\x00LT\x00", "\\<").replace("\x00GT\x00", "\\>")
             out.append(chunk)
     return "".join(out)
 
@@ -184,14 +183,23 @@ def _clean_math_chunk(chunk: str) -> str:
     if not m:
         return chunk
     open_d, content, close_d = m.group(1), m.group(2), m.group(3)
-    # Two-arg LaTeX commands (frac/binom) — convert before single-arg pass
+    # \limits and \nolimits are handled by Typst natively on operators, but raw \limits breaks Typst syntax. Strip them.
+    content = re.sub(r"\\(?:no)?limits\b", "", content)
+    # \sqrt[n]{x} -> root(n, x)
+    content = re.sub(r"\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]*)\}", r"root(\1, \2)", content)
+    # Two-arg LaTeX commands (frac/binom variants) — convert before single-arg pass
     content = re.sub(
-        r"\\(frac|binom|tbinom|dbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
-        r"\1(\2, \3)",
+        r"\\(?:frac|dfrac|tfrac|cfrac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"frac(\1, \2)",
         content,
     )
-    # Single-arg LaTeX command: \cmd{x} → cmd(x)
-    content = re.sub(r"\\([a-zA-Z]+)\s*\{([^{}]*)\}", r"\1(\2)", content)
+    content = re.sub(
+        r"\\(?:binom|dbinom|tbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"binom(\1, \2)",
+        content,
+    )
+    # Single-arg LaTeX command: \cmd{x} or \cmd*{x} → cmd(x)
+    content = re.sub(r"\\([a-zA-Z]+)\*?\s*\{([^{}]*)\}", r"\1(\2)", content)
     # Bare backslash command: \cmd → cmd
     content = re.sub(r"\\([a-zA-Z]+)", r"\1", content)
     # Drop \left / \right artefacts (already stripped above as 'left'/'right')
@@ -517,9 +525,6 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "gt",
     "lt",
     "eq",
-    "ne",
-    "le",
-    "ge",
     "approx",
     "equiv",
     "subset",
@@ -537,6 +542,10 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "dots.v",
     "dots.down",
     "infty",
+    "iint",
+    "iiint",
+    "oint",
+    "int",
     "partial",
     "nabla",
     "ell",
@@ -547,6 +556,49 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "thin",
     "med",
     "thick",
+    "circle",
+    "ast",
+    "star",
+    "compose",
+    "bullet",
+    "without",
+    "wr",
+    "asymp",
+    "prop",
+    "models",
+    "perp",
+    "parallel",
+    "bowtie",
+    "smile",
+    "frown",
+    "aleph",
+    "wp",
+    "Re",
+    "Im",
+    "empty",
+    "surd",
+    "top",
+    "bot",
+    "angle",
+    "triangle",
+    "backslash",
+    "flat",
+    "natural",
+    "sharp",
+    "club",
+    "diamond",
+    "heart",
+    "spade",
+    "quad",
+    "wide",
+    "degree",
+    "dot",
+    "slash",
+    "bar",
+    "harpoon",
+    "brace",
+    "bracket",
+    "op",
 }
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
@@ -554,11 +606,171 @@ _IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
+    # Dots
     "cdot": "dot.op",
     "cdots": "dots.c",
     "ldots": "dots.b",
     "vdots": "dots.v",
     "ddots": "dots.down",
+    
+    # Fonts
+    "mathbf": "bold",
+    "mathrm": "upright",
+    "mathit": "italic",
+    "mathsf": "sans",
+    "mathtt": "mono",
+    "mathcal": "cal",
+    "mathbb": "bb",
+    "mathfrak": "frak",
+    "boldsymbol": "bold",
+    "text": "upright",
+    "textbf": "bold",
+    "textit": "italic",
+    "textrm": "upright",
+    "rm": "upright",
+    "bf": "bold",
+    "it": "italic",
+    "operatorname": "upright",
+
+    # Accents
+    "vec": "arrow",
+    "bar": "macron",
+    "check": "caron",
+    "ddot": "dot.double",
+    "dddot": "dot.triple",
+    "ddddot": "dot.quad",
+    "mathring": "circle",
+
+    # Operators & Symbols
+    "pm": "plus.minus",
+    "mp": "minus.plus",
+    "times": "times",
+    "div": "div",
+    "ast": "ast",
+    "star": "star",
+    "circ": "compose",
+    "bullet": "bullet",
+    "oplus": "plus.circle",
+    "ominus": "minus.circle",
+    "otimes": "times.circle",
+    "oslash": "slash.circle",
+    "odot": "dot.circle",
+    "cup": "union",
+    "cap": "inter",
+    "uplus": "union.plus",
+    "sqcap": "inter.sq",
+    "sqcup": "union.sq",
+    "vee": "or",
+    "wedge": "and",
+    "setminus": "without",
+    "wr": "wr",
+
+    # Relations
+    "liminf": "lim.inf",
+    "limsup": "lim.sup",
+    "varliminf": "lim.inf",
+    "varlimsup": "lim.sup",
+    "varnothing": "empty",
+    "leq": "lt.eq",
+    "geq": "gt.eq",
+    "neq": "eq.not",
+    "le": "lt.eq",
+    "ge": "gt.eq",
+    "ne": "eq.not",
+    "ll": "lt.double",
+    "gg": "gt.double",
+    "equiv": "equiv",
+    "sim": "tilde.op",
+    "simeq": "tilde.eq",
+    "asymp": "asymp",
+    "approx": "approx",
+    "cong": "tilde.equiv",
+    "doteq": "eq.dot",
+    "propto": "prop",
+    "models": "models",
+    "perp": "perp",
+    "mid": "bar.v",
+    "parallel": "parallel",
+    "bowtie": "bowtie",
+    "ltimes": "times.l",
+    "rtimes": "times.r",
+    "smile": "smile",
+    "frown": "frown",
+    "in": "in",
+    "notin": "in.not",
+    "ni": "in.rev",
+    "subset": "subset",
+    "supset": "supset",
+    "subseteq": "subset.eq",
+    "supseteq": "supset.eq",
+
+    # Arrows
+    "leftarrow": "arrow.l",
+    "rightarrow": "arrow.r",
+    "leftrightarrow": "arrow.l.r",
+    "Leftarrow": "arrow.l.double",
+    "Rightarrow": "arrow.r.double",
+    "Leftrightarrow": "arrow.l.r.double",
+    "mapsto": "arrow.r.bar",
+    "to": "arrow.r",
+    "implies": "arrow.r.double",
+    "iff": "arrow.l.r.double",
+    "gets": "arrow.l",
+    "hookleftarrow": "arrow.l.hook",
+    "hookrightarrow": "arrow.r.hook",
+    "rightharpoonup": "harpoon.rt",
+    "leftharpoonup": "harpoon.lt",
+    "rightharpoondown": "harpoon.rb",
+    "leftharpoondown": "harpoon.lb",
+    "rightleftharpoons": "harpoon.lr",
+
+    # Misc
+    "aleph": "aleph",
+    "wp": "wp",
+    "Re": "Re",
+    "Im": "Im",
+    "emptyset": "empty",
+    "nabla": "nabla",
+    "surd": "surd",
+    "top": "top",
+    "bot": "bot",
+    "angle": "angle",
+    "triangle": "triangle",
+    "backslash": "backslash",
+    "forall": "forall",
+    "exists": "exists",
+    "nexists": "exists.not",
+    "neg": "not",
+    "lnot": "not",
+    "flat": "flat",
+    "natural": "natural",
+    "sharp": "sharp",
+    "clubsuit": "club",
+    "diamondsuit": "diamond",
+    "heartsuit": "heart",
+    "spadesuit": "spade",
+    "infty": "infty",
+    "iint",
+    "iiint",
+    "oint",
+    "int",
+    "partial": "partial",
+    "quad": "quad",
+    "qquad": "wide",
+    "O": "O",
+    "degree": "degree",
+
+    # Brackets
+    "langle": "angle.l",
+    "rangle": "angle.r",
+    "lbrace": "brace.l",
+    "rbrace": "brace.r",
+    "lceil": "ceil.l",
+    "rceil": "ceil.r",
+    "lfloor": "floor.l",
+    "rfloor": "floor.r",
+    "lbrack": "bracket.l",
+    "rbrack": "bracket.r",
 }
 
 
