@@ -184,7 +184,7 @@ def _clean_math_chunk(chunk: str) -> str:
         return chunk
     open_d, content, close_d = m.group(1), m.group(2), m.group(3)
     # \limits and \nolimits are handled by Typst natively on operators, but raw \limits breaks Typst syntax. Strip them.
-    content = re.sub(r"\\(?:no)?limits\b", "", content)
+    content = re.sub(r"\\(?:no)?limits(?![a-zA-Z])", "", content)
     # \sqrt[n]{x} -> root(n, x)
     content = re.sub(r"\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]*)\}", r"root(\1, \2)", content)
     # Two-arg LaTeX commands (frac/binom variants) — convert before single-arg pass
@@ -750,10 +750,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "heartsuit": "heart",
     "spadesuit": "spade",
     "infty": "infty",
-    "iint",
-    "iiint",
-    "oint",
-    "int",
     "partial": "partial",
     "quad": "quad",
     "qquad": "wide",
