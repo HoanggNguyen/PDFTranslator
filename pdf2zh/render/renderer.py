@@ -9,6 +9,7 @@ import fitz
 from .background import RGB, prepare_cover, sample_text_color
 from .compiler import compile_typst
 from .config import RenderConfig
+from .labels import skip_oversize_element
 from .markup import (
     has_bare_latex,
     has_malformed_typst_math,
@@ -169,6 +170,18 @@ def _redact_text_layer(
                     continue
                 uid = f"p{page_idx}:e{elem_idx}"
 
+                # Mirror the overlay's skip rule exactly: whatever the overlay
+                # will not redraw must not be redacted here, or the original is
+                # erased with nothing put back. Minor/structural elements that
+                # span most of the page are mis-detections — keep the original.
+                if skip_oversize_element(
+                    elem.get("label", "Text"),
+                    elem.get("bbox_pdf", [0, 0, 10, 10]),
+                    pw,
+                    ph,
+                ):
+                    continue
+
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
                         if not cell.get("translated_text"):
@@ -198,9 +211,6 @@ def _redact_text_layer(
                     ):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
-                    elem_w, elem_h = x1 - x0, y1 - y0
-                    if (elem_w * elem_h) / (pw * ph) >= 0.50:
-                        continue
                     fill = bg_colors.get(uid, (255, 255, 255))
                     page.add_redact_annot(
                         fitz.Rect(x0 - pad, y0 - pad, x1 + pad, y1 + pad),

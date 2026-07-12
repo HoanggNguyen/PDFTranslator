@@ -62,6 +62,37 @@ def validate(req: TranslationRequest) -> str | None:
     return None
 
 
+def list_models(provider: str, api_key: str) -> list[str]:
+    """Fetch model ids from a provider's OpenAI-compatible ``GET /models`` endpoint.
+
+    ``provider`` is the resolved key (e.g. "deepseek"). Returns a sorted list of
+    model ids, or [] on any failure (bad key, no endpoint, non-OpenAI response) —
+    the UI then falls back to free-text entry.
+    """
+    import httpx
+
+    from pdf2zh.translation.config import provider_base_url
+
+    if not api_key or not api_key.strip():
+        return []
+    try:
+        base = provider_base_url(provider).rstrip("/")
+        resp = httpx.get(
+            f"{base}/models",
+            headers={"Authorization": f"Bearer {api_key.strip()}"},
+            timeout=15,
+            verify=False,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        return sorted(
+            {m["id"] for m in data if isinstance(m, dict) and m.get("id")}
+        )
+    except Exception:  # noqa: BLE001 — listing is best-effort; fall back to manual
+        logger.warning("list_models failed for provider %s", provider, exc_info=True)
+        return []
+
+
 def stream_translation(req: TranslationRequest) -> Iterator[Progress | Result]:
     """Yield ``Progress`` updates while translating, then one terminal ``Result``."""
     # Imported lazily so the lightweight bits above (dataclasses, validate) stay

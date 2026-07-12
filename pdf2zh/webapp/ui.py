@@ -12,7 +12,6 @@ from pdf2zh.webapp.config import (
     CUSTOM_LABEL,
     PAGE_PRESETS,
     PROVIDER_CHOICES,
-    PROVIDER_DEFAULT_MODEL,
     PROVIDER_KEY,
     resolve_pages,
 )
@@ -20,6 +19,7 @@ from pdf2zh.webapp.runner import (
     Progress,
     Result,
     TranslationRequest,
+    list_models,
     stream_translation,
     validate,
 )
@@ -71,11 +71,24 @@ def _result_outputs(result: Result):
 # Event handlers
 # --------------------------------------------------------------------------- #
 def on_provider_change(provider: str):
-    """Update the model placeholder and clear the key when provider changes."""
+    """Clear the model list and key when provider changes (key/models are per-provider)."""
     return (
-        gr.update(placeholder=PROVIDER_DEFAULT_MODEL.get(provider, "")),
-        gr.update(value=""),
+        gr.update(choices=[], value=None),  # model dropdown
+        gr.update(value=""),  # api_key
     )
+
+
+def on_load_models(provider: str, api_key: str):
+    """Fetch the provider's model list (OpenAI-compatible /models) into the dropdown."""
+    models = list_models(PROVIDER_KEY[provider], api_key)
+    if not models:
+        gr.Warning(
+            "Không tải được danh sách model — kiểm tra API key/provider, "
+            "hoặc tự gõ tên model."
+        )
+        return gr.update()
+    gr.Info(f"Đã tải {len(models)} model cho {provider}.")
+    return gr.update(choices=models)
 
 
 def on_page_choice(choice: str):
@@ -125,10 +138,14 @@ def build_ui() -> gr.Blocks:
                     PROVIDER_CHOICES, value="OpenRouter", label="Provider"
                 )
                 api_key = gr.Textbox(label="API Key", type="password", value="")
-                model = gr.Textbox(
-                    label="Model (tuỳ chọn)",
-                    placeholder=PROVIDER_DEFAULT_MODEL["OpenRouter"],
+                model = gr.Dropdown(
+                    choices=[],
+                    value=None,
+                    label="Model (để trống = mặc định của provider)",
+                    info="Nhập API key để tự tải danh sách, hoặc gõ tên model.",
+                    allow_custom_value=True,
                 )
+                load_models_btn = gr.Button("🔄 Tải danh sách model", size="sm")
                 lang_from = gr.Dropdown(
                     SUPPORTED_LANGUAGES, value="English", label="Dịch từ"
                 )
@@ -159,6 +176,9 @@ def build_ui() -> gr.Blocks:
                 modal_msg = gr.HTML(_msg_html("Đang chuẩn bị…"))
 
         provider.change(on_provider_change, inputs=provider, outputs=[model, api_key])
+        # Auto-load models when the key is entered; manual refresh via the button.
+        api_key.blur(on_load_models, inputs=[provider, api_key], outputs=model)
+        load_models_btn.click(on_load_models, inputs=[provider, api_key], outputs=model)
         page_choice.change(on_page_choice, inputs=page_choice, outputs=page_n)
         translate_btn.click(
             handle_translate,

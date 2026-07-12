@@ -69,6 +69,19 @@ class Gateway:
         self._sem = asyncio.Semaphore(cfg.concurrent)
         self._rate = RateLimiter(cfg.rpm, cfg.tpm)
         self._client: httpx.AsyncClient | None = None
+        # Models that rejected a custom `temperature` (e.g. OpenAI reasoning models
+        # like gpt-5-nano/o1/o3, which only accept the default value 1). Learned
+        # lazily from a 400 response so we stop sending the param for this model
+        # for the rest of the process, instead of retrying it on every call.
+        self._no_temp_models: set[str] = set()
+
+    @staticmethod
+    def _is_unsupported_temperature(response: httpx.Response) -> bool:
+        try:
+            err = json.loads(response.text).get("error", {})
+        except (ValueError, AttributeError):
+            return False
+        return err.get("param") == "temperature" and err.get("code") == "unsupported_value"
 
     async def __aenter__(self) -> "Gateway":
         limits = httpx.Limits(
@@ -126,10 +139,13 @@ class Gateway:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": 0.7,
         }
+        if self._cfg.model not in self._no_temp_models:
+            data["temperature"] = 0.7
         if force_json:
             data["response_format"] = {"type": "json_object"}
+        if self._cfg.disable_reasoning and self._cfg.provider == "openrouter":
+            data["reasoning"] = {"enabled": False}
         try:
             resp = await self._client.post(
                 f"{self._cfg.base_url}/chat/completions",
@@ -142,7 +158,10 @@ class Gateway:
             if not choices:
                 raise ValueError("empty choices in response")
             finish = choices[0].get("finish_reason")
-            content = choices[0].get("message", {}).get("content", "")
+            # `.get(key, "")` only falls back when the key is absent — some providers
+            # send an explicit `"content": null` (e.g. on a filtered/empty completion),
+            # which .get() passes through as None and crashes the regex sub below.
+            content = choices[0].get("message", {}).get("content") or ""
             content = _THINK_RE.sub("", content)
             # Drop lone UTF-16 surrogates the model occasionally emits;
             # httpx fails to UTF-8 encode them on subsequent retry requests.
@@ -160,6 +179,25 @@ class Gateway:
             return content
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
+            # Some models (OpenAI reasoning models: gpt-5-nano, o1, o3, ...) reject
+            # any non-default temperature outright. Learn this once per model and
+            # replay the SAME attempt without the param — free (no tokens billed,
+            # request was rejected before generation) and doesn't cost a retry slot.
+            if (
+                status == 400
+                and "temperature" in data
+                and self._is_unsupported_temperature(e.response)
+            ):
+                # NOTE: don't gate this on `model not in self._no_temp_models` —
+                # concurrent calls for the same model can all be in flight before
+                # the first one learns, so every one of them must be allowed to
+                # self-heal independently. `"temperature" in data` alone already
+                # prevents infinite recursion: the retried call rebuilds `data`
+                # from `_no_temp_models`, which by then contains this model.
+                self._no_temp_models.add(self._cfg.model)
+                return await self._request(
+                    system, user, force_json=force_json, retry=retry
+                )
             # 429 (rate limit) and 5xx are transient — back off and retry. Other
             # 4xx (401 auth, 400 bad request) are permanent, so fail fast.
             if (status == 429 or status >= 500) and retry < self._cfg.retry:
@@ -202,8 +240,11 @@ class Gateway:
                     ],
                 },
             ],
-            "temperature": 0.2,
         }
+        if self._cfg.model not in self._no_temp_models:
+            data["temperature"] = 0.2
+        if self._cfg.disable_reasoning and self._cfg.provider == "openrouter":
+            data["reasoning"] = {"enabled": False}
         try:
             resp = await self._client.post(
                 f"{self._cfg.base_url}/chat/completions",
@@ -215,10 +256,19 @@ class Gateway:
             choices = rdata.get("choices", [])
             if not choices:
                 raise ValueError("empty choices in vision response")
-            content = choices[0].get("message", {}).get("content", "")
+            content = choices[0].get("message", {}).get("content") or ""
             return _THINK_RE.sub("", content).strip()
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
+            if (
+                status == 400
+                and "temperature" in data
+                and self._is_unsupported_temperature(e.response)
+            ):
+                # See _request(): don't gate on `model not in self._no_temp_models`,
+                # concurrent in-flight calls must each be able to self-heal.
+                self._no_temp_models.add(self._cfg.model)
+                return await self._request_vision(system, prompt, image_b64, retry)
             if (status == 429 or status >= 500) and retry < self._cfg.retry:
                 await asyncio.sleep(self._retry_delay(retry, e.response))
                 return await self._request_vision(system, prompt, image_b64, retry + 1)

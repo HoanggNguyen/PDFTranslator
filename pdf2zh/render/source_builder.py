@@ -4,7 +4,7 @@ import re
 
 from .background import RGB
 from .config import RenderConfig, StyleSpec
-from .labels import normalize_label, style_key
+from .labels import normalize_label, skip_oversize_element, style_key
 from .markup import (
     _split_math_vars,
     escape_typst_string,
@@ -376,10 +376,13 @@ def build_typst_source(
             bbox = elem.get("bbox_pdf", [0, 0, 100, 20])
             x0, y0, x1, y1 = bbox
 
-            # Elements covering >50% of the page are likely cover images or
-            # mis-detections — keep original, don't overlay.
-            elem_w, elem_h = x1 - x0, y1 - y0
-            if (elem_w * elem_h) / (pw * ph) >= 0.50:
+            # A minor/structural element (section header, caption, footnote, …)
+            # covering most of the page is a mis-detection — keep the original.
+            # Real content (tables, body text, equations) is never skipped by
+            # size. The redaction pass uses this same predicate, so the two
+            # stages always agree on what to skip (else content gets erased but
+            # not redrawn).
+            if skip_oversize_element(label, bbox, pw, ph):
                 continue
             bg = bg_colors.get(uid, cfg.background.fallback_bg)
             tc = text_colors.get(uid, (0, 0, 0))

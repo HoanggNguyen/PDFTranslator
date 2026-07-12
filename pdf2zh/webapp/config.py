@@ -3,7 +3,15 @@
 from __future__ import annotations
 
 # UI label -> Phase-2 provider key.
-PROVIDER_KEY = {"OpenRouter": "openrouter", "Gemini": "gemini", "OpenAI": "openai"}
+PROVIDER_KEY = {
+    "OpenRouter": "openrouter",
+    "Gemini": "gemini",
+    "OpenAI": "openai",
+    "DeepSeek": "deepseek",
+    "MiniMax": "minimax",
+    "Anthropic": "anthropic",
+    "LiteLLM": "litellm",
+}
 PROVIDER_CHOICES = list(PROVIDER_KEY)
 
 # Default model placeholders (mirror translation/config.py PROVIDERS).
@@ -11,6 +19,10 @@ PROVIDER_DEFAULT_MODEL = {
     "OpenRouter": "google/gemini-2.5-flash-lite",
     "Gemini": "gemini-2.5-flash-lite",
     "OpenAI": "gpt-4o-mini",
+    "DeepSeek": "deepseek-chat",
+    "MiniMax": "MiniMax-Text-01",
+    "Anthropic": "claude-haiku-4-5",
+    "LiteLLM": "gpt-4o-mini",
 }
 
 # Page selection presets. CUSTOM_LABEL -> read the page count from the "First N" box.
