@@ -609,7 +609,7 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     # Dots
     "cdot": "dot.op",
     "cdots": "dots.c",
-    "ldots": "dots.b",
+    "ldots": "dots",
     "vdots": "dots.v",
     "ddots": "dots.down",
     
@@ -653,7 +653,7 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "oplus": "plus.circle",
     "ominus": "minus.circle",
     "otimes": "times.circle",
-    "oslash": "slash.circle",
+    "oslash": "div.circle",
     "odot": "dot.circle",
     "cup": "union",
     "cap": "inter",
@@ -666,10 +666,10 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "wr": "wr",
 
     # Relations
-    "liminf": "lim.inf",
-    "limsup": "lim.sup",
-    "varliminf": "lim.inf",
-    "varlimsup": "lim.sup",
+    "liminf": "liminf",
+    "limsup": "limsup",
+    "varliminf": "liminf",
+    "varlimsup": "limsup",
     "varnothing": "empty",
     "leq": "lt.eq",
     "geq": "gt.eq",
@@ -685,7 +685,7 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "asymp": "asymp",
     "approx": "approx",
     "cong": "tilde.equiv",
-    "doteq": "eq.dot",
+    "doteq": "eq.est",
     "propto": "prop",
     "models": "models",
     "perp": "perp",
@@ -722,7 +722,7 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "leftharpoonup": "harpoon.lt",
     "rightharpoondown": "harpoon.rb",
     "leftharpoondown": "harpoon.lb",
-    "rightleftharpoons": "harpoon.lr",
+    "rightleftharpoons": "harpoons.rtlb",
 
     # Misc
     "aleph": "aleph",
