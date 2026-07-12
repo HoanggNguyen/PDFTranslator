@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pdf2zh.render.markup import parse_toc_line, to_typst_markup
+from pdf2zh.render.markup import parse_toc_line, to_typst_markup, to_typst_native
 
 
 class TestMathConversion:
@@ -112,6 +112,17 @@ class TestMathAndProseEquation:
         )
         assert "$$\\frac{a+c}{b}$$" in out
         assert "a(b + c) = ab + ac" in out
+
+
+class TestTypstNativeMath:
+    def test_preserves_multilevel_symbol_modifiers(self):
+        out = to_typst_native("<math>arrow.r.double dot.triple</math>")
+        assert "$arrow.r.double dot.triple$" in out
+
+    def test_breaks_unknown_symbol_modifiers(self):
+        out = to_typst_native("<math>plus.unknown</math>")
+        assert "plus.unknown" not in out
+        assert "$plus u n k n o w n$" in out
 
 
 class TestTocLineParsing:

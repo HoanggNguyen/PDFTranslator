@@ -602,7 +602,7 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
 }
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
-_IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
+_IDENT_ALPHA = re.compile(r"[a-zA-Z]+(?:\.[a-zA-Z]+)+|[a-zA-Z]{2,}")
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
@@ -769,6 +769,15 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "rbrack": "bracket.r",
 }
 
+_TYPST_SYMBOL_IDENTIFIERS = frozenset(
+    value for value in _LATEX_IDENT_RENAME.values() if "." in value
+) | {
+    "dots.c",
+    "dots.b",
+    "dots.v",
+    "dots.down",
+}
+
 
 def _split_math_vars(math_content: str) -> str:
     """Insert spaces between consecutive-letter variable products in Typst math.
@@ -781,6 +790,10 @@ def _split_math_vars(math_content: str) -> str:
 
     def _replace(m: re.Match) -> str:
         word = m.group(0)
+        if "." in word:
+            if word in _TYPST_SYMBOL_IDENTIFIERS:
+                return word
+            return word.replace(".", " ")
         # LaTeX identifier with a different Typst name — rename
         if word in _LATEX_IDENT_RENAME:
             return _LATEX_IDENT_RENAME[word]
