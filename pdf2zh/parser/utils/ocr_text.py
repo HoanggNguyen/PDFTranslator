@@ -20,7 +20,7 @@ def adjust_cell_bbox(
     matching_cell_lines: list[Any],
     cell_bbox_pdf: list[float],
     cell_bbox_image: list[float],
-    padding: float = 2.0,
+    padding: float = 0.0,
 ) -> list[float]:
     """
     Co nhỏ cell_bbox_pdf lại để ôm sát vào phân vùng chứa textlines thực tế,

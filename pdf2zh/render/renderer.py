@@ -267,7 +267,8 @@ def _sample_colors(
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
                         cell_uid = f"{uid}:c{cell_idx}"
-                        cbbox = cell.get("bbox_pdf", bbox)
+                        # renderer.py:270 — dùng bbox_text (đồng bộ với render/redact), fallback về bbox_pdf
+                        cbbox = cell.get("bbox_text") or cell.get("bbox_pdf", bbox)
                         bg = prepare_cover(page, cbbox, pw, ph, cfg.background)
                         bg_colors[cell_uid] = bg.rgb
                         tc = sample_text_color(
