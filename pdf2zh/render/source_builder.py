@@ -463,11 +463,11 @@ def build_typst_source(
                     cell_uid = f"{uid}:c{cell_idx}"
                     cell_var = f"{var}_c{cell_idx}"
                     cbbox = cell.get("bbox_pdf", bbox)
-                    # Erase the whole cell, but lay the translated text into
-                    # bbox_text (tight box hugging the original text) so it aligns
-                    # with the source instead of floating in the grid cell.
+                    # Only touch the text region: both the eraser and the
+                    # translated text use bbox_text (the tight box hugging the
+                    # original text) instead of blanking the whole grid cell —
+                    # this preserves the cell's borders and background.
                     tbbox = cell.get("bbox_text") or cbbox
-                    cx0, cy0, cx1, cy1 = cbbox
                     tx0, ty0, tx1, ty1 = tbbox
                     cell_bg = bg_colors.get(cell_uid, bg)
                     cell_tc = text_colors.get(cell_uid, tc)
@@ -477,10 +477,10 @@ def build_typst_source(
                     lines.append(
                         _cover_rect(
                             cell_var,
-                            cx0,
-                            cy0,
-                            cx1,
-                            cy1,
+                            tx0,
+                            ty0,
+                            tx1,
+                            ty1,
                             cell_bg,
                             cfg.background.eraser_padding_pt,
                         )

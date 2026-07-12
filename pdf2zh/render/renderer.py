@@ -187,7 +187,10 @@ def _redact_text_layer(
                         if not cell.get("translated_text"):
                             continue
                         cell_uid = f"{uid}:c{cell_idx}"
-                        cx0, cy0, cx1, cy1 = cell.get(
+                        # Strip native text only over bbox_text (tight box), not
+                        # the whole grid cell — mirrors the overlay's cover_rect
+                        # and keeps the cell's borders/background intact.
+                        cx0, cy0, cx1, cy1 = cell.get("bbox_text") or cell.get(
                             "bbox_pdf", elem.get("bbox_pdf", [0, 0, 10, 10])
                         )
                         fill = bg_colors.get(cell_uid, (255, 255, 255))
