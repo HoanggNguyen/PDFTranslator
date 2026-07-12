@@ -828,7 +828,7 @@ def to_typst_native(text: str) -> str:
     """Convert hybrid HTML/Typst-math text to raw Typst markup string.
 
     Expects <math> tags to contain Typst math syntax (no backslash LaTeX).
-    Output is a Typst markup string suitable for eval(markup, mode: "markup").
+    Output is a Typst markup fragment suitable for embedding in Typst content.
     """
     if not text:
         return ""
