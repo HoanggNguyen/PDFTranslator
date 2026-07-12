@@ -89,13 +89,13 @@ _FIT_HELPERS = """\
     }
   })
 }
-#let pdftr_fit_typst(markup, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, no_wrap: false) = {
+#let pdftr_fit_typst(content, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, no_wrap: false) = {
   layout(size => {
     let allowed-height = if fit_height == none { size.height } else { calc.min(size.height, fit_height) }
     let render(text_size, leading) = block(width: size.width)[#{
       set text(size: text_size, weight: weight, style: style)
       set par(leading: leading)
-      eval(markup, mode: "markup")
+      content
     }]
     if no_wrap {
       // Single-line mode: find largest font where content does not wrap.
@@ -105,7 +105,7 @@ _FIT_HELPERS = """\
         let h_wide = measure(width: 10000pt, block(width: 10000pt)[#{
           set text(size: text_size, weight: weight, style: style)
           set par(leading: max_leading)
-          eval(markup, mode: "markup")
+          content
         }]).height
         h_narrow <= h_wide
       }
@@ -248,7 +248,6 @@ def _text_block_typst(
     w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
     h = max(4.0, y1 - y0)
     effective_min = min(min_font, font_size)
-    escaped = escape_typst_string(typst_markup)
     no_wrap_arg = ", no_wrap: true" if no_wrap else ""
     fit_call = (
         f"pdftr_fit_typst({var}_tm,"
@@ -262,7 +261,7 @@ def _text_block_typst(
     else:
         content = fit_call
     return (
-        f'#let {var}_tm = "{escaped}"\n'
+        f"#let {var}_tm = [{typst_markup}]\n"
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
         f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
         f"  {content}\n"
@@ -457,6 +456,9 @@ def build_typst_source(
             elif category == "TABLE":
                 cells = elem.get("cells", [])
                 for cell_idx, cell in enumerate(cells):
+                    cell_source = cell.get("source_text") or ""
+                    if not cell_source.strip():
+                        continue
                     cell_translated = cell.get("translated_text") or ""
                     if not cell_translated:
                         continue

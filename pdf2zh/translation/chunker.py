@@ -32,7 +32,7 @@ def collect_translatables(doc: dict) -> list[Task]:
                 idx += 1
             for cell in cells:
                 text = cell.get("source_text", "")
-                if text and has_prose_for_equation(text):
+                if text.strip() and has_prose_for_equation(text):
                     tasks.append(Task(cell, "translated_text", text, str(idx)))
                     idx += 1
     return tasks

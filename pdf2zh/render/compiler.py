@@ -1,10 +1,26 @@
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+_TYPST_LOCATION = re.compile(r"\.typ:(\d+):(\d+)")
+
+
+def _source_context(source: str, stderr: str, radius: int = 2) -> str:
+    match = _TYPST_LOCATION.search(stderr)
+    if not match:
+        return ""
+    line_number = int(match.group(1))
+    lines = source.splitlines()
+    start = max(0, line_number - radius - 1)
+    end = min(len(lines), line_number + radius)
+    return "\n".join(
+        f"{index + 1:>5} | {lines[index]}" for index in range(start, end)
+    )
 
 
 def compile_typst(
@@ -45,7 +61,12 @@ def compile_typst(
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
-        tail = "\n".join((result.stderr or "").splitlines()[-50:])
+        stderr = result.stderr or ""
+        tail = "\n".join(stderr.splitlines()[-50:])
+        context = _source_context(source, stderr)
+        if context:
+            logger.error("Typst source near the failing markup:\n%s", context)
+            tail = f"{tail}\n\nTypst source context:\n{context}"
         raise RuntimeError(f"typst compile failed (exit {result.returncode}):\n{tail}")
 
     logger.debug("typst compiled → %s", output_pdf)

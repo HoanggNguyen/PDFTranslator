@@ -165,6 +165,8 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                 for cell_idx, cell in enumerate(cells):
                     cell_uid = f"{uid}:c{cell_idx}"
                     cell_source = cell.get("source_text") or ""
+                    if not cell_source.strip():
+                        continue
                     cell_translated = cell.get("translated_text") or ""
                     # Size the text for bbox_text (tight box hugging the text) so
                     # it matches where source_builder actually places it.

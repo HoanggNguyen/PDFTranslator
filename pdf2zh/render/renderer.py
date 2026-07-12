@@ -72,7 +72,8 @@ def render_document(
                 continue
             if category == "TABLE":
                 for cell in elem.get("cells", []):
-                    if cell.get("translated_text"):
+                    cell_source = cell.get("source_text") or ""
+                    if cell_source.strip() and cell.get("translated_text"):
                         stats["cells_rendered"] += 1
                     else:
                         stats["elements_skipped"] += 1
@@ -184,7 +185,8 @@ def _redact_text_layer(
 
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
-                        if not cell.get("translated_text"):
+                        cell_source = cell.get("source_text") or ""
+                        if not cell_source.strip() or not cell.get("translated_text"):
                             continue
                         cell_uid = f"{uid}:c{cell_idx}"
                         # Strip native text only over bbox_text (tight box), not
@@ -266,6 +268,9 @@ def _sample_colors(
 
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
+                        cell_source = cell.get("source_text") or ""
+                        if not cell_source.strip():
+                            continue
                         cell_uid = f"{uid}:c{cell_idx}"
                         # renderer.py:270 — dùng bbox_text (đồng bộ với render/redact), fallback về bbox_pdf
                         cbbox = cell.get("bbox_text") or cell.get("bbox_pdf", bbox)
