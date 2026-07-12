@@ -603,6 +603,9 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
 _IDENT_ALPHA = re.compile(r"[a-zA-Z]+(?:\.[a-zA-Z]+)+|[a-zA-Z]{2,}")
+_MATH_UNDERSCORE_IDENT = re.compile(
+    r"\b[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)+\b"
+)
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
@@ -788,6 +791,20 @@ def _split_math_vars(math_content: str) -> str:
     (function-call syntax).
     """
 
+    quoted_idents: list[str] = []
+
+    def _stash_underscore_ident(m: re.Match) -> str:
+        word = m.group(0)
+        parts = word.split("_")
+        if len(parts) == 2 and all(len(part) == 1 for part in parts):
+            return word
+        if len(parts) == 2 and len(parts[0]) == 1 and parts[1].isdigit():
+            return word
+        quoted_idents.append(f'upright("{word}")')
+        return f"\x04{len(quoted_idents) - 1}\x05"
+
+    math_content = _MATH_UNDERSCORE_IDENT.sub(_stash_underscore_ident, math_content)
+
     def _replace(m: re.Match) -> str:
         word = m.group(0)
         if "." in word:
@@ -821,7 +838,14 @@ def _split_math_vars(math_content: str) -> str:
                 i += 1
         return " ".join(result_parts)
 
-    return _IDENT_ALPHA.sub(_replace, math_content)
+    math_content = _IDENT_ALPHA.sub(_replace, math_content)
+    if quoted_idents:
+        math_content = re.sub(
+            r"\x04(\d+)\x05",
+            lambda m: quoted_idents[int(m.group(1))],
+            math_content,
+        )
+    return math_content
 
 
 def to_typst_native(text: str) -> str:

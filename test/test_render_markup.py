@@ -124,6 +124,14 @@ class TestTypstNativeMath:
         assert "plus.unknown" not in out
         assert "$plus u n k n o w n$" in out
 
+    def test_quotes_long_underscore_identifiers(self):
+        out = to_typst_native("<math>page_index = k</math>")
+        assert '$upright("page_index") = k$' in out
+
+    def test_preserves_simple_subscripts(self):
+        out = to_typst_native("<math>x_i + a_1</math>")
+        assert "$x_i + a_1$" in out
+
 
 class TestTocLineParsing:
     def test_simple_entry(self):
