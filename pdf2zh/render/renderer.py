@@ -144,7 +144,9 @@ def render_document(
                 )
                 break
             except TypstCompileError as exc:
-                bad_vars = _failing_element_vars(typst_source, exc.stderr) - fallback_vars
+                bad_vars = (
+                    _failing_element_vars(typst_source, exc.stderr) - fallback_vars
+                )
                 if not bad_vars or attempt == _MAX_COMPILE_REPAIRS:
                     raise
                 fallback_vars |= bad_vars

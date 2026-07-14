@@ -26,9 +26,7 @@ def _source_context(source: str, stderr: str, radius: int = 2) -> str:
     lines = source.splitlines()
     start = max(0, line_number - radius - 1)
     end = min(len(lines), line_number + radius)
-    return "\n".join(
-        f"{index + 1:>5} | {lines[index]}" for index in range(start, end)
-    )
+    return "\n".join(f"{index + 1:>5} | {lines[index]}" for index in range(start, end))
 
 
 def compile_typst(

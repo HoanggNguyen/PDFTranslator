@@ -81,7 +81,9 @@ class Gateway:
             err = json.loads(response.text).get("error", {})
         except (ValueError, AttributeError):
             return False
-        return err.get("param") == "temperature" and err.get("code") == "unsupported_value"
+        return (
+            err.get("param") == "temperature" and err.get("code") == "unsupported_value"
+        )
 
     async def __aenter__(self) -> "Gateway":
         limits = httpx.Limits(

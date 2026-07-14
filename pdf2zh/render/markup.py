@@ -148,7 +148,9 @@ def _wrap_bare_latex(text: str) -> str:
     return "".join(out)
 
 
-def _escape_typst_outside_math(text: str, *, clean_math: bool = False, escape_lt_gt: bool = False) -> str:
+def _escape_typst_outside_math(
+    text: str, *, clean_math: bool = False, escape_lt_gt: bool = False
+) -> str:
     """Escape # and @ outside math delimiters; clean up LaTeX inside math if clean_math is True."""
     parts = _split_math(text)
     out = []
@@ -186,7 +188,9 @@ def _clean_math_chunk(chunk: str) -> str:
     # \limits and \nolimits are handled by Typst natively on operators, but raw \limits breaks Typst syntax. Strip them.
     content = re.sub(r"\\(?:no)?limits(?![a-zA-Z])", "", content)
     # \sqrt[n]{x} -> root(n, x)
-    content = re.sub(r"\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]*)\}", r"root(\1, \2)", content)
+    content = re.sub(
+        r"\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]*)\}", r"root(\1, \2)", content
+    )
     # Two-arg LaTeX commands (frac/binom variants) — convert before single-arg pass
     content = re.sub(
         r"\\(?:frac|dfrac|tfrac|cfrac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
@@ -605,9 +609,7 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
 _IDENT_ALPHA = re.compile(r"[a-zA-Z]+(?:\.[a-zA-Z]+)+|[a-zA-Z]{2,}")
-_MATH_UNDERSCORE_IDENT = re.compile(
-    r"\b[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)+\b"
-)
+_MATH_UNDERSCORE_IDENT = re.compile(r"\b[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)+\b")
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
@@ -617,7 +619,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "ldots": "dots",
     "vdots": "dots.v",
     "ddots": "dots.down",
-    
     # Fonts
     "mathbf": "bold",
     "mathrm": "upright",
@@ -636,7 +637,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "bf": "bold",
     "it": "italic",
     "operatorname": "upright",
-
     # Accents
     "vec": "arrow",
     "bar": "macron",
@@ -645,7 +645,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "dddot": "dot.triple",
     "ddddot": "dot.quad",
     "mathring": "circle",
-
     # Operators & Symbols
     "pm": "plus.minus",
     "mp": "minus.plus",
@@ -669,7 +668,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "wedge": "and",
     "setminus": "without",
     "wr": "wr",
-
     # Relations
     "liminf": "liminf",
     "limsup": "limsup",
@@ -708,7 +706,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "supset": "supset",
     "subseteq": "subset.eq",
     "supseteq": "supset.eq",
-
     # Arrows
     "leftarrow": "arrow.l",
     "rightarrow": "arrow.r",
@@ -728,7 +725,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "rightharpoondown": "harpoon.rb",
     "leftharpoondown": "harpoon.lb",
     "rightleftharpoons": "harpoons.rtlb",
-
     # Misc
     "aleph": "aleph",
     "wp": "wp",
@@ -760,7 +756,6 @@ _LATEX_IDENT_RENAME: dict[str, str] = {
     "qquad": "wide",
     "O": "O",
     "degree": "degree",
-
     # Brackets
     "langle": "angle.l",
     "rangle": "angle.r",
@@ -812,8 +807,8 @@ def _split_math_vars(math_content: str) -> str:
     math_content = math_content.replace("#", "\\#").replace('"', '\\"')
     # An attach with no base/script ($_(x)$, $x_$, $x^$) is a parse error —
     # give it an empty "" operand.
-    math_content = re.sub(r'^(\s*)([_^])', r'\1""\2', math_content)
-    math_content = re.sub(r'([_^])(\s*)$', r'\1""\2', math_content)
+    math_content = re.sub(r"^(\s*)([_^])", r'\1""\2', math_content)
+    math_content = re.sub(r"([_^])(\s*)$", r'\1""\2', math_content)
 
     quoted_idents: list[str] = []
 

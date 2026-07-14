@@ -85,9 +85,7 @@ def list_models(provider: str, api_key: str) -> list[str]:
         )
         resp.raise_for_status()
         data = resp.json().get("data", [])
-        return sorted(
-            {m["id"] for m in data if isinstance(m, dict) and m.get("id")}
-        )
+        return sorted({m["id"] for m in data if isinstance(m, dict) and m.get("id")})
     except Exception:  # noqa: BLE001 — listing is best-effort; fall back to manual
         logger.warning("list_models failed for provider %s", provider, exc_info=True)
         return []

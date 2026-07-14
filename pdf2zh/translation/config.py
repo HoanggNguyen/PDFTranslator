@@ -81,7 +81,9 @@ def provider_base_url(provider: str) -> str:
     """Resolve a provider's base URL, honoring its optional ``base_url_env`` override."""
     p = PROVIDERS.get(provider)
     if p is None:
-        raise ValueError(f"Unknown provider '{provider}'. Choose from {list(PROVIDERS)}.")
+        raise ValueError(
+            f"Unknown provider '{provider}'. Choose from {list(PROVIDERS)}."
+        )
     env_key = p.get("base_url_env")
     return (os.environ.get(env_key) if env_key else None) or p["base_url"]
 

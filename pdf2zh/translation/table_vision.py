@@ -78,8 +78,7 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
         for elem in page.get("elements", [])
         if elem.get("category") == "TABLE"
         and any(
-            (cell.get("source_text") or "").strip()
-            for cell in elem.get("cells", [])
+            (cell.get("source_text") or "").strip() for cell in elem.get("cells", [])
         )
     ]
 

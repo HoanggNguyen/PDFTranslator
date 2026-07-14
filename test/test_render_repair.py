@@ -29,7 +29,7 @@ class TestFailingElementVars:
             "#let e0_0_tm = [good markup]",  # line 2
             "#let e0_1_tm = [broken",  # line 3
             "  still broken]",  # line 4
-            "#let e0_1_c2_md = \"cell\"",  # line 5
+            '#let e0_1_c2_md = "cell"',  # line 5
         ]
     )
 
