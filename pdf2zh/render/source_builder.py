@@ -4,7 +4,7 @@ import re
 
 from .background import RGB
 from .config import RenderConfig, StyleSpec
-from .labels import normalize_label, style_key
+from .labels import normalize_label, skip_oversize_element, style_key
 from .markup import (
     _split_math_vars,
     escape_typst_string,
@@ -89,13 +89,13 @@ _FIT_HELPERS = """\
     }
   })
 }
-#let pdftr_fit_typst(markup, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, no_wrap: false) = {
+#let pdftr_fit_typst(content, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, no_wrap: false) = {
   layout(size => {
     let allowed-height = if fit_height == none { size.height } else { calc.min(size.height, fit_height) }
     let render(text_size, leading) = block(width: size.width)[#{
       set text(size: text_size, weight: weight, style: style)
       set par(leading: leading)
-      eval(markup, mode: "markup")
+      content
     }]
     if no_wrap {
       // Single-line mode: find largest font where content does not wrap.
@@ -105,7 +105,7 @@ _FIT_HELPERS = """\
         let h_wide = measure(width: 10000pt, block(width: 10000pt)[#{
           set text(size: text_size, weight: weight, style: style)
           set par(leading: max_leading)
-          eval(markup, mode: "markup")
+          content
         }]).height
         h_narrow <= h_wide
       }
@@ -248,7 +248,6 @@ def _text_block_typst(
     w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
     h = max(4.0, y1 - y0)
     effective_min = min(min_font, font_size)
-    escaped = escape_typst_string(typst_markup)
     no_wrap_arg = ", no_wrap: true" if no_wrap else ""
     fit_call = (
         f"pdftr_fit_typst({var}_tm,"
@@ -262,7 +261,7 @@ def _text_block_typst(
     else:
         content = fit_call
     return (
-        f'#let {var}_tm = "{escaped}"\n'
+        f"#let {var}_tm = [{typst_markup}]\n"
         f"#let {var}_body = block(width: {w:.2f}pt, height: {h:.2f}pt)[#{{\n"
         f"  set text(font: {_font_typst(font_family)}, fill: {_rgb_typst(text_color)})\n"
         f"  {content}\n"
@@ -338,7 +337,15 @@ def build_typst_source(
     bg_colors: dict[str, RGB],
     text_colors: dict[str, RGB],
     cfg: RenderConfig,
+    fallback_vars: set[str] | frozenset[str] = frozenset(),
 ) -> str:
+    """Build the overlay Typst source.
+
+    Args:
+        fallback_vars: element vars (e.g. ``e3_7``) whose markup previously
+            broke the Typst compile — rendered via the plain markdown-string
+            path instead of native Typst markup (always syntactically valid).
+    """
     lines: list[str] = [
         f"#set text(font: {_font_typst(cfg.font_family)})",
         f'#import "@preview/cmarker:{CMARKER_VERSION}"',
@@ -376,10 +383,13 @@ def build_typst_source(
             bbox = elem.get("bbox_pdf", [0, 0, 100, 20])
             x0, y0, x1, y1 = bbox
 
-            # Elements covering >50% of the page are likely cover images or
-            # mis-detections — keep original, don't overlay.
-            elem_w, elem_h = x1 - x0, y1 - y0
-            if (elem_w * elem_h) / (pw * ph) >= 0.50:
+            # A minor/structural element (section header, caption, footnote, …)
+            # covering most of the page is a mis-detection — keep the original.
+            # Real content (tables, body text, equations) is never skipped by
+            # size. The redaction pass uses this same predicate, so the two
+            # stages always agree on what to skip (else content gets erased but
+            # not redrawn).
+            if skip_oversize_element(label, bbox, pw, ph):
                 continue
             bg = bg_colors.get(uid, cfg.background.fallback_bg)
             tc = text_colors.get(uid, (0, 0, 0))
@@ -412,7 +422,9 @@ def build_typst_source(
                 # skipped above). Fractions make the bbox taller than the actual
                 # text size, so use the cluster font_size, not y1 - y0.
                 eq_max_size = font_size
-                if "<math" in translated or "<typst" in translated:
+                if var not in fallback_vars and (
+                    "<math" in translated or "<typst" in translated
+                ):
                     typst_markup = to_typst_native(translated)
                     lines.append(
                         _text_block_typst(
@@ -454,13 +466,21 @@ def build_typst_source(
             elif category == "TABLE":
                 cells = elem.get("cells", [])
                 for cell_idx, cell in enumerate(cells):
+                    cell_source = cell.get("source_text") or ""
+                    if not cell_source.strip():
+                        continue
                     cell_translated = cell.get("translated_text") or ""
                     if not cell_translated:
                         continue
                     cell_uid = f"{uid}:c{cell_idx}"
                     cell_var = f"{var}_c{cell_idx}"
                     cbbox = cell.get("bbox_pdf", bbox)
-                    cx0, cy0, cx1, cy1 = cbbox
+                    # Only touch the text region: both the eraser and the
+                    # translated text use bbox_text (the tight box hugging the
+                    # original text) instead of blanking the whole grid cell —
+                    # this preserves the cell's borders and background.
+                    tbbox = cell.get("bbox_text") or cbbox
+                    tx0, ty0, tx1, ty1 = tbbox
                     cell_bg = bg_colors.get(cell_uid, bg)
                     cell_tc = text_colors.get(cell_uid, tc)
                     cell_size = sizes.get(cell_uid, font_size)
@@ -469,10 +489,10 @@ def build_typst_source(
                     lines.append(
                         _cover_rect(
                             cell_var,
-                            cx0,
-                            cy0,
-                            cx1,
-                            cy1,
+                            tx0,
+                            ty0,
+                            tx1,
+                            ty1,
                             cell_bg,
                             cfg.background.eraser_padding_pt,
                         )
@@ -480,10 +500,10 @@ def build_typst_source(
                     lines.append(
                         _text_block(
                             cell_var,
-                            cx0 + inset,
-                            cy0 + inset,
-                            cx1 - inset,
-                            cy1 - inset,
+                            tx0 + inset,
+                            ty0 + inset,
+                            tx1 - inset,
+                            ty1 - inset,
                             cell_md,
                             cell_size,
                             cfg.min_font_size_pt,
@@ -518,7 +538,8 @@ def build_typst_source(
                     )
                 )
 
-                if label == "TableOfContents":
+                use_fallback = var in fallback_vars
+                if not use_fallback and label == "TableOfContents":
                     lines.append(
                         _toc_block(
                             var,
@@ -534,7 +555,9 @@ def build_typst_source(
                             rendered_pages,
                         )
                     )
-                elif "<typst" in translated or "<math" in translated:
+                elif not use_fallback and (
+                    "<typst" in translated or "<math" in translated
+                ):
                     typst_markup = to_typst_native(translated)
                     is_single_line = (y1 - y0) < font_size * 1.8
                     # Single-line: expand block width to available horizontal
@@ -558,7 +581,7 @@ def build_typst_source(
                             expanded_w=exp_w,
                         )
                     )
-                elif _BARE_TYPST_MATH.search(translated):
+                elif not use_fallback and _BARE_TYPST_MATH.search(translated):
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
                     typst_markup = f"${_split_math_vars(translated)}$"
                     is_single_line = (y1 - y0) < font_size * 1.8

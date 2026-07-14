@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
 from pathlib import Path
 
 import fitz
 
 from .background import RGB, prepare_cover, sample_text_color
-from .compiler import compile_typst
+from .compiler import _TYPST_LOCATION, TypstCompileError, compile_typst
 from .config import RenderConfig
+from .labels import skip_oversize_element
 from .markup import (
     has_bare_latex,
     has_malformed_typst_math,
@@ -20,6 +22,35 @@ from .sizing import assign_render_sizes
 from .source_builder import build_typst_source
 
 logger = logging.getLogger(__name__)
+
+# Element markup definitions emitted by source_builder: #let e<p>_<i>_tm = [...],
+# #let e<p>_<i>_c<n>_md = "...", etc. Used to map compile errors back to elements.
+_ELEMENT_LET_RE = re.compile(r"#let (e\d+_\d+(?:_c\d+)?)_(?:tm|md|body|cover) = ")
+
+# Safety cap for the compile-repair loop; each retry downgrades at least one
+# new element. Large documents (100+ pages of dense math) can have more than a
+# handful of independently-broken elements, so this stays generous — each
+# retry is cheap (one more typst compile) next to failing the whole render.
+_MAX_COMPILE_REPAIRS = 30
+
+
+def _failing_element_vars(source: str, stderr: str) -> set[str]:
+    """Map Typst error line numbers back to the element vars whose markup failed.
+
+    For each ``…overlay.typ:LINE:COL`` in stderr, scan upward from LINE to the
+    nearest ``#let e<p>_<i>_…`` definition — that element's markup contains the
+    error. Errors outside any element definition are not attributed.
+    """
+    lines = source.splitlines()
+    found: set[str] = set()
+    for m in _TYPST_LOCATION.finditer(stderr):
+        line_no = min(int(m.group(1)), len(lines))
+        for idx in range(line_no - 1, -1, -1):
+            let_m = _ELEMENT_LET_RE.match(lines[idx])
+            if let_m:
+                found.add(let_m.group(1))
+                break
+    return found
 
 
 def render_document(
@@ -71,7 +102,8 @@ def render_document(
                 continue
             if category == "TABLE":
                 for cell in elem.get("cells", []):
-                    if cell.get("translated_text"):
+                    cell_source = cell.get("source_text") or ""
+                    if cell_source.strip() and cell.get("translated_text"):
                         stats["cells_rendered"] += 1
                     else:
                         stats["elements_skipped"] += 1
@@ -100,14 +132,39 @@ def render_document(
 
         overlay_pdf = work_dir / "overlay.pdf"
 
-        # 5. Compile
-        compile_typst(
-            typst_source,
-            font_paths=cfg.typst_font_paths,
-            output_pdf=overlay_pdf,
-            typst_bin=cfg.typst_binary,
-            work_dir=work_dir,
-        )
+        # 5. Compile — self-healing: if an element's markup breaks the build,
+        # rebuild with that element downgraded to plain text and retry.
+        fallback_vars: set[str] = set()
+        for attempt in range(_MAX_COMPILE_REPAIRS + 1):
+            try:
+                compile_typst(
+                    typst_source,
+                    font_paths=cfg.typst_font_paths,
+                    output_pdf=overlay_pdf,
+                    typst_bin=cfg.typst_binary,
+                    work_dir=work_dir,
+                )
+                break
+            except TypstCompileError as exc:
+                bad_vars = (
+                    _failing_element_vars(typst_source, exc.stderr) - fallback_vars
+                )
+                if not bad_vars or attempt == _MAX_COMPILE_REPAIRS:
+                    raise
+                fallback_vars |= bad_vars
+                logger.warning(
+                    "typst compile failed; retrying with plain-text fallback for: %s",
+                    ", ".join(sorted(bad_vars)),
+                )
+                typst_source = build_typst_source(
+                    parsed, sizes, bg_colors, text_colors, cfg, fallback_vars
+                )
+                if cfg.keep_typst_source:
+                    output_path.with_suffix(".typ").write_text(
+                        typst_source, encoding="utf-8"
+                    )
+        if fallback_vars:
+            stats["elements_fallback"] = len(fallback_vars)
 
         # 6. Redact native text layer if present (non-scanned PDFs)
         base_pdf = pdf_path
@@ -169,12 +226,28 @@ def _redact_text_layer(
                     continue
                 uid = f"p{page_idx}:e{elem_idx}"
 
+                # Mirror the overlay's skip rule exactly: whatever the overlay
+                # will not redraw must not be redacted here, or the original is
+                # erased with nothing put back. Minor/structural elements that
+                # span most of the page are mis-detections — keep the original.
+                if skip_oversize_element(
+                    elem.get("label", "Text"),
+                    elem.get("bbox_pdf", [0, 0, 10, 10]),
+                    pw,
+                    ph,
+                ):
+                    continue
+
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
-                        if not cell.get("translated_text"):
+                        cell_source = cell.get("source_text") or ""
+                        if not cell_source.strip() or not cell.get("translated_text"):
                             continue
                         cell_uid = f"{uid}:c{cell_idx}"
-                        cx0, cy0, cx1, cy1 = cell.get(
+                        # Strip native text only over bbox_text (tight box), not
+                        # the whole grid cell — mirrors the overlay's cover_rect
+                        # and keeps the cell's borders/background intact.
+                        cx0, cy0, cx1, cy1 = cell.get("bbox_text") or cell.get(
                             "bbox_pdf", elem.get("bbox_pdf", [0, 0, 10, 10])
                         )
                         fill = bg_colors.get(cell_uid, (255, 255, 255))
@@ -198,9 +271,6 @@ def _redact_text_layer(
                     ):
                         continue
                     x0, y0, x1, y1 = elem.get("bbox_pdf", [0, 0, 10, 10])
-                    elem_w, elem_h = x1 - x0, y1 - y0
-                    if (elem_w * elem_h) / (pw * ph) >= 0.50:
-                        continue
                     fill = bg_colors.get(uid, (255, 255, 255))
                     page.add_redact_annot(
                         fitz.Rect(x0 - pad, y0 - pad, x1 + pad, y1 + pad),
@@ -253,8 +323,12 @@ def _sample_colors(
 
                 if category == "TABLE":
                     for cell_idx, cell in enumerate(elem.get("cells", [])):
+                        cell_source = cell.get("source_text") or ""
+                        if not cell_source.strip():
+                            continue
                         cell_uid = f"{uid}:c{cell_idx}"
-                        cbbox = cell.get("bbox_pdf", bbox)
+                        # renderer.py:270 — dùng bbox_text (đồng bộ với render/redact), fallback về bbox_pdf
+                        cbbox = cell.get("bbox_text") or cell.get("bbox_pdf", bbox)
                         bg = prepare_cover(page, cbbox, pw, ph, cfg.background)
                         bg_colors[cell_uid] = bg.rgb
                         tc = sample_text_color(

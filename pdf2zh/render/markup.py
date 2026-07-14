@@ -93,14 +93,8 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     # 6. Strip any remaining unknown HTML tags (preserving < > inside $...$)
     result = _strip_tags_outside_math(result)
 
-    # 7. Escape literal < > that remain (comparison operators etc.)
-    result = result.replace("\\<", "\x00LT\x00").replace("\\>", "\x00GT\x00")
-    result = re.sub(r"<", r"\\<", result)
-    result = re.sub(r">", r"\\>", result)
-    result = result.replace("\x00LT\x00", "\\<").replace("\x00GT\x00", "\\>")
-
-    # 8. Escape Typst-special chars in plain text segments (outside $...$)
-    result = _escape_typst_outside_math(result, clean_math=False)
+    # 7 & 8. Escape Typst-special chars and literal < > in plain text segments (outside $...$)
+    result = _escape_typst_outside_math(result, clean_math=False, escape_lt_gt=True)
 
     return result
 
@@ -154,7 +148,9 @@ def _wrap_bare_latex(text: str) -> str:
     return "".join(out)
 
 
-def _escape_typst_outside_math(text: str, *, clean_math: bool = False) -> str:
+def _escape_typst_outside_math(
+    text: str, *, clean_math: bool = False, escape_lt_gt: bool = False
+) -> str:
     """Escape # and @ outside math delimiters; clean up LaTeX inside math if clean_math is True."""
     parts = _split_math(text)
     out = []
@@ -166,6 +162,11 @@ def _escape_typst_outside_math(text: str, *, clean_math: bool = False) -> str:
                 out.append(chunk)
         else:
             chunk = chunk.replace("#", "\\#").replace("@", "\\@")
+            if escape_lt_gt:
+                chunk = chunk.replace("\\<", "\x00LT\x00").replace("\\>", "\x00GT\x00")
+                chunk = re.sub(r"<", r"\\<", chunk)
+                chunk = re.sub(r">", r"\\>", chunk)
+                chunk = chunk.replace("\x00LT\x00", "\\<").replace("\x00GT\x00", "\\>")
             out.append(chunk)
     return "".join(out)
 
@@ -184,14 +185,25 @@ def _clean_math_chunk(chunk: str) -> str:
     if not m:
         return chunk
     open_d, content, close_d = m.group(1), m.group(2), m.group(3)
-    # Two-arg LaTeX commands (frac/binom) — convert before single-arg pass
+    # \limits and \nolimits are handled by Typst natively on operators, but raw \limits breaks Typst syntax. Strip them.
+    content = re.sub(r"\\(?:no)?limits(?![a-zA-Z])", "", content)
+    # \sqrt[n]{x} -> root(n, x)
     content = re.sub(
-        r"\\(frac|binom|tbinom|dbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
-        r"\1(\2, \3)",
+        r"\\sqrt\s*\[([^\[\]]+)\]\s*\{([^{}]*)\}", r"root(\1, \2)", content
+    )
+    # Two-arg LaTeX commands (frac/binom variants) — convert before single-arg pass
+    content = re.sub(
+        r"\\(?:frac|dfrac|tfrac|cfrac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"frac(\1, \2)",
         content,
     )
-    # Single-arg LaTeX command: \cmd{x} → cmd(x)
-    content = re.sub(r"\\([a-zA-Z]+)\s*\{([^{}]*)\}", r"\1(\2)", content)
+    content = re.sub(
+        r"\\(?:binom|dbinom|tbinom)\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"binom(\1, \2)",
+        content,
+    )
+    # Single-arg LaTeX command: \cmd{x} or \cmd*{x} → cmd(x)
+    content = re.sub(r"\\([a-zA-Z]+)\*?\s*\{([^{}]*)\}", r"\1(\2)", content)
     # Bare backslash command: \cmd → cmd
     content = re.sub(r"\\([a-zA-Z]+)", r"\1", content)
     # Drop \left / \right artefacts (already stripped above as 'left'/'right')
@@ -295,6 +307,11 @@ _MATH_REGION = re.compile(
     r"\$([^$]+)\$|<math\b[^>]*>(.*?)</math>", re.DOTALL | re.IGNORECASE
 )
 _ALPHA_DIGIT_ALPHA = re.compile(r"[a-zA-Z][0-9][a-zA-Z]")
+# Bare letter(s)+digit(s) token inside math regions — e.g. "F1", "R2" (an F1-score
+# or similar abbreviation dropped straight into $...$). mitex/Typst reads this as
+# a single unknown identifier and errors out. Underscored forms (x_1) are safe —
+# "_" is a word char, so it breaks the adjacency this pattern requires.
+_BARE_ALNUM_TOKEN = re.compile(r"\b[a-zA-Z]+[0-9]+\b")
 
 
 def has_malformed_typst_math(text: str) -> bool:
@@ -303,12 +320,13 @@ def has_malformed_typst_math(text: str) -> bool:
     Detects:
     - frac() with empty denominator: frac(x, )
     - letter-digit-letter identifiers inside math regions: t2c (garbled LLM output)
+    - bare letter+digit tokens inside math regions: F1, R2 (unknown Typst variable)
     """
     if _EMPTY_FRAC_RE.search(text):
         return True
     for m in _MATH_REGION.finditer(text):
         content = m.group(1) or m.group(2) or ""
-        if _ALPHA_DIGIT_ALPHA.search(content):
+        if _ALPHA_DIGIT_ALPHA.search(content) or _BARE_ALNUM_TOKEN.search(content):
             return True
     return False
 
@@ -517,9 +535,6 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "gt",
     "lt",
     "eq",
-    "ne",
-    "le",
-    "ge",
     "approx",
     "equiv",
     "subset",
@@ -537,6 +552,10 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "dots.v",
     "dots.down",
     "infty",
+    "iint",
+    "iiint",
+    "oint",
+    "int",
     "partial",
     "nabla",
     "ell",
@@ -547,18 +566,222 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "thin",
     "med",
     "thick",
+    "circle",
+    "ast",
+    "star",
+    "compose",
+    "bullet",
+    "without",
+    "wr",
+    "asymp",
+    "prop",
+    "models",
+    "perp",
+    "parallel",
+    "bowtie",
+    "smile",
+    "frown",
+    "aleph",
+    "wp",
+    "Re",
+    "Im",
+    "empty",
+    "surd",
+    "top",
+    "bot",
+    "angle",
+    "triangle",
+    "backslash",
+    "flat",
+    "natural",
+    "sharp",
+    "club",
+    "diamond",
+    "heart",
+    "spade",
+    "quad",
+    "wide",
+    "degree",
+    "dot",
+    "slash",
+    "bar",
+    "harpoon",
+    "brace",
+    "bracket",
+    "op",
+    "lr",
+    "dif",
 }
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
-_IDENT_ALPHA = re.compile(r"[a-zA-Z]{2,}")
+_IDENT_ALPHA = re.compile(r"[a-zA-Z]+(?:\.[a-zA-Z]+)+|[a-zA-Z]{2,}")
+_MATH_UNDERSCORE_IDENT = re.compile(r"\b[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)+\b")
 
 
 _LATEX_IDENT_RENAME: dict[str, str] = {
+    # Dots
     "cdot": "dot.op",
     "cdots": "dots.c",
-    "ldots": "dots.b",
+    "ldots": "dots",
     "vdots": "dots.v",
     "ddots": "dots.down",
+    # Fonts
+    "mathbf": "bold",
+    "mathrm": "upright",
+    "mathit": "italic",
+    "mathsf": "sans",
+    "mathtt": "mono",
+    "mathcal": "cal",
+    "mathbb": "bb",
+    "mathfrak": "frak",
+    "boldsymbol": "bold",
+    "text": "upright",
+    "textbf": "bold",
+    "textit": "italic",
+    "textrm": "upright",
+    "rm": "upright",
+    "bf": "bold",
+    "it": "italic",
+    "operatorname": "upright",
+    # Accents
+    "vec": "arrow",
+    "bar": "macron",
+    "check": "caron",
+    "ddot": "dot.double",
+    "dddot": "dot.triple",
+    "ddddot": "dot.quad",
+    "mathring": "circle",
+    # Operators & Symbols
+    "pm": "plus.minus",
+    "mp": "minus.plus",
+    "times": "times",
+    "div": "div",
+    "ast": "ast",
+    "star": "star",
+    "circ": "compose",
+    "bullet": "bullet",
+    "oplus": "plus.circle",
+    "ominus": "minus.circle",
+    "otimes": "times.circle",
+    "oslash": "div.circle",
+    "odot": "dot.circle",
+    "cup": "union",
+    "cap": "inter",
+    "uplus": "union.plus",
+    "sqcap": "inter.sq",
+    "sqcup": "union.sq",
+    "vee": "or",
+    "wedge": "and",
+    "setminus": "without",
+    "wr": "wr",
+    # Relations
+    "liminf": "liminf",
+    "limsup": "limsup",
+    "varliminf": "liminf",
+    "varlimsup": "limsup",
+    "varnothing": "empty",
+    "leq": "lt.eq",
+    "geq": "gt.eq",
+    "neq": "eq.not",
+    "le": "lt.eq",
+    "ge": "gt.eq",
+    "ne": "eq.not",
+    "ll": "lt.double",
+    "gg": "gt.double",
+    "equiv": "equiv",
+    "sim": "tilde.op",
+    "simeq": "tilde.eq",
+    "asymp": "asymp",
+    "approx": "approx",
+    "cong": "tilde.equiv",
+    "doteq": "eq.est",
+    "propto": "prop",
+    "models": "models",
+    "perp": "perp",
+    "mid": "bar.v",
+    "parallel": "parallel",
+    "bowtie": "bowtie",
+    "ltimes": "times.l",
+    "rtimes": "times.r",
+    "smile": "smile",
+    "frown": "frown",
+    "in": "in",
+    "notin": "in.not",
+    "ni": "in.rev",
+    "subset": "subset",
+    "supset": "supset",
+    "subseteq": "subset.eq",
+    "supseteq": "supset.eq",
+    # Arrows
+    "leftarrow": "arrow.l",
+    "rightarrow": "arrow.r",
+    "leftrightarrow": "arrow.l.r",
+    "Leftarrow": "arrow.l.double",
+    "Rightarrow": "arrow.r.double",
+    "Leftrightarrow": "arrow.l.r.double",
+    "mapsto": "arrow.r.bar",
+    "to": "arrow.r",
+    "implies": "arrow.r.double",
+    "iff": "arrow.l.r.double",
+    "gets": "arrow.l",
+    "hookleftarrow": "arrow.l.hook",
+    "hookrightarrow": "arrow.r.hook",
+    "rightharpoonup": "harpoon.rt",
+    "leftharpoonup": "harpoon.lt",
+    "rightharpoondown": "harpoon.rb",
+    "leftharpoondown": "harpoon.lb",
+    "rightleftharpoons": "harpoons.rtlb",
+    # Misc
+    "aleph": "aleph",
+    "wp": "wp",
+    "Re": "Re",
+    "Im": "Im",
+    "emptyset": "empty",
+    "nabla": "nabla",
+    "surd": "surd",
+    "top": "top",
+    "bot": "bot",
+    "angle": "angle",
+    "triangle": "triangle",
+    "backslash": "backslash",
+    "forall": "forall",
+    "exists": "exists",
+    "nexists": "exists.not",
+    "neg": "not",
+    "lnot": "not",
+    "flat": "flat",
+    "natural": "natural",
+    "sharp": "sharp",
+    "clubsuit": "club",
+    "diamondsuit": "diamond",
+    "heartsuit": "heart",
+    "spadesuit": "spade",
+    "infty": "infty",
+    "partial": "partial",
+    "quad": "quad",
+    "qquad": "wide",
+    "O": "O",
+    "degree": "degree",
+    # Brackets
+    "langle": "angle.l",
+    "rangle": "angle.r",
+    "lbrace": "brace.l",
+    "rbrace": "brace.r",
+    "lceil": "ceil.l",
+    "rceil": "ceil.r",
+    "lfloor": "floor.l",
+    "rfloor": "floor.r",
+    "lbrack": "bracket.l",
+    "rbrack": "bracket.r",
+}
+
+_TYPST_SYMBOL_IDENTIFIERS = frozenset(
+    value for value in _LATEX_IDENT_RENAME.values() if "." in value
+) | {
+    "dots.c",
+    "dots.b",
+    "dots.v",
+    "dots.down",
 }
 
 
@@ -569,19 +792,63 @@ def _split_math_vars(math_content: str) -> str:
     variables multiplied implicitly).  Known identifiers like ``frac``, ``sin``,
     ``theta`` etc. are kept intact, as are any word immediately followed by ``(``
     (function-call syntax).
+
+    Idempotent: quoted strings and escape sequences are protected up front, so
+    content that already went through this function (e.g. ``upright("page_index")``)
+    is never re-wrapped or letter-split on a second pass.
     """
+
+    protected: list[str] = []
+
+    def _stash_protected(m: re.Match) -> str:
+        protected.append(m.group(0))
+        return f"\x06{len(protected) - 1}\x07"
+
+    # Protect "..." string literals and \<char> escapes from every pass below.
+    math_content = re.sub(
+        r'"(?:[^"\\]|\\.)*"|\\[^a-zA-Z]', _stash_protected, math_content
+    )
+    # Bare # starts a code expression in Typst math; a remaining (unmatched)
+    # quote opens a string that swallows the rest of the source. Escape both.
+    math_content = math_content.replace("#", "\\#").replace('"', '\\"')
+    # An attach with no base/script ($_(x)$, $x_$, $x^$) is a parse error —
+    # give it an empty "" operand.
+    math_content = re.sub(r"^(\s*)([_^])", r'\1""\2', math_content)
+    math_content = re.sub(r"([_^])(\s*)$", r'\1""\2', math_content)
+
+    quoted_idents: list[str] = []
+
+    def _stash_underscore_ident(m: re.Match) -> str:
+        word = m.group(0)
+        parts = word.split("_")
+        # Keep valid Typst subscript chains: every segment is a single letter,
+        # a number, or a known identifier (sigma_x, sum_i, a_1, x_i_j).
+        if all(
+            len(part) == 1 or part.isdigit() or part in _TYPST_MATH_IDENTIFIERS
+            for part in parts
+        ):
+            return word
+        quoted_idents.append(f'upright("{word}")')
+        return f"\x04{len(quoted_idents) - 1}\x05"
+
+    math_content = _MATH_UNDERSCORE_IDENT.sub(_stash_underscore_ident, math_content)
 
     def _replace(m: re.Match) -> str:
         word = m.group(0)
+        if "." in word:
+            if word in _TYPST_SYMBOL_IDENTIFIERS:
+                return word
+            return word.replace(".", " ")
         # LaTeX identifier with a different Typst name — rename
         if word in _LATEX_IDENT_RENAME:
             return _LATEX_IDENT_RENAME[word]
         # Known Typst math identifier — keep as-is
         if word in _TYPST_MATH_IDENTIFIERS:
             return word
-        # Function call (followed by open paren) — keep as-is
+        # Function call (followed by open paren) — an unknown name would be an
+        # 'unknown variable' compile error, so quote it: TP(t) → upright("TP")(t)
         if m.end() < len(math_content) and math_content[m.end()] == "(":
-            return word
+            return f'upright("{word}")'
         # Try greedy left-to-right: peel off known identifiers, then single chars
         result_parts: list[str] = []
         i = 0
@@ -600,14 +867,27 @@ def _split_math_vars(math_content: str) -> str:
                 i += 1
         return " ".join(result_parts)
 
-    return _IDENT_ALPHA.sub(_replace, math_content)
+    math_content = _IDENT_ALPHA.sub(_replace, math_content)
+    if quoted_idents:
+        math_content = re.sub(
+            r"\x04(\d+)\x05",
+            lambda m: quoted_idents[int(m.group(1))],
+            math_content,
+        )
+    if protected:
+        math_content = re.sub(
+            r"\x06(\d+)\x07",
+            lambda m: protected[int(m.group(1))],
+            math_content,
+        )
+    return math_content
 
 
 def to_typst_native(text: str) -> str:
     """Convert hybrid HTML/Typst-math text to raw Typst markup string.
 
     Expects <math> tags to contain Typst math syntax (no backslash LaTeX).
-    Output is a Typst markup string suitable for eval(markup, mode: "markup").
+    Output is a Typst markup fragment suitable for embedding in Typst content.
     """
     if not text:
         return ""

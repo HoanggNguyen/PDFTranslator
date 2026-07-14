@@ -76,7 +76,10 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
         (page_idx, elem)
         for page_idx, page in enumerate(doc.get("pages", []))
         for elem in page.get("elements", [])
-        if elem.get("category") == "TABLE" and elem.get("cells")
+        if elem.get("category") == "TABLE"
+        and any(
+            (cell.get("source_text") or "").strip() for cell in elem.get("cells", [])
+        )
     ]
 
     if not tables:
@@ -89,18 +92,19 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
 
         async def _process(page_idx: int, elem: dict) -> None:
             cells = elem.get("cells", [])
-            if not cells:
+            cells_data = [
+                {
+                    "idx": i,
+                    "source_text": cell["source_text"],
+                    "bbox_pdf": cell.get("bbox_pdf", []),
+                }
+                for i, cell in enumerate(cells)
+                if (cell.get("source_text") or "").strip()
+            ]
+            if not cells_data:
                 return
             try:
                 img = _crop_bbox_image(pdf_path, page_idx, elem["bbox_pdf"])
-                cells_data = [
-                    {
-                        "idx": i,
-                        "source_text": c.get("source_text", ""),
-                        "bbox_pdf": c.get("bbox_pdf", []),
-                    }
-                    for i, c in enumerate(cells)
-                ]
                 prompt = (
                     f"Current OCR cells:\n{json.dumps(cells_data, ensure_ascii=False)}"
                 )
@@ -110,7 +114,12 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
                     return
                 for corr in result.get("cells", []):
                     idx = corr.get("idx")
-                    if not isinstance(idx, int) or idx >= len(cells):
+                    if (
+                        not isinstance(idx, int)
+                        or idx < 0
+                        or idx >= len(cells)
+                        or not (cells[idx].get("source_text") or "").strip()
+                    ):
                         continue
                     if "source_text" in corr:
                         cells[idx]["source_text"] = corr["source_text"]

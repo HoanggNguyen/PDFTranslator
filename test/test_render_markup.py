@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pdf2zh.render.markup import parse_toc_line, to_typst_markup
+from pdf2zh.render.markup import parse_toc_line, to_typst_markup, to_typst_native
 
 
 class TestMathConversion:
@@ -112,6 +112,81 @@ class TestMathAndProseEquation:
         )
         assert "$$\\frac{a+c}{b}$$" in out
         assert "a(b + c) = ab + ac" in out
+
+
+class TestTypstNativeMath:
+    def test_preserves_multilevel_symbol_modifiers(self):
+        out = to_typst_native("<math>arrow.r.double dot.triple</math>")
+        assert "$arrow.r.double dot.triple$" in out
+
+    def test_breaks_unknown_symbol_modifiers(self):
+        out = to_typst_native("<math>plus.unknown</math>")
+        assert "plus.unknown" not in out
+        assert "$plus u n k n o w n$" in out
+
+    def test_quotes_long_underscore_identifiers(self):
+        out = to_typst_native("<math>page_index = k</math>")
+        assert '$upright("page_index") = k$' in out
+
+    def test_preserves_simple_subscripts(self):
+        out = to_typst_native("<math>x_i + a_1</math>")
+        assert "$x_i + a_1$" in out
+
+
+class TestMathSanitizer:
+    """Regression tests: LLM math output must never break the Typst compile."""
+
+    def test_no_double_wrap_of_underscore_identifiers(self):
+        # Was: $upright("upright("page_index")")$ — nested unescaped quotes.
+        out = to_typst_native("<math>page_index = k</math>")
+        assert out == '$upright("page_index") = k$'
+
+    def test_existing_upright_quotes_untouched(self):
+        out = to_typst_native('<math>upright("page_index") = k</math>')
+        assert out == '$upright("page_index") = k$'
+
+    def test_quoted_strings_not_letter_split(self):
+        # Was: "pairs with" → "p a i r s w i t h"
+        out = to_typst_native('<math>x = "pairs with" y</math>')
+        assert '"pairs with"' in out
+
+    def test_bare_hash_escaped_in_math(self):
+        # Bare # in Typst math starts a code expression → compile error.
+        out = to_typst_native('<math>TP(t) = #{"pairs" IoU >= t}</math>')
+        assert "\\#" in out
+        assert '"pairs"' in out
+
+    def test_unknown_function_name_quoted(self):
+        # Bare TP(t) is 'unknown variable: TP' at compile time.
+        out = to_typst_native("<math>TP(t) = 1</math>")
+        assert 'upright("TP")(t)' in out
+
+    def test_known_function_call_kept(self):
+        out = to_typst_native("<math>frac(a, b)</math>")
+        assert "$frac(a, b)$" in out
+
+    def test_known_identifier_subscript_kept(self):
+        out = to_typst_native("<math>sigma_x^2</math>")
+        assert "$sigma_x^2$" in out
+
+    def test_leading_attach_gets_empty_base(self):
+        # $_(x)$ is 'unexpected underscore' — needs an empty base.
+        out = to_typst_native("<math>_(x)</math>")
+        assert '$""_(x)$' in out
+
+    def test_trailing_attach_gets_empty_script(self):
+        out = to_typst_native("<math>x_</math>")
+        assert '$x_""$' in out
+
+    def test_unmatched_quote_escaped(self):
+        # A lone quote opens a string that swallows the rest of the source.
+        out = to_typst_native('<math>x = "unclosed</math>')
+        assert '\\"' in out
+        assert out.count('"') % 2 == 0 or '\\"' in out
+
+    def test_typst_block_math_idempotent(self):
+        out = to_typst_native("<typst>page $page_index$ = k</typst>")
+        assert 'page $upright("page_index")$ = k' == out
 
 
 class TestTocLineParsing:

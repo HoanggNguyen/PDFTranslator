@@ -101,6 +101,7 @@ def test_chunking():
 
 def test_collect_translatables_on_sample():
     doc = load_fixture()
+    doc["pages"][0]["elements"][5]["cells"][3]["translated_text"] = "keep original"
     tasks = collect_translatables(doc)
 
     ids = [t.id for t in tasks]
@@ -145,6 +146,7 @@ def test_collect_translatables_on_sample():
     assert not any(t.text == "42.5" for t in tasks)
     # TABLE elem.source_text (the joined " | " string) not translated directly
     assert not any(t.text == "Accuracy | 42.5 | Precision" for t in tasks)
+    assert not any(t.text == "keep original" for t in tasks)
 
 
 # ── 5. end-to-end with mocked Gateway.call ──────────────────────────────────────
@@ -152,6 +154,7 @@ def test_collect_translatables_on_sample():
 
 def test_translate_document_end_to_end_mocked():
     doc = load_fixture()
+    doc["pages"][0]["elements"][5]["cells"][3]["translated_text"] = "keep original"
     cfg = _mock_cfg()
 
     mock_call = AsyncMock(side_effect=_echo_translations)
@@ -187,7 +190,7 @@ def test_translate_document_end_to_end_mocked():
     assert table["cells"][0]["source_text"] == "Accuracy"
     assert table["cells"][1]["translated_text"] == ""  # "42.5" — not plain text
     assert table["cells"][2]["translated_text"] == "<TR:Precision>"
-    assert table["cells"][3]["translated_text"] == ""  # empty cell
+    assert table["cells"][3]["translated_text"] == "keep original"
 
     # BYPASS element unchanged
     bypass = elems0[2]
