@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
 from pathlib import Path
 
 import fitz
 
 from .background import RGB, prepare_cover, sample_text_color
-from .compiler import compile_typst
+from .compiler import _TYPST_LOCATION, TypstCompileError, compile_typst
 from .config import RenderConfig
 from .labels import skip_oversize_element
 from .markup import (
@@ -21,6 +22,33 @@ from .sizing import assign_render_sizes
 from .source_builder import build_typst_source
 
 logger = logging.getLogger(__name__)
+
+# Element markup definitions emitted by source_builder: #let e<p>_<i>_tm = [...],
+# #let e<p>_<i>_c<n>_md = "...", etc. Used to map compile errors back to elements.
+_ELEMENT_LET_RE = re.compile(r"#let (e\d+_\d+(?:_c\d+)?)_(?:tm|md|body|cover) = ")
+
+# Safety cap for the compile-repair loop; each retry downgrades at least one
+# new element, so real documents converge in 1-2 iterations.
+_MAX_COMPILE_REPAIRS = 5
+
+
+def _failing_element_vars(source: str, stderr: str) -> set[str]:
+    """Map Typst error line numbers back to the element vars whose markup failed.
+
+    For each ``…overlay.typ:LINE:COL`` in stderr, scan upward from LINE to the
+    nearest ``#let e<p>_<i>_…`` definition — that element's markup contains the
+    error. Errors outside any element definition are not attributed.
+    """
+    lines = source.splitlines()
+    found: set[str] = set()
+    for m in _TYPST_LOCATION.finditer(stderr):
+        line_no = min(int(m.group(1)), len(lines))
+        for idx in range(line_no - 1, -1, -1):
+            let_m = _ELEMENT_LET_RE.match(lines[idx])
+            if let_m:
+                found.add(let_m.group(1))
+                break
+    return found
 
 
 def render_document(
@@ -102,14 +130,37 @@ def render_document(
 
         overlay_pdf = work_dir / "overlay.pdf"
 
-        # 5. Compile
-        compile_typst(
-            typst_source,
-            font_paths=cfg.typst_font_paths,
-            output_pdf=overlay_pdf,
-            typst_bin=cfg.typst_binary,
-            work_dir=work_dir,
-        )
+        # 5. Compile — self-healing: if an element's markup breaks the build,
+        # rebuild with that element downgraded to plain text and retry.
+        fallback_vars: set[str] = set()
+        for attempt in range(_MAX_COMPILE_REPAIRS + 1):
+            try:
+                compile_typst(
+                    typst_source,
+                    font_paths=cfg.typst_font_paths,
+                    output_pdf=overlay_pdf,
+                    typst_bin=cfg.typst_binary,
+                    work_dir=work_dir,
+                )
+                break
+            except TypstCompileError as exc:
+                bad_vars = _failing_element_vars(typst_source, exc.stderr) - fallback_vars
+                if not bad_vars or attempt == _MAX_COMPILE_REPAIRS:
+                    raise
+                fallback_vars |= bad_vars
+                logger.warning(
+                    "typst compile failed; retrying with plain-text fallback for: %s",
+                    ", ".join(sorted(bad_vars)),
+                )
+                typst_source = build_typst_source(
+                    parsed, sizes, bg_colors, text_colors, cfg, fallback_vars
+                )
+                if cfg.keep_typst_source:
+                    output_path.with_suffix(".typ").write_text(
+                        typst_source, encoding="utf-8"
+                    )
+        if fallback_vars:
+            stats["elements_fallback"] = len(fallback_vars)
 
         # 6. Redact native text layer if present (non-scanned PDFs)
         base_pdf = pdf_path

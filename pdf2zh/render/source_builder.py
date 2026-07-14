@@ -337,7 +337,15 @@ def build_typst_source(
     bg_colors: dict[str, RGB],
     text_colors: dict[str, RGB],
     cfg: RenderConfig,
+    fallback_vars: set[str] | frozenset[str] = frozenset(),
 ) -> str:
+    """Build the overlay Typst source.
+
+    Args:
+        fallback_vars: element vars (e.g. ``e3_7``) whose markup previously
+            broke the Typst compile — rendered via the plain markdown-string
+            path instead of native Typst markup (always syntactically valid).
+    """
     lines: list[str] = [
         f"#set text(font: {_font_typst(cfg.font_family)})",
         f'#import "@preview/cmarker:{CMARKER_VERSION}"',
@@ -414,7 +422,9 @@ def build_typst_source(
                 # skipped above). Fractions make the bbox taller than the actual
                 # text size, so use the cluster font_size, not y1 - y0.
                 eq_max_size = font_size
-                if "<math" in translated or "<typst" in translated:
+                if var not in fallback_vars and (
+                    "<math" in translated or "<typst" in translated
+                ):
                     typst_markup = to_typst_native(translated)
                     lines.append(
                         _text_block_typst(
@@ -528,7 +538,8 @@ def build_typst_source(
                     )
                 )
 
-                if label == "TableOfContents":
+                use_fallback = var in fallback_vars
+                if not use_fallback and label == "TableOfContents":
                     lines.append(
                         _toc_block(
                             var,
@@ -544,7 +555,9 @@ def build_typst_source(
                             rendered_pages,
                         )
                     )
-                elif "<typst" in translated or "<math" in translated:
+                elif not use_fallback and (
+                    "<typst" in translated or "<math" in translated
+                ):
                     typst_markup = to_typst_native(translated)
                     is_single_line = (y1 - y0) < font_size * 1.8
                     # Single-line: expand block width to available horizontal
@@ -568,7 +581,7 @@ def build_typst_source(
                             expanded_w=exp_w,
                         )
                     )
-                elif _BARE_TYPST_MATH.search(translated):
+                elif not use_fallback and _BARE_TYPST_MATH.search(translated):
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
                     typst_markup = f"${_split_math_vars(translated)}$"
                     is_single_line = (y1 - y0) < font_size * 1.8

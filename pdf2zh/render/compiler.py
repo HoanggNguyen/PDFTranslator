@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 _TYPST_LOCATION = re.compile(r"\.typ:(\d+):(\d+)")
 
 
+class TypstCompileError(RuntimeError):
+    """Typst compile failure carrying the full compiler stderr for diagnosis."""
+
+    def __init__(self, message: str, stderr: str = ""):
+        super().__init__(message)
+        self.stderr = stderr
+
+
 def _source_context(source: str, stderr: str, radius: int = 2) -> str:
     match = _TYPST_LOCATION.search(stderr)
     if not match:
@@ -44,7 +52,7 @@ def compile_typst(
         output_pdf path.
 
     Raises:
-        RuntimeError: If the typst process exits non-zero.
+        TypstCompileError: If the typst process exits non-zero.
     """
     work_dir = work_dir or output_pdf.parent
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -67,7 +75,9 @@ def compile_typst(
         if context:
             logger.error("Typst source near the failing markup:\n%s", context)
             tail = f"{tail}\n\nTypst source context:\n{context}"
-        raise RuntimeError(f"typst compile failed (exit {result.returncode}):\n{tail}")
+        raise TypstCompileError(
+            f"typst compile failed (exit {result.returncode}):\n{tail}", stderr=stderr
+        )
 
     logger.debug("typst compiled → %s", output_pdf)
     return output_pdf

@@ -599,6 +599,8 @@ _TYPST_MATH_IDENTIFIERS: set[str] = {
     "brace",
     "bracket",
     "op",
+    "lr",
+    "dif",
 }
 # Also build a pattern that matches a known identifier anchored at the start
 # of a word — used for greedy left-to-right tokenisation.
@@ -789,16 +791,41 @@ def _split_math_vars(math_content: str) -> str:
     variables multiplied implicitly).  Known identifiers like ``frac``, ``sin``,
     ``theta`` etc. are kept intact, as are any word immediately followed by ``(``
     (function-call syntax).
+
+    Idempotent: quoted strings and escape sequences are protected up front, so
+    content that already went through this function (e.g. ``upright("page_index")``)
+    is never re-wrapped or letter-split on a second pass.
     """
+
+    protected: list[str] = []
+
+    def _stash_protected(m: re.Match) -> str:
+        protected.append(m.group(0))
+        return f"\x06{len(protected) - 1}\x07"
+
+    # Protect "..." string literals and \<char> escapes from every pass below.
+    math_content = re.sub(
+        r'"(?:[^"\\]|\\.)*"|\\[^a-zA-Z]', _stash_protected, math_content
+    )
+    # Bare # starts a code expression in Typst math; a remaining (unmatched)
+    # quote opens a string that swallows the rest of the source. Escape both.
+    math_content = math_content.replace("#", "\\#").replace('"', '\\"')
+    # An attach with no base/script ($_(x)$, $x_$, $x^$) is a parse error —
+    # give it an empty "" operand.
+    math_content = re.sub(r'^(\s*)([_^])', r'\1""\2', math_content)
+    math_content = re.sub(r'([_^])(\s*)$', r'\1""\2', math_content)
 
     quoted_idents: list[str] = []
 
     def _stash_underscore_ident(m: re.Match) -> str:
         word = m.group(0)
         parts = word.split("_")
-        if len(parts) == 2 and all(len(part) == 1 for part in parts):
-            return word
-        if len(parts) == 2 and len(parts[0]) == 1 and parts[1].isdigit():
+        # Keep valid Typst subscript chains: every segment is a single letter,
+        # a number, or a known identifier (sigma_x, sum_i, a_1, x_i_j).
+        if all(
+            len(part) == 1 or part.isdigit() or part in _TYPST_MATH_IDENTIFIERS
+            for part in parts
+        ):
             return word
         quoted_idents.append(f'upright("{word}")')
         return f"\x04{len(quoted_idents) - 1}\x05"
@@ -817,9 +844,10 @@ def _split_math_vars(math_content: str) -> str:
         # Known Typst math identifier — keep as-is
         if word in _TYPST_MATH_IDENTIFIERS:
             return word
-        # Function call (followed by open paren) — keep as-is
+        # Function call (followed by open paren) — an unknown name would be an
+        # 'unknown variable' compile error, so quote it: TP(t) → upright("TP")(t)
         if m.end() < len(math_content) and math_content[m.end()] == "(":
-            return word
+            return f'upright("{word}")'
         # Try greedy left-to-right: peel off known identifiers, then single chars
         result_parts: list[str] = []
         i = 0
@@ -843,6 +871,12 @@ def _split_math_vars(math_content: str) -> str:
         math_content = re.sub(
             r"\x04(\d+)\x05",
             lambda m: quoted_idents[int(m.group(1))],
+            math_content,
+        )
+    if protected:
+        math_content = re.sub(
+            r"\x06(\d+)\x07",
+            lambda m: protected[int(m.group(1))],
             math_content,
         )
     return math_content
