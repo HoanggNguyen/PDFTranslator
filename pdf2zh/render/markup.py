@@ -307,6 +307,11 @@ _MATH_REGION = re.compile(
     r"\$([^$]+)\$|<math\b[^>]*>(.*?)</math>", re.DOTALL | re.IGNORECASE
 )
 _ALPHA_DIGIT_ALPHA = re.compile(r"[a-zA-Z][0-9][a-zA-Z]")
+# Bare letter(s)+digit(s) token inside math regions — e.g. "F1", "R2" (an F1-score
+# or similar abbreviation dropped straight into $...$). mitex/Typst reads this as
+# a single unknown identifier and errors out. Underscored forms (x_1) are safe —
+# "_" is a word char, so it breaks the adjacency this pattern requires.
+_BARE_ALNUM_TOKEN = re.compile(r"\b[a-zA-Z]+[0-9]+\b")
 
 
 def has_malformed_typst_math(text: str) -> bool:
@@ -315,12 +320,13 @@ def has_malformed_typst_math(text: str) -> bool:
     Detects:
     - frac() with empty denominator: frac(x, )
     - letter-digit-letter identifiers inside math regions: t2c (garbled LLM output)
+    - bare letter+digit tokens inside math regions: F1, R2 (unknown Typst variable)
     """
     if _EMPTY_FRAC_RE.search(text):
         return True
     for m in _MATH_REGION.finditer(text):
         content = m.group(1) or m.group(2) or ""
-        if _ALPHA_DIGIT_ALPHA.search(content):
+        if _ALPHA_DIGIT_ALPHA.search(content) or _BARE_ALNUM_TOKEN.search(content):
             return True
     return False
 

@@ -28,8 +28,10 @@ logger = logging.getLogger(__name__)
 _ELEMENT_LET_RE = re.compile(r"#let (e\d+_\d+(?:_c\d+)?)_(?:tm|md|body|cover) = ")
 
 # Safety cap for the compile-repair loop; each retry downgrades at least one
-# new element, so real documents converge in 1-2 iterations.
-_MAX_COMPILE_REPAIRS = 5
+# new element. Large documents (100+ pages of dense math) can have more than a
+# handful of independently-broken elements, so this stays generous — each
+# retry is cheap (one more typst compile) next to failing the whole render.
+_MAX_COMPILE_REPAIRS = 30
 
 
 def _failing_element_vars(source: str, stderr: str) -> set[str]:
