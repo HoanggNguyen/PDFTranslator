@@ -1,0 +1,12 @@
+# Bước A (dịch) — chỉ cần httpx (đã có trong pdf2zh) + tùy chọn datasets để liệt kê 55 cặp.
+# jsonl được tải trực tiếp bằng httpx nên KHÔNG bắt buộc `datasets`.
+datasets            # optional: chỉ cho list_all_pairs()
+google-auth         # optional: chỉ khi dùng --provider vertex (ADC project/region)
+
+# Bước B (chấm COMET) — chạy local CPU/MPS. LƯU Ý: unbabel-comet + torch thường ưa
+# Python 3.10–3.12. Nếu env chính là 3.13, tạo venv riêng cho bước chấm:
+#   python3.11 -m venv .venv-score && source .venv-score/bin/activate
+#   pip install -r benchmark/translation/requirements.txt
+unbabel-comet>=2.2.0
+sacrebleu>=2.4.0
+# torch được unbabel-comet kéo theo; trên Mac Apple Silicon: pip install torch (wheel arm64).
