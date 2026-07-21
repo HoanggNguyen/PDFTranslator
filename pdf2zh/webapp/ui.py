@@ -109,7 +109,7 @@ def _render_p3(session: dict, highlight: int | None = None):
 # --------------------------------------------------------------------------- #
 def build_ui() -> gr.Blocks:
     with gr.Blocks(title="PDF Translator", theme=gr.themes.Default()) as demo:
-        session = gr.State({})
+        sess_state = gr.State({})
         gr.Markdown(
             "# PDF Translator\n"
             "Dịch PDF end-to-end với 2 bước kiểm tra: **Phase 1** (sửa trích xuất) "
@@ -296,7 +296,7 @@ def build_ui() -> gr.Blocks:
             img = _render_p1(session)
             first_page = session["parsed"]["pages"][0]
             yield {
-                session: session,
+                sess_state: session,
                 status: "✅ Phase 1 xong — kiểm tra & sửa rồi bấm Xác nhận.",
                 p1_group: gr.update(visible=True),
                 p1_page_dd: gr.update(choices=page_choices, value=0),
@@ -311,7 +311,7 @@ def build_ui() -> gr.Blocks:
             session["p1_sel"] = None
             page = session["parsed"]["pages"][int(page_i)]
             return {
-                session: session,
+                sess_state: session,
                 p1_img: _render_p1(session),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=None),
                 p1_label: gr.update(value=None),
@@ -325,7 +325,7 @@ def build_ui() -> gr.Blocks:
             page = session["parsed"]["pages"][session["p1_page"]]
             elem = page["elements"][elem_i]
             return {
-                session: session,
+                sess_state: session,
                 p1_img: _render_p1(session, highlight=elem_i),
                 p1_elem_dd: gr.update(value=elem_i),
                 p1_label: gr.update(value=elem.get("label")),
@@ -344,12 +344,12 @@ def build_ui() -> gr.Blocks:
                 pts.append((x_px / _SCALE, y_px / _SCALE))
                 session["draw_pts"] = pts
                 if len(pts) == 1:
-                    return {session: session, p1_x0: pts[0][0], p1_y0: pts[0][1]}
+                    return {sess_state: session, p1_x0: pts[0][0], p1_y0: pts[0][1]}
                 # Second click: normalize the rectangle, then reset.
                 (ax, ay), (bx, by) = pts[0], pts[1]
                 session["draw_pts"] = []
                 return {
-                    session: session,
+                    sess_state: session,
                     p1_x0: min(ax, bx),
                     p1_y0: min(ay, by),
                     p1_x1: max(ax, bx),
@@ -374,7 +374,7 @@ def build_ui() -> gr.Blocks:
             )
             page = session["parsed"]["pages"][session["p1_page"]]
             return {
-                session: session,
+                sess_state: session,
                 p1_img: _render_p1(session, highlight=sel),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=sel),
                 status: f"⚠️ {msg}" if msg else "✅ Đã lưu element.",
@@ -390,7 +390,7 @@ def build_ui() -> gr.Blocks:
             page = session["parsed"]["pages"][page_i]
             session["p1_sel"] = new_idx
             return {
-                session: session,
+                sess_state: session,
                 p1_img: _render_p1(session, highlight=new_idx),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=new_idx),
                 p1_new_source: gr.update(value=""),
@@ -433,7 +433,7 @@ def build_ui() -> gr.Blocks:
             img = _render_p3(session)
             first_page = session["translated"]["pages"][0]
             yield {
-                session: session,
+                sess_state: session,
                 status: "✅ Đã dịch & dựng. Soát bản dịch rồi tải về.",
                 p3_group: gr.update(visible=True),
                 p3_pdf: session["out_path"],
@@ -450,7 +450,7 @@ def build_ui() -> gr.Blocks:
             session["p3_sel"] = None
             page = session["translated"]["pages"][int(page_i)]
             return {
-                session: session,
+                sess_state: session,
                 p3_img: _render_p3(session),
                 p3_elem_dd: gr.update(choices=_elem_choices(page), value=None),
                 p3_source: gr.update(value=""),
@@ -462,7 +462,7 @@ def build_ui() -> gr.Blocks:
             page = session["translated"]["pages"][session["p3_page"]]
             elem = page["elements"][elem_i]
             return {
-                session: session,
+                sess_state: session,
                 p3_img: _render_p3(session, highlight=elem_i),
                 p3_elem_dd: gr.update(value=elem_i),
                 p3_source: gr.update(value=elem.get("source_text", "")),
@@ -491,7 +491,7 @@ def build_ui() -> gr.Blocks:
                 session["translated"], session["p3_page"], sel, translated_text
             )
             return {
-                session: session,
+                sess_state: session,
                 status: "✅ Đã lưu bản dịch (bấm Render lại để cập nhật).",
             }
 
@@ -514,7 +514,7 @@ def build_ui() -> gr.Blocks:
                 return
             session["out_path"] = result.data["out_path"]
             yield {
-                session: session,
+                sess_state: session,
                 status: "✅ Đã render lại.",
                 p3_pdf: session["out_path"],
                 download: session["out_path"],
@@ -530,7 +530,7 @@ def build_ui() -> gr.Blocks:
         page_mode.change(on_page_mode, page_mode, [page_from, page_to])
 
         parse_out = [
-            session,
+            sess_state,
             status,
             p1_group,
             p1_page_dd,
@@ -543,7 +543,7 @@ def build_ui() -> gr.Blocks:
         parse_btn.click(
             do_parse,
             [
-                session,
+                sess_state,
                 pdf_in,
                 provider,
                 api_key,
@@ -557,7 +557,7 @@ def build_ui() -> gr.Blocks:
         )
 
         p1_edit_out = [
-            session,
+            sess_state,
             p1_img,
             p1_elem_dd,
             p1_label,
@@ -569,20 +569,20 @@ def build_ui() -> gr.Blocks:
             p1_y1,
             status,
         ]
-        p1_page_dd.change(on_p1_page, [session, p1_page_dd], p1_edit_out)
-        p1_img.select(on_p1_img_click, [session, p1_draw_mode], p1_edit_out)
-        p1_elem_dd.select(on_p1_pick, [session, p1_elem_dd], p1_edit_out)
+        p1_page_dd.change(on_p1_page, [sess_state, p1_page_dd], p1_edit_out)
+        p1_img.select(on_p1_img_click, [sess_state, p1_draw_mode], p1_edit_out)
+        p1_elem_dd.select(on_p1_pick, [sess_state, p1_elem_dd], p1_edit_out)
         p1_save_btn.click(
-            do_p1_save, [session, p1_label, p1_source, p1_bypass], p1_edit_out
+            do_p1_save, [sess_state, p1_label, p1_source, p1_bypass], p1_edit_out
         )
         p1_add_btn.click(
             do_p1_add,
-            [session, p1_x0, p1_y0, p1_x1, p1_y1, p1_new_label, p1_new_source],
+            [sess_state, p1_x0, p1_y0, p1_x1, p1_y1, p1_new_label, p1_new_source],
             p1_edit_out + [p1_new_source],
         )
 
         confirm_out = [
-            session,
+            sess_state,
             status,
             p3_group,
             p3_pdf,
@@ -593,12 +593,12 @@ def build_ui() -> gr.Blocks:
         ]
         confirm_btn.click(
             do_confirm,
-            [session, provider, api_key, model, lang_from, lang_to, font],
+            [sess_state, provider, api_key, model, lang_from, lang_to, font],
             confirm_out,
         )
 
         p3_edit_out = [
-            session,
+            sess_state,
             p3_img,
             p3_elem_dd,
             p3_source,
@@ -607,10 +607,10 @@ def build_ui() -> gr.Blocks:
             download,
             status,
         ]
-        p3_page_dd.change(on_p3_page, [session, p3_page_dd], p3_edit_out)
-        p3_img.select(on_p3_img_click, [session], p3_edit_out)
-        p3_elem_dd.select(on_p3_pick, [session, p3_elem_dd], p3_edit_out)
-        p3_save_btn.click(do_p3_save, [session, p3_translated], p3_edit_out)
-        rerender_btn.click(do_rerender, [session, font], p3_edit_out)
+        p3_page_dd.change(on_p3_page, [sess_state, p3_page_dd], p3_edit_out)
+        p3_img.select(on_p3_img_click, [sess_state], p3_edit_out)
+        p3_elem_dd.select(on_p3_pick, [sess_state, p3_elem_dd], p3_edit_out)
+        p3_save_btn.click(do_p3_save, [sess_state, p3_translated], p3_edit_out)
+        rerender_btn.click(do_rerender, [sess_state, font], p3_edit_out)
 
     return demo
