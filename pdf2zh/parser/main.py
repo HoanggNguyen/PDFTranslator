@@ -20,6 +20,7 @@ from pdf2zh.parser.enums import (
     DEFAULT_CATEGORY,
     SURYA_LABEL_MAP,
     ElementCategory,
+    SuryaLabel,
 )
 from pdf2zh.parser.models import (
     CellData,
@@ -804,21 +805,37 @@ class StageAParser:
     ) -> list[LayoutBlockResult]:
         refined_blocks: list[LayoutBlockResult] = []
 
+        # Labels that must always be split into per-line blocks and relabelled
+        # as plain text so downstream stages reflow/translate them like text.
+        force_text_labels = {SuryaLabel.TABLE_OF_CONTENTS, SuryaLabel.FORM}
+
         for block in blocks:
-            if block.category not in [
+            force_text = block.label in force_text_labels
+
+            if not force_text and block.category not in [
                 ElementCategory.FLOWING_TEXT,
                 ElementCategory.EQUATION,
             ]:
                 refined_blocks.append(block)
                 continue
 
-            split_label = block.label
-            split_category = block.category
-
-            is_equation = True if block.category == ElementCategory.EQUATION else False
+            if force_text:
+                # TableOfContents / Form -> treat as plain text, always split.
+                split_label = SuryaLabel.TEXT
+                split_category = ElementCategory.FLOWING_TEXT
+                always_convert = True
+            elif block.category == ElementCategory.EQUATION:
+                # Equations keep their label/category as before.
+                split_label = block.label
+                split_category = block.category
+                always_convert = True
+            else:
+                split_label = block.label
+                split_category = block.category
+                always_convert = False
 
             is_sparse, text_lines = is_sparse_text_block(
-                page_ocr.ocr_result, block.bbox_image, is_equation
+                page_ocr.ocr_result, block.bbox_image, always_convert
             )
 
             if not is_sparse:
