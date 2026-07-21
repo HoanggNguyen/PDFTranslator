@@ -40,6 +40,7 @@ from pdf2zh.parser.models import (
 from pdf2zh.parser.utils.bbox import (
     bbox_area,
     bbox_intersection,
+    bbox_iou,
     bbox_union_area,
     clamp_bbox,
     convert_bbox,
@@ -273,9 +274,16 @@ class StageAParser:
             for block in layout_page.blocks:
                 source_text = ""
                 cells: list[CellData] = []
+                element_label = block.label
+                element_category = block.category
 
                 if block.category == ElementCategory.BYPASS:
-                    pass
+                    text_line = self._single_text_line_in_figure(block, page_ocr)
+                    if text_line is not None:
+                        # Figure gán nhầm cho 1 dòng text -> coi như flowing text.
+                        source_text = smart_join_text_lines([text_line])
+                        element_label = SuryaLabel.TEXT
+                        element_category = ElementCategory.FLOWING_TEXT
                 elif block.category == ElementCategory.TABLE:
                     table_block = table_map.get(block.block_id)
                     if table_block is None:
@@ -398,8 +406,8 @@ class StageAParser:
 
                 elements.append(
                     ElementData(
-                        label=block.label,
-                        category=block.category,
+                        label=element_label,
+                        category=element_category,
                         bbox_pdf=block.bbox_pdf,
                         source_text=source_text,
                         translated_text="",
@@ -793,6 +801,36 @@ class StageAParser:
                 filtered_blocks.append(block)
 
         return sorted(filtered_blocks, key=lambda item: item.position)
+
+    def _single_text_line_in_figure(
+        self,
+        block: LayoutBlockResult,
+        page_ocr: OCRPageResult,
+        iou_threshold: float = 0.75,
+    ) -> Any | None:
+        """Figure có đúng 1 textline lấp gần kín vùng -> trả về textline đó.
+
+        Surya đôi khi gán 1 dòng text lẻ thành Figure. Khi vùng figure chứa
+        ĐÚNG 1 OCR textline và textline đó gần như trùng khớp với vùng
+        (IoU >= iou_threshold), coi như text bị gán nhầm; ngược lại trả None.
+        """
+        if block.label not in [SuryaLabel.FIGURE, SuryaLabel.PICTURE]:
+            return None
+
+        lines = extract_text_for_region(page_ocr.ocr_result, block.bbox_image)
+        if len(lines) != 1:
+            return None
+        
+        print("hello")
+
+        line_bbox = get_line_bbox(lines[0])
+        if line_bbox is None or is_degenerate(line_bbox):
+            return None
+        print(bbox_iou(block.bbox_image, line_bbox))
+        if bbox_iou(block.bbox_image, line_bbox) < iou_threshold:
+            return None
+
+        return lines[0]
 
     def _refine_sparse_text_blocks(
         self,
