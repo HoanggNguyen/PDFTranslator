@@ -13,9 +13,10 @@ import tempfile
 import threading
 import traceback
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +45,17 @@ class Progress:
 
 @dataclass(frozen=True)
 class Result:
-    """The terminal outcome of a run."""
+    """The terminal outcome of a run.
+
+    ``data`` carries the step's payload for the stepped flow (e.g. the parsed
+    dict, or ``{"translated": ..., "out_path": ...}``). ``out_path`` is kept for
+    the legacy one-shot ``stream_translation`` path.
+    """
 
     status: str  # "ok" | "invalid" | "error"
     out_path: str | None = None
     detail: str = ""
+    data: Any = None
 
 
 def validate(req: TranslationRequest) -> str | None:
@@ -133,3 +140,95 @@ def stream_translation(req: TranslationRequest) -> Iterator[Progress | Result]:
         yield item
         if isinstance(item, Result):
             return
+
+
+# --------------------------------------------------------------------------- #
+# Stepped flow — run one phase in a worker thread and stream its progress.
+# --------------------------------------------------------------------------- #
+def _stream(
+    fn: Callable[[Callable[[float, str], None]], Any],
+) -> Iterator[Progress | Result]:
+    """Run ``fn(progress_cb)`` in a worker thread; stream Progress then a Result.
+
+    ``fn`` receives a ``progress(frac, msg)`` callback and returns the payload
+    placed on ``Result.data``. A ValueError becomes an ``invalid`` result
+    (user-facing input error); anything else becomes an ``error`` result.
+    """
+    q: queue.Queue = queue.Queue()
+
+    def on_progress(frac: float, msg: str) -> None:
+        q.put(Progress(frac, msg))
+
+    def worker() -> None:
+        try:
+            data = fn(on_progress)
+            q.put(Result("ok", data=data))
+        except ValueError as exc:
+            q.put(Result("invalid", detail=str(exc)))
+        except Exception as exc:  # noqa: BLE001 — surface anything else to the UI
+            logger.exception("step failed")
+            tail = "".join(traceback.format_exc().splitlines(keepends=True)[-6:])
+            q.put(
+                Result("error", detail=f"{type(exc).__name__}: {exc}\n```\n{tail}\n```")
+            )
+
+    threading.Thread(target=worker, daemon=True).start()
+    while True:
+        item = q.get()
+        yield item
+        if isinstance(item, Result):
+            return
+
+
+def stream_parse(
+    pdf_path: str, pages: list[int] | None, work_dir: str | Path
+) -> Iterator[Progress | Result]:
+    """Phase 1 — parse. ``Result.data`` is the parsed doc dict."""
+    from pdf2zh.e2e import run_parse
+
+    return _stream(lambda p: run_parse(pdf_path, pages, work_dir, p))
+
+
+def stream_translate_render(
+    pdf_path: str,
+    parsed: dict,
+    src_lang: str,
+    tgt_lang: str,
+    provider: str,
+    api_key: str,
+    model: str | None,
+    pages: list[int] | None,
+    font: str,
+    work_dir: str | Path,
+) -> Iterator[Progress | Result]:
+    """Phase 2 + 3 — translate the (edited) parsed doc, then render.
+
+    ``Result.data`` is ``{"translated": dict, "out_path": str}``.
+    """
+    from pdf2zh.e2e import run_render, run_translate
+
+    def fn(p: Callable[[float, str], None]) -> dict:
+        translated = run_translate(
+            parsed, src_lang, tgt_lang, provider, api_key, model, work_dir, p
+        )
+        out_path = run_render(pdf_path, translated, pages, font, work_dir, p)
+        return {"translated": translated, "out_path": out_path}
+
+    return _stream(fn)
+
+
+def stream_render(
+    pdf_path: str,
+    translated: dict,
+    pages: list[int] | None,
+    font: str,
+    work_dir: str | Path,
+) -> Iterator[Progress | Result]:
+    """Phase 3 only — re-render the (edited) translated doc. ``Result.data`` is
+    ``{"out_path": str}``."""
+    from pdf2zh.e2e import run_render
+
+    def fn(p: Callable[[float, str], None]) -> dict:
+        return {"out_path": run_render(pdf_path, translated, pages, font, work_dir, p)}
+
+    return _stream(fn)

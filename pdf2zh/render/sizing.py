@@ -96,7 +96,8 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
       2. For each element: use source_canonical unless translated text overflows
          AND the overflow region collides with another element on the same page.
          Harmless overflow (into empty space) is allowed to preserve uniformity.
-         Table cells always use MIN cap since adjacent cells always collide.
+         Table cells use one uniform size per table (the source cluster
+         canonical, like regular text) so a text-heavy cell can't shrink all.
 
     uid format:
       "p{page_idx}:e{elem_idx}"              for elements
@@ -167,9 +168,8 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     cell_source = cell.get("source_text") or ""
                     if not cell_source.strip():
                         continue
-                    cell_translated = cell.get("translated_text") or ""
-                    # Size the text for bbox_text (tight box hugging the text) so
-                    # it matches where source_builder actually places it.
+                    # Size from bbox_text (tight box hugging the text) so it
+                    # matches where source_builder actually places it.
                     cbbox = cell.get("bbox_text") or cell.get("bbox_pdf", parent_bbox)
                     cw = max(1.0, cbbox[2] - cbbox[0])
                     ch = max(1.0, cbbox[3] - cbbox[1])
@@ -180,12 +180,6 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                         if cell_source.strip()
                         else (pdf_cs if pdf_cs > 0 else cfg.fallback_size)
                     )
-                    t_cs = (
-                        _autofit(cell_translated, cw, ch, cfg)
-                        if cell_translated.strip()
-                        else cfg.fallback_size
-                    )
-                    translated_ceiling[cell_uid] = t_cs
                     raw.setdefault(table_bucket, []).append((cell_uid, src_cs))
 
     # ---- cluster on source, assign per-element sizes ----
@@ -212,10 +206,11 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
         source_canonical = _median([s for s, _ in best_cluster])
 
         if is_table:
-            # Table cells are always adjacent — overflow always collides.
-            # Use MIN translated ceiling so no cell ever overflows into its neighbor.
-            t_ceilings = [translated_ceiling.get(uid, fallback) for uid, _ in items]
-            canonical = min(source_canonical, min(t_ceilings)) * cfg.cell_font_scale
+            # One uniform size per table, detected from the source cell sizes
+            # (the cluster canonical — same method as regular text), NOT the min
+            # of translated ceilings: a single text-heavy cell no longer shrinks
+            # the whole table. cell_font_scale keeps text clear of cell borders.
+            canonical = source_canonical * cfg.cell_font_scale
             canonical = max(max(2.0, fallback * 0.5), canonical)
             for uid, _ in items:
                 result[uid] = canonical
