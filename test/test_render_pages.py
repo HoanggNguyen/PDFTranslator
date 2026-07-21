@@ -176,3 +176,68 @@ class TestCollisionAwareSizing:
         assert size_free > size_near + 0.5
         # And the text is allowed to overflow below the tight bbox (y1 = 110).
         assert bottom_free > 110
+
+    _LONG_TITLE = (
+        "A very long translated chapter title that would run past the page number "
+        "column if it were allowed to expand all the way to the right page margin"
+    )
+
+    def _title_right_edge(self, tmp_path, with_number):
+        pdf_path = tmp_path / f"toc_{with_number}.pdf"
+        doc = fitz.open()
+        doc.new_page(width=595, height=842)
+        doc.save(str(pdf_path))
+        doc.close()
+
+        els = [
+            {
+                "label": "Text",
+                "category": "FLOWING_TEXT",
+                "bbox_pdf": [80, 40, 290, 56],  # single-line title
+                "source_text": "Short",
+                "translated_text": self._LONG_TITLE,
+                "cells": [],
+            }
+        ]
+        if with_number:
+            els.append(
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "bbox_pdf": [527, 40, 543, 53],  # page number, same row
+                    "source_text": "ii",
+                    "translated_text": "ii",
+                    "cells": [],
+                }
+            )
+        parsed = {
+            "pages": [
+                {
+                    "page_index": 0,
+                    "page_width": 595,
+                    "page_height": 842,
+                    "elements": els,
+                }
+            ]
+        }
+        out = tmp_path / f"toc_out_{with_number}.pdf"
+        render_document(pdf_path, parsed, out, RenderConfig(typst_binary=TYPST))
+        doc = fitz.open(str(out))
+        try:
+            right = 0.0
+            for b in doc[0].get_text("dict")["blocks"]:
+                for line in b.get("lines", []):
+                    for s in line["spans"]:
+                        if s["text"].strip() != "ii":
+                            right = max(right, s["bbox"][2])
+            return right
+        finally:
+            doc.close()
+
+    def test_single_line_title_stops_before_right_neighbor(self, tmp_path):
+        with_num = self._title_right_edge(tmp_path, with_number=True)
+        without_num = self._title_right_edge(tmp_path, with_number=False)
+        # With a page number on the right, the title must not overrun its left edge.
+        assert with_num <= 527.5
+        # Without it, the title is free to use the rest of the page width.
+        assert without_num > with_num

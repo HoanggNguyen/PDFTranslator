@@ -210,6 +210,30 @@ def _downward_avail_height(
     return max(y1 - y0, limit - y0)
 
 
+def _rightward_avail_width(
+    bbox: list[float],
+    all_bboxes: list[list[float]],
+    page_width: float,
+) -> float:
+    """Block width that lets single-line text extend RIGHT into empty space only.
+
+    Extends the tight bbox width rightward until it would reach the nearest
+    element to the right that vertically overlaps it — capped by the page edge.
+    Without this, a single-line block expands to the page margin and can overrun
+    a right-hand neighbor (e.g. a TOC page number) without shrinking; bounding it
+    lets the no-wrap fit shrink the text before it collides.
+    """
+    x0, y0, x1, y1 = bbox
+    limit = page_width
+    for ob in all_bboxes:
+        if ob is bbox or len(ob) != 4:
+            continue
+        ox0, oy0, _, oy1 = ob
+        if ox0 >= x1 - 0.5 and oy0 < y1 and oy1 > y0:  # right & vertically overlaps
+            limit = min(limit, ox0)
+    return max(x1 - x0, limit - x0)
+
+
 def _text_block(
     var: str,
     x0: float,
@@ -595,7 +619,11 @@ def build_typst_source(
                     is_single_line = (y1 - y0) < font_size * 1.8
                     # Single-line: expand block width to available horizontal
                     # space so text flows right instead of wrapping down.
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
                     exp_h = (
                         _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
                         if cfg.expand_downward and not is_single_line
@@ -624,7 +652,11 @@ def build_typst_source(
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
                     typst_markup = f"${_split_math_vars(translated)}$"
                     is_single_line = (y1 - y0) < font_size * 1.8
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
                     exp_h = (
                         _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
                         if cfg.expand_downward and not is_single_line
@@ -653,7 +685,11 @@ def build_typst_source(
                     # No <math> tags, no Typst functions — plain text/LaTeX, use cmarker/mitex
                     markdown = to_typst_markup(translated)
                     is_single_line = (y1 - y0) < font_size * 1.8
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
                     exp_h = (
                         _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
                         if cfg.expand_downward and not is_single_line
