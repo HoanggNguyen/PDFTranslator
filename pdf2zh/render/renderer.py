@@ -339,10 +339,21 @@ def _sample_colors(
                         text_colors[cell_uid] = tc
                         stats["bg_samples"] += 1
                 else:
-                    bg = prepare_cover(page, bbox, pw, ph, cfg.background)
-                    bg_colors[uid] = bg.rgb
-                    tc = sample_text_color(page, bbox, pw, ph, bg.rgb, cfg.text_color)
-                    text_colors[uid] = tc
+                    # User-added boxes may carry explicit color overrides
+                    # (review.add_element); honor them instead of sampling.
+                    ov_bg = elem.get("bg_color")
+                    ov_tc = elem.get("text_color")
+                    if ov_bg:
+                        bg_rgb = tuple(ov_bg)
+                    else:
+                        bg_rgb = prepare_cover(page, bbox, pw, ph, cfg.background).rgb
+                    bg_colors[uid] = bg_rgb
+                    if ov_tc:
+                        text_colors[uid] = tuple(ov_tc)
+                    else:
+                        text_colors[uid] = sample_text_color(
+                            page, bbox, pw, ph, bg_rgb, cfg.text_color
+                        )
                     stats["bg_samples"] += 1
     finally:
         doc.close()

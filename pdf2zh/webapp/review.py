@@ -51,6 +51,38 @@ def _category_for_label(label: str) -> str:
     return SURYA_LABEL_MAP.get(label, DEFAULT_CATEGORY).value
 
 
+def hex_to_rgb(value: str | None) -> list[int] | None:
+    """Parse a CSS color string into ``[r, g, b]`` ints, or None if unparseable.
+
+    Accepts ``#rgb`` / ``#rrggbb`` and ``rgb(...)`` / ``rgba(...)`` forms (what
+    ``gr.ColorPicker`` emits). Alpha is ignored. None lets the caller fall back
+    to auto-sampling instead of crashing on a stray value.
+    """
+    if not value or not isinstance(value, str):
+        return None
+    s = value.strip()
+    if s.startswith("#"):
+        h = s[1:]
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        if len(h) != 6:
+            return None
+        try:
+            return [int(h[i : i + 2], 16) for i in (0, 2, 4)]
+        except ValueError:
+            return None
+    if s.lower().startswith(("rgb(", "rgba(")):
+        try:
+            inner = s[s.index("(") + 1 : s.rindex(")")]
+            parts = inner.split(",")
+            if len(parts) < 3:
+                return None
+            return [max(0, min(255, round(float(p)))) for p in parts[:3]]
+        except ValueError:
+            return None
+    return None
+
+
 def render_page_with_boxes(
     pdf_path: str,
     page_index: int,
@@ -97,6 +129,76 @@ def render_page_with_boxes(
         draw.text((x0 + 2, max(0, y0 - 12)), str(elem_idx), fill=color)
 
     return img, boxes, scale
+
+
+def render_page_plain(
+    pdf_path: str,
+    page_index: int,
+    dpi: int = 150,
+) -> tuple[Image.Image, tuple[int, int]]:
+    """Rasterize page ``page_index`` with no boxes drawn.
+
+    Returns ``(image, (width, height))`` in image pixels. Uses ``_fitz_render``
+    directly (deterministic ``dpi/72`` scale), matching ``render_page_with_boxes``.
+    """
+    doc = fitz.open(pdf_path)
+    try:
+        if page_index < 0 or page_index >= doc.page_count:
+            raise IndexError(f"page_index {page_index} out of range")
+        img = _fitz_render(doc[page_index], dpi).convert("RGB")
+    finally:
+        doc.close()
+    return img, (img.width, img.height)
+
+
+def overlay_svg(
+    elements: list[dict],
+    scale: float,
+    width: int,
+    height: int,
+    highlight_idx: int | None = None,
+) -> tuple[str, list[dict]]:
+    """Build an SVG overlay drawing each element's bbox + index, and the boxes list.
+
+    Mirrors the drawing loop of ``render_page_with_boxes`` so ``boxes`` is
+    identical (same ``bbox_img``/``elem_idx``/``category``) — ``hit_test`` is
+    unchanged. Only integers and fixed colors are emitted, so no escaping is
+    needed. The svg box equals the ``<img>`` box exactly (viewBox aspect ==
+    natural aspect), so rects align pixel-for-pixel with the base raster.
+    """
+    boxes: list[dict] = []
+    parts = [
+        f'<svg viewBox="0 0 {width} {height}" width="100%" '
+        f'preserveAspectRatio="none" '
+        f'style="display:block;width:100%;height:auto">'
+    ]
+    for elem_idx, elem in enumerate(elements):
+        bbox_pdf = elem.get("bbox_pdf")
+        if not bbox_pdf or len(bbox_pdf) != 4:
+            continue
+        x0, y0, x1, y1 = (v * scale for v in bbox_pdf)
+        category = elem.get("category", "")
+        boxes.append(
+            {"elem_idx": elem_idx, "bbox_img": [x0, y0, x1, y1], "category": category}
+        )
+
+        if elem_idx == highlight_idx:
+            color, stroke = _COLOR_HIGHLIGHT, 3
+        elif category == "BYPASS":
+            color, stroke = _COLOR_BYPASS, 1
+        else:
+            color, stroke = _COLOR_TRANSLATABLE, 2
+        rgb = f"rgb({color[0]},{color[1]},{color[2]})"
+        parts.append(
+            f'<rect x="{x0}" y="{y0}" width="{x1 - x0}" height="{y1 - y0}" '
+            f'fill="none" stroke="{rgb}" stroke-width="{stroke}"/>'
+        )
+        parts.append(
+            f'<text x="{x0 + 2}" y="{max(0, y0 - 2)}" font-size="12" '
+            f'fill="{rgb}">{elem_idx}</text>'
+        )
+    parts.append("</svg>")
+    return "".join(parts), boxes
 
 
 def hit_test(boxes: list[dict], x_img: float, y_img: float) -> int | None:
@@ -184,22 +286,29 @@ def add_element(
     bbox_pdf: list[float],
     label: str,
     source_text: str,
+    bg_color: list[int] | None = None,
+    text_color: list[int] | None = None,
 ) -> int:
     """Append a new element to a page (for a missed region). Returns its elem_idx.
 
     Appending keeps existing element indices — and therefore color uids — stable.
+    ``bg_color`` / ``text_color`` (RGB ints), when given, override the render's
+    per-element color sampling (see ``renderer._sample_colors``).
     """
     elements = parsed["pages"][page_i]["elements"]
-    elements.append(
-        {
-            "label": label,
-            "category": _category_for_label(label),
-            "bbox_pdf": [float(v) for v in bbox_pdf],
-            "source_text": source_text,
-            "translated_text": "",
-            "cells": [],
-        }
-    )
+    elem = {
+        "label": label,
+        "category": _category_for_label(label),
+        "bbox_pdf": [float(v) for v in bbox_pdf],
+        "source_text": source_text,
+        "translated_text": "",
+        "cells": [],
+    }
+    if bg_color is not None:
+        elem["bg_color"] = [int(c) for c in bg_color]
+    if text_color is not None:
+        elem["text_color"] = [int(c) for c in text_color]
+    elements.append(elem)
     return len(elements) - 1
 
 

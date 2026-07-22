@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import uuid
 from pathlib import Path
 from typing import Callable, Optional
@@ -236,8 +237,22 @@ def run_pipeline(
     if not src_lang or not tgt_lang:
         raise ValueError("Chọn ngôn ngữ nguồn và ngôn ngữ đích.")
 
+    t0 = time.perf_counter()
     parsed = run_parse(pdf_path, pages, work_dir, progress)
+    t1 = time.perf_counter()
     translated = run_translate(
         parsed, src_lang, tgt_lang, provider, api_key, model, work_dir, progress
     )
-    return run_render(pdf_path, translated, pages, font, work_dir, progress)
+    t2 = time.perf_counter()
+    out_path = run_render(pdf_path, translated, pages, font, work_dir, progress)
+    t3 = time.perf_counter()
+    # End-to-end runs only (the stepped UI calls run_parse/translate/render
+    # directly). Logged last so the breakdown is easy to trace after a run.
+    logger.info(
+        "[latency] parse=%.2fs translate=%.2fs render=%.2fs total=%.2fs",
+        t1 - t0,
+        t2 - t1,
+        t3 - t2,
+        t3 - t0,
+    )
+    return out_path

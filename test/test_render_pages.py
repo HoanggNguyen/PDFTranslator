@@ -241,3 +241,40 @@ class TestCollisionAwareSizing:
         assert with_num <= 527.5
         # Without it, the title is free to use the rest of the page width.
         assert without_num > with_num
+
+
+class TestColorOverride:
+    """User-added boxes may carry explicit bg/text colors (review.add_element)."""
+
+    def test_sample_colors_honors_element_overrides(self, tmp_path):
+        from pdf2zh.render.renderer import _sample_colors
+
+        pdf = tmp_path / "p.pdf"
+        _make_pdf(pdf, 1)
+        parsed = {
+            "pages": [
+                {
+                    "page_index": 0,
+                    "page_width": 300,
+                    "page_height": 200,
+                    "elements": [
+                        {
+                            "category": "FLOWING_TEXT",
+                            "label": "Text",
+                            "bbox_pdf": [20, 30, 120, 55],
+                            "source_text": "x",
+                            "translated_text": "y",
+                            "bg_color": [10, 20, 30],
+                            "text_color": [200, 100, 50],
+                        }
+                    ],
+                }
+            ]
+        }
+        bg_colors: dict = {}
+        text_colors: dict = {}
+        stats = {"bg_samples": 0}
+        _sample_colors(pdf, parsed, RenderConfig(), {}, bg_colors, text_colors, stats)
+        # Override used verbatim — no sampling from the page pixels.
+        assert bg_colors["p0:e0"] == (10, 20, 30)
+        assert text_colors["p0:e0"] == (200, 100, 50)

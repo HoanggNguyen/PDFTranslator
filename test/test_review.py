@@ -11,9 +11,12 @@ from pdf2zh.webapp.review import (
     add_element,
     apply_phase1_edit,
     apply_phase2_edit,
+    hex_to_rgb,
     hit_test,
     normalize_click,
     output_page_position,
+    overlay_svg,
+    render_page_plain,
     render_page_with_boxes,
 )
 
@@ -150,6 +153,47 @@ class TestAddElement:
         assert elem["source_text"] == "một chú thích"
         assert elem["translated_text"] == ""
 
+    def test_no_color_keys_when_not_provided(self):
+        doc = _doc_with([])
+        add_element(doc, 0, [0, 0, 10, 10], "Text", "x")
+        elem = doc["pages"][0]["elements"][0]
+        assert "bg_color" not in elem
+        assert "text_color" not in elem
+
+    def test_stores_color_overrides_when_provided(self):
+        doc = _doc_with([])
+        add_element(
+            doc,
+            0,
+            [0, 0, 10, 10],
+            "Text",
+            "x",
+            bg_color=[255, 200, 0],
+            text_color=[10, 20, 30],
+        )
+        elem = doc["pages"][0]["elements"][0]
+        assert elem["bg_color"] == [255, 200, 0]
+        assert elem["text_color"] == [10, 20, 30]
+
+
+class TestHexToRgb:
+    def test_six_digit_hex(self):
+        assert hex_to_rgb("#ffcc00") == [255, 204, 0]
+
+    def test_three_digit_hex_expands(self):
+        assert hex_to_rgb("#fc0") == [255, 204, 0]
+
+    def test_rgb_and_rgba_forms(self):
+        assert hex_to_rgb("rgb(255, 204, 0)") == [255, 204, 0]
+        assert hex_to_rgb("rgba(255, 204, 0, 0.5)") == [255, 204, 0]
+
+    def test_bad_values_return_none(self):
+        assert hex_to_rgb(None) is None
+        assert hex_to_rgb("") is None
+        assert hex_to_rgb("#12") is None
+        assert hex_to_rgb("not-a-color") is None
+        assert hex_to_rgb("rgb(1, 2)") is None
+
 
 class TestOutputPagePosition:
     def test_range(self):
@@ -203,3 +247,85 @@ class TestRenderPageWithBoxes:
         assert boxes[0]["bbox_img"] == [10, 20, 110, 60]
         # hit_test on the returned boxes selects the small element.
         assert hit_test(boxes, 50, 40) == 0
+
+
+_OVERLAY_ELEMENTS = [
+    {
+        "label": "Text",
+        "category": "FLOWING_TEXT",
+        "bbox_pdf": [10, 20, 110, 60],
+        "source_text": "",
+        "translated_text": "",
+    },
+    {
+        "label": "Picture",
+        "category": "BYPASS",
+        "bbox_pdf": [0, 0, 300, 200],
+        "source_text": "",
+        "translated_text": "",
+    },
+]
+
+
+class TestRenderPagePlain:
+    def test_size_matches_render_page_with_boxes(self, tmp_path):
+        pdf_path = tmp_path / "p.pdf"
+        doc = fitz.open()
+        doc.new_page(width=300, height=200)
+        doc.save(str(pdf_path))
+        doc.close()
+
+        # dpi=72 -> scale 1.0 -> image == page size, and matches the boxed render.
+        img, size = render_page_plain(str(pdf_path), 0, dpi=72)
+        assert size == (300, 200)
+        assert img.size == (300, 200)
+        boxed, _, _ = render_page_with_boxes(str(pdf_path), 0, [], dpi=72)
+        assert img.size == boxed.size
+
+    def test_out_of_range_raises(self, tmp_path):
+        pdf_path = tmp_path / "p.pdf"
+        doc = fitz.open()
+        doc.new_page(width=100, height=100)
+        doc.save(str(pdf_path))
+        doc.close()
+        import pytest
+
+        with pytest.raises(IndexError):
+            render_page_plain(str(pdf_path), 5, dpi=72)
+
+
+class TestOverlaySvg:
+    def test_boxes_identical_to_render_page_with_boxes(self, tmp_path):
+        pdf_path = tmp_path / "p.pdf"
+        doc = fitz.open()
+        doc.new_page(width=300, height=200)
+        doc.save(str(pdf_path))
+        doc.close()
+
+        _, ref_boxes, scale = render_page_with_boxes(
+            str(pdf_path), 0, _OVERLAY_ELEMENTS, dpi=72
+        )
+        _, boxes = overlay_svg(_OVERLAY_ELEMENTS, scale, 300, 200)
+        assert boxes == ref_boxes
+        # hit_test behaves the same on both box lists.
+        assert hit_test(boxes, 50, 40) == 0
+
+    def test_svg_has_rect_per_element_and_highlight_stroke(self):
+        svg, boxes = overlay_svg(_OVERLAY_ELEMENTS, 1.0, 300, 200, highlight_idx=0)
+        assert svg.startswith('<svg viewBox="0 0 300 200"')
+        assert svg.count("<rect") == len(_OVERLAY_ELEMENTS) == 2
+        # index tag per element.
+        assert svg.count("<text") == 2
+        # highlighted element -> red stroke; bypass element -> gray stroke.
+        assert "rgb(230,30,30)" in svg
+        assert "rgb(150,150,150)" in svg
+
+    def test_skips_elements_without_valid_bbox(self):
+        elements = [
+            {"category": "FLOWING_TEXT"},  # no bbox_pdf
+            {"category": "FLOWING_TEXT", "bbox_pdf": [1, 2, 3]},  # wrong length
+            {"category": "FLOWING_TEXT", "bbox_pdf": [0, 0, 10, 10]},
+        ]
+        svg, boxes = overlay_svg(elements, 1.0, 50, 50)
+        assert len(boxes) == 1
+        assert boxes[0]["elem_idx"] == 2

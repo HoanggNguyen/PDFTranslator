@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -32,21 +33,48 @@ from pdf2zh.webapp.review import (
     add_element,
     apply_phase1_edit,
     apply_phase2_edit,
+    hex_to_rgb,
     hit_test,
     normalize_click,
     output_page_position,
-    render_page_with_boxes,
+    overlay_svg,
+    render_page_plain,
 )
 from pdf2zh.webapp.runner import (
     Progress,
+    TranslationRequest,
     list_models,
     stream_parse,
     stream_render,
     stream_translate_render,
+    stream_translation,
+    validate,
 )
 
 REVIEW_DPI = 150
 _SCALE = REVIEW_DPI / 72.0
+
+# Static base image + live SVG overlay: the base <img> reloads only on page change
+# / re-render, the overlay (a pure innerHTML swap) updates on every edit action, so
+# selecting/saving/adding no longer flickers the preview.
+REVIEW_CSS = """
+#p1-stage, #p3-stage { position:relative; padding:0 !important; gap:0 !important; }
+#p1-stage .image-frame img, #p1-stage .image-container img,
+#p3-stage .image-frame img, #p3-stage .image-container img {
+    width:100% !important; height:auto !important; object-fit:fill !important;
+    display:block; }
+#p1-stage .image-container, #p1-stage .image-frame,
+#p3-stage .image-container, #p3-stage .image-frame { height:auto !important; }
+#p1-stage .image-container, #p1-stage .image-frame, #p1-stage button,
+#p3-stage .image-container, #p3-stage .image-frame, #p3-stage button {
+    padding:0 !important; border:0 !important; margin:0 !important; }
+#p1-stage .icon-button-wrapper, #p3-stage .icon-button-wrapper,
+#p1-stage button[aria-label*="ullscreen"],
+#p3-stage button[aria-label*="ullscreen"] { display:none !important; }
+#p1-overlay, #p3-overlay { position:absolute; top:0; left:0; width:100%;
+    padding:0 !important; margin:0 !important; pointer-events:none; }
+#p1-overlay svg, #p3-overlay svg { display:block; width:100%; height:auto; }
+"""
 
 
 # --------------------------------------------------------------------------- #
@@ -69,46 +97,58 @@ def _elem_choices(page: dict) -> list[tuple[str, int]]:
     return out
 
 
-def _render_p1(session: dict, highlight: int | None = None):
-    """Render the current Phase-1 page (original PDF) with element boxes."""
-    parsed = session["parsed"]
+def _base_p1(session: dict):
+    """Rasterize the current Phase-1 page (no boxes). Reloads the base <img>."""
     page_i = session["p1_page"]
-    page = parsed["pages"][page_i]
-    img, boxes, _ = render_page_with_boxes(
-        session["pdf_path"],
-        page.get("page_index", page_i),
-        page.get("elements", []),
-        REVIEW_DPI,
-        highlight,
+    page = session["parsed"]["pages"][page_i]
+    img, size = render_page_plain(
+        session["pdf_path"], page.get("page_index", page_i), REVIEW_DPI
     )
-    session["p1_boxes"] = boxes
+    session["p1_size"] = size
     return img
 
 
-def _render_p3(session: dict, highlight: int | None = None):
-    """Render the current Phase-3 page (rendered output PDF) with element boxes."""
-    translated = session["translated"]
+def _overlay_p1(session: dict, highlight: int | None = None) -> str:
+    """Build the Phase-1 SVG overlay + refresh session box list for hit_test."""
+    page = session["parsed"]["pages"][session["p1_page"]]
+    w, h = session["p1_size"]
+    svg, boxes = overlay_svg(page.get("elements", []), _SCALE, w, h, highlight)
+    session["p1_boxes"] = boxes
+    return svg
+
+
+def _base_p3(session: dict):
+    """Rasterize the current Phase-3 page (no boxes), or None if not rendered."""
     page_i = session["p3_page"]
-    page = translated["pages"][page_i]
+    page = session["translated"]["pages"][page_i]
     out_pos = output_page_position(session["pages"], page.get("page_index", page_i))
     if out_pos is None:
         return None
-    img, boxes, _ = render_page_with_boxes(
-        session["out_path"],
-        out_pos,
-        page.get("elements", []),
-        REVIEW_DPI,
-        highlight,
+    img, size = render_page_plain(session["out_path"], out_pos, REVIEW_DPI)
+    session["p3_size"] = size
+    return img
+
+
+def _overlay_p3(session: dict, highlight: int | None = None) -> str:
+    """Build the Phase-3 SVG overlay + refresh session box list for hit_test."""
+    size = session.get("p3_size")
+    if size is None:
+        return ""
+    page = session["translated"]["pages"][session["p3_page"]]
+    svg, boxes = overlay_svg(
+        page.get("elements", []), _SCALE, size[0], size[1], highlight
     )
     session["p3_boxes"] = boxes
-    return img
+    return svg
 
 
 # --------------------------------------------------------------------------- #
 # UI
 # --------------------------------------------------------------------------- #
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(title="PDF Translator", theme=gr.themes.Default()) as demo:
+    with gr.Blocks(
+        title="PDF Translator", theme=gr.themes.Default(), css=REVIEW_CSS
+    ) as demo:
         sess_state = gr.State({})
         gr.Markdown(
             "# PDF Translator\n"
@@ -155,9 +195,14 @@ def build_ui() -> gr.Blocks:
                         minimum=1,
                     )
                 parse_btn = gr.Button("① Trích xuất (Phase 1)", variant="primary")
+                e2e_btn = gr.Button(
+                    "⚡ Chạy end-to-end (bỏ qua sửa)", variant="secondary"
+                )
             with gr.Column(scale=2):
                 pdf_in = PDF(label="Tải lên PDF", height=520)
                 status = gr.Markdown("")
+                e2e_pdf = PDF(label="Bản dịch (end-to-end)", height=520, visible=False)
+                e2e_download = gr.File(label="Tải PDF (end-to-end)", visible=False)
 
         # ---- Step 1: Phase-1 review ----------------------------------------
         with gr.Column(visible=False) as p1_group:
@@ -169,11 +214,16 @@ def build_ui() -> gr.Blocks:
             with gr.Row():
                 with gr.Column(scale=2):
                     p1_page_dd = gr.Dropdown(label="Trang", choices=[], value=None)
-                    p1_img = gr.Image(
-                        label="Trang gốc (click để chọn element)",
-                        interactive=False,
-                        height=560,
-                    )
+                    with gr.Column(elem_id="p1-stage"):
+                        p1_img = gr.Image(
+                            interactive=False,
+                            show_label=False,
+                            container=False,
+                            elem_id="p1-img",
+                        )
+                        p1_overlay = gr.HTML(
+                            elem_id="p1-overlay", container=False, padding=False
+                        )
                 with gr.Column(scale=1):
                     p1_elem_dd = gr.Dropdown(
                         label="Element đang chọn (# theo số trên ô)",
@@ -200,6 +250,12 @@ def build_ui() -> gr.Blocks:
                         LABEL_CHOICES, label="Nhãn box mới", value="Text"
                     )
                     p1_new_source = gr.Textbox(label="Văn bản box mới", lines=3)
+                    p1_new_auto_color = gr.Checkbox(
+                        label="Tự động lấy màu nền/chữ từ trang", value=True
+                    )
+                    with gr.Row():
+                        p1_new_bg = gr.ColorPicker(label="Màu nền", value="#ffffff")
+                        p1_new_text = gr.ColorPicker(label="Màu chữ", value="#000000")
                     p1_add_btn = gr.Button("➕ Thêm box")
             confirm_btn = gr.Button("② Xác nhận → Dịch & Render", variant="primary")
 
@@ -216,11 +272,16 @@ def build_ui() -> gr.Blocks:
                     download = gr.File(label="Tải PDF bản dịch")
                 with gr.Column(scale=1):
                     p3_page_dd = gr.Dropdown(label="Trang", choices=[], value=None)
-                    p3_img = gr.Image(
-                        label="Trang đã render (click để chọn element)",
-                        interactive=False,
-                        height=560,
-                    )
+                    with gr.Column(elem_id="p3-stage"):
+                        p3_img = gr.Image(
+                            interactive=False,
+                            show_label=False,
+                            container=False,
+                            elem_id="p3-img",
+                        )
+                        p3_overlay = gr.HTML(
+                            elem_id="p3-overlay", container=False, padding=False
+                        )
                     p3_elem_dd = gr.Dropdown(
                         label="Element đang chọn", choices=[], value=None
                     )
@@ -248,6 +309,49 @@ def build_ui() -> gr.Blocks:
         def on_page_mode(mode):
             vis = mode == PAGE_MODE_RANGE
             return gr.update(visible=vis), gr.update(visible=vis)
+
+        # ---- End-to-end (skip the per-phase review) ------------------------
+        def do_e2e(pdf, prov, key, mdl, lfrom, lto, fnt, mode, frm, to):
+            req = TranslationRequest(
+                pdf_path=pdf,
+                provider=PROVIDER_KEY[prov],
+                api_key=key or "",
+                model=mdl or None,
+                src_lang=lfrom,
+                tgt_lang=lto,
+                font=fnt,
+                pages=resolve_pages(mode, frm, to),
+            )
+            # Hide any PDF/download left over from a previous successful run so a
+            # failure never displays a stale result as if it were the new output.
+            hide = {
+                e2e_pdf: gr.update(visible=False),
+                e2e_download: gr.update(visible=False),
+            }
+            err = validate(req)
+            if err:
+                yield {status: f"⚠️ {err}", **hide}
+                return
+            t0 = time.perf_counter()
+            yield {status: "⏳ Đang chạy end-to-end (Phase 1 → 2 → 3)…", **hide}
+            result = None
+            for ev in stream_translation(req):
+                if isinstance(ev, Progress):
+                    yield {status: f"⏳ {ev.msg}"}
+                else:
+                    result = ev
+            if result is None or result.status != "ok":
+                yield {
+                    status: f"❌ {result.detail if result else 'Không rõ lỗi.'}",
+                    **hide,
+                }
+                return
+            elapsed = time.perf_counter() - t0
+            yield {
+                status: f"✅ Xong end-to-end trong {elapsed:.1f}s (xem log để biết chi tiết từng phase).",
+                e2e_pdf: gr.update(value=result.out_path, visible=True),
+                e2e_download: gr.update(value=result.out_path, visible=True),
+            }
 
         # ---- Step 1: parse -------------------------------------------------
         def do_parse(session, pdf, prov, key, lfrom, lto, mode, frm, to):
@@ -293,7 +397,7 @@ def build_ui() -> gr.Blocks:
             session["p1_page"] = 0
             session["p1_sel"] = None
             page_choices = _page_choices(session["parsed"])
-            img = _render_p1(session)
+            img = _base_p1(session)
             first_page = session["parsed"]["pages"][0]
             yield {
                 sess_state: session,
@@ -301,6 +405,7 @@ def build_ui() -> gr.Blocks:
                 p1_group: gr.update(visible=True),
                 p1_page_dd: gr.update(choices=page_choices, value=0),
                 p1_img: img,
+                p1_overlay: _overlay_p1(session, None),
                 p1_elem_dd: gr.update(choices=_elem_choices(first_page), value=None),
             }
 
@@ -312,7 +417,8 @@ def build_ui() -> gr.Blocks:
             page = session["parsed"]["pages"][int(page_i)]
             return {
                 sess_state: session,
-                p1_img: _render_p1(session),
+                p1_img: _base_p1(session),
+                p1_overlay: _overlay_p1(session, None),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=None),
                 p1_label: gr.update(value=None),
                 p1_source: gr.update(value=""),
@@ -326,7 +432,7 @@ def build_ui() -> gr.Blocks:
             elem = page["elements"][elem_i]
             return {
                 sess_state: session,
-                p1_img: _render_p1(session, highlight=elem_i),
+                p1_overlay: _overlay_p1(session, highlight=elem_i),
                 p1_elem_dd: gr.update(value=elem_i),
                 p1_label: gr.update(value=elem.get("label")),
                 p1_source: gr.update(value=elem.get("source_text", "")),
@@ -375,23 +481,35 @@ def build_ui() -> gr.Blocks:
             page = session["parsed"]["pages"][session["p1_page"]]
             return {
                 sess_state: session,
-                p1_img: _render_p1(session, highlight=sel),
+                p1_overlay: _overlay_p1(session, highlight=sel),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=sel),
                 status: f"⚠️ {msg}" if msg else "✅ Đã lưu element.",
             }
 
-        def do_p1_add(session, x0, y0, x1, y1, label, source):
+        def do_p1_add(
+            session, x0, y0, x1, y1, label, source, auto_color, bg_hex, text_hex
+        ):
             if x1 <= x0 or y1 <= y0:
                 return {status: "⚠️ Box không hợp lệ (cần x1>x0, y1>y0)."}
             page_i = session["p1_page"]
+            # auto_color → let the renderer sample bg/text from the page (old
+            # default); unchecked → pin the user-picked colors.
+            bg = None if auto_color else hex_to_rgb(bg_hex)
+            text = None if auto_color else hex_to_rgb(text_hex)
             new_idx = add_element(
-                session["parsed"], page_i, [x0, y0, x1, y1], label, source
+                session["parsed"],
+                page_i,
+                [x0, y0, x1, y1],
+                label,
+                source,
+                bg_color=bg,
+                text_color=text,
             )
             page = session["parsed"]["pages"][page_i]
             session["p1_sel"] = new_idx
             return {
                 sess_state: session,
-                p1_img: _render_p1(session, highlight=new_idx),
+                p1_overlay: _overlay_p1(session, highlight=new_idx),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=new_idx),
                 p1_new_source: gr.update(value=""),
                 status: f"✅ Đã thêm box #{new_idx}.",
@@ -430,7 +548,7 @@ def build_ui() -> gr.Blocks:
             session["p3_page"] = 0
             session["p3_sel"] = None
             page_choices = _page_choices(session["translated"])
-            img = _render_p3(session)
+            img = _base_p3(session)
             first_page = session["translated"]["pages"][0]
             yield {
                 sess_state: session,
@@ -440,6 +558,7 @@ def build_ui() -> gr.Blocks:
                 download: session["out_path"],
                 p3_page_dd: gr.update(choices=page_choices, value=0),
                 p3_img: img,
+                p3_overlay: _overlay_p3(session, None),
                 p3_elem_dd: gr.update(choices=_elem_choices(first_page), value=None),
             }
 
@@ -451,7 +570,8 @@ def build_ui() -> gr.Blocks:
             page = session["translated"]["pages"][int(page_i)]
             return {
                 sess_state: session,
-                p3_img: _render_p3(session),
+                p3_img: _base_p3(session),
+                p3_overlay: _overlay_p3(session, None),
                 p3_elem_dd: gr.update(choices=_elem_choices(page), value=None),
                 p3_source: gr.update(value=""),
                 p3_translated: gr.update(value=""),
@@ -463,7 +583,7 @@ def build_ui() -> gr.Blocks:
             elem = page["elements"][elem_i]
             return {
                 sess_state: session,
-                p3_img: _render_p3(session, highlight=elem_i),
+                p3_overlay: _overlay_p3(session, highlight=elem_i),
                 p3_elem_dd: gr.update(value=elem_i),
                 p3_source: gr.update(value=elem.get("source_text", "")),
                 p3_translated: gr.update(value=elem.get("translated_text", "")),
@@ -518,7 +638,8 @@ def build_ui() -> gr.Blocks:
                 status: "✅ Đã render lại.",
                 p3_pdf: session["out_path"],
                 download: session["out_path"],
-                p3_img: _render_p3(session, highlight=session.get("p3_sel")),
+                p3_img: _base_p3(session),
+                p3_overlay: _overlay_p3(session, highlight=session.get("p3_sel")),
             }
 
         # ================================================================== #
@@ -539,6 +660,7 @@ def build_ui() -> gr.Blocks:
             p1_label,
             p1_source,
             p1_bypass,
+            p1_overlay,
         ]
         parse_btn.click(
             do_parse,
@@ -555,6 +677,22 @@ def build_ui() -> gr.Blocks:
             ],
             parse_out,
         )
+        e2e_btn.click(
+            do_e2e,
+            [
+                pdf_in,
+                provider,
+                api_key,
+                model,
+                lang_from,
+                lang_to,
+                font,
+                page_mode,
+                page_from,
+                page_to,
+            ],
+            [status, e2e_pdf, e2e_download],
+        )
 
         p1_edit_out = [
             sess_state,
@@ -568,6 +706,7 @@ def build_ui() -> gr.Blocks:
             p1_x1,
             p1_y1,
             status,
+            p1_overlay,
         ]
         p1_page_dd.change(on_p1_page, [sess_state, p1_page_dd], p1_edit_out)
         p1_img.select(on_p1_img_click, [sess_state, p1_draw_mode], p1_edit_out)
@@ -577,7 +716,18 @@ def build_ui() -> gr.Blocks:
         )
         p1_add_btn.click(
             do_p1_add,
-            [sess_state, p1_x0, p1_y0, p1_x1, p1_y1, p1_new_label, p1_new_source],
+            [
+                sess_state,
+                p1_x0,
+                p1_y0,
+                p1_x1,
+                p1_y1,
+                p1_new_label,
+                p1_new_source,
+                p1_new_auto_color,
+                p1_new_bg,
+                p1_new_text,
+            ],
             p1_edit_out + [p1_new_source],
         )
 
@@ -590,6 +740,7 @@ def build_ui() -> gr.Blocks:
             p3_page_dd,
             p3_img,
             p3_elem_dd,
+            p3_overlay,
         ]
         confirm_btn.click(
             do_confirm,
@@ -606,6 +757,7 @@ def build_ui() -> gr.Blocks:
             p3_pdf,
             download,
             status,
+            p3_overlay,
         ]
         p3_page_dd.change(on_p3_page, [sess_state, p3_page_dd], p3_edit_out)
         p3_img.select(on_p3_img_click, [sess_state], p3_edit_out)
