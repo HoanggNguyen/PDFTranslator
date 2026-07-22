@@ -74,7 +74,114 @@ REVIEW_CSS = """
 #p1-overlay, #p3-overlay { position:absolute; top:0; left:0; width:100%;
     padding:0 !important; margin:0 !important; pointer-events:none; }
 #p1-overlay svg, #p3-overlay svg { display:block; width:100%; height:auto; }
+svg.draw-rubber { position:absolute; pointer-events:none; z-index:6; }
 """
+
+# Client-side box drawing: in draw mode, mousedown+drag+mouseup paints a live
+# rubber-band rectangle (+ start-point marker) purely in the browser, then writes
+# the PDF-point coords into the hidden x0/y0/x1/y1 inputs. No server round-trip
+# happens until the user clicks "Thêm box", so drawing never flickers. Coords go
+# display-px → natural-px (naturalWidth/rect) → PDF points (÷ _SCALE), matching
+# ``on_p1_img_click``'s old math. __SCALE__ is filled from REVIEW_DPI below.
+_DRAW_JS_TMPL = """
+() => {
+  const SCALE = __SCALE__;
+  const CFG = { stage:'p1-stage', chk:'p1-draw-mode',
+                x0:'p1-x0', y0:'p1-y0', x1:'p1-x1', y1:'p1-y1' };
+  const q = (s) => document.querySelector(s);
+  const drawOn = () => { const c = q('#'+CFG.chk+' input[type=checkbox]');
+                         return !!(c && c.checked); };
+
+  function setNum(id, val) {
+    const inp = q('#'+id+' input');
+    if (!inp) return;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype, 'value').set;
+    setter.call(inp, String(Math.round(val * 100) / 100));
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function layer(stageEl, r) {
+    const sr = stageEl.getBoundingClientRect();
+    let svg = stageEl.querySelector('svg.draw-rubber');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'draw-rubber');
+      stageEl.appendChild(svg);
+    }
+    svg.style.left = (r.left - sr.left) + 'px';
+    svg.style.top = (r.top - sr.top) + 'px';
+    svg.style.width = r.width + 'px';
+    svg.style.height = r.height + 'px';
+    return svg;
+  }
+
+  let A = null;
+  document.addEventListener('mousedown', (e) => {
+    if (!drawOn()) return;
+    const stageEl = e.target.closest && e.target.closest('#'+CFG.stage);
+    if (!stageEl) return;
+    const img = stageEl.querySelector('img');
+    if (!img) return;
+    const r = img.getBoundingClientRect();
+    A = { stageEl, img, r, x0: e.clientX - r.left, y0: e.clientY - r.top };
+    layer(stageEl, r).innerHTML =
+      '<circle cx="'+A.x0+'" cy="'+A.y0+'" r="5" fill="red" fill-opacity="0.9"/>';
+    e.preventDefault();
+  }, true);
+
+  document.addEventListener('mousemove', (e) => {
+    if (!A) return;
+    const r = A.r;
+    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    const y = Math.max(0, Math.min(r.height, e.clientY - r.top));
+    const rx = Math.min(A.x0, x), ry = Math.min(A.y0, y);
+    layer(A.stageEl, r).innerHTML =
+      '<rect x="'+rx+'" y="'+ry+'" width="'+Math.abs(x-A.x0)+'" height="'
+        +Math.abs(y-A.y0)+'" fill="red" fill-opacity="0.12" stroke="red" '
+        +'stroke-width="2" stroke-dasharray="6 4"/>'
+      +'<circle cx="'+A.x0+'" cy="'+A.y0+'" r="4" fill="red"/>';
+  }, true);
+
+  document.addEventListener('mouseup', (e) => {
+    if (!A) return;
+    const r = A.r, img = A.img;
+    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    const y = Math.max(0, Math.min(r.height, e.clientY - r.top));
+    const x0 = Math.min(A.x0, x), y0 = Math.min(A.y0, y);
+    const x1 = Math.max(A.x0, x), y1 = Math.max(A.y0, y);
+    const sx = (img.naturalWidth || r.width) / r.width;
+    const sy = (img.naturalHeight || r.height) / r.height;
+    if (x1 - x0 >= 3 && y1 - y0 >= 3) {
+      setNum(CFG.x0, x0 * sx / SCALE);
+      setNum(CFG.y0, y0 * sy / SCALE);
+      setNum(CFG.x1, x1 * sx / SCALE);
+      setNum(CFG.y1, y1 * sy / SCALE);
+    }
+    A = null;
+  }, true);
+
+  const clearRubber = () => {
+    const svg = q('#'+CFG.stage+' svg.draw-rubber');
+    if (svg) svg.innerHTML = '';
+  };
+  // Drop the preview when leaving draw mode, after adding the box, and whenever
+  // the base image (re)loads — page change, new file, re-render — so a stale
+  // rectangle never lingers over a different page.
+  document.addEventListener('change', (e) => {
+    if (e.target.closest && e.target.closest('#'+CFG.chk) && !drawOn()) clearRubber();
+  }, true);
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('#p1-add-btn')) clearRubber();
+  }, true);
+  document.addEventListener('load', (e) => {
+    if (e.target.tagName === 'IMG' && e.target.closest
+        && e.target.closest('#'+CFG.stage)) clearRubber();
+  }, true);
+}
+"""
+DRAW_JS = _DRAW_JS_TMPL.replace("__SCALE__", repr(_SCALE))
 
 
 # --------------------------------------------------------------------------- #
@@ -239,13 +346,14 @@ def build_ui() -> gr.Blocks:
 
                     gr.Markdown("**Thêm box cho vùng bị sót**")
                     p1_draw_mode = gr.Checkbox(
-                        label="Chế độ vẽ box (click 2 góc trên ảnh)"
+                        label="Chế độ vẽ box (kéo-thả trên ảnh)",
+                        elem_id="p1-draw-mode",
                     )
                     with gr.Row():
-                        p1_x0 = gr.Number(label="x0", value=0)
-                        p1_y0 = gr.Number(label="y0", value=0)
-                        p1_x1 = gr.Number(label="x1", value=0)
-                        p1_y1 = gr.Number(label="y1", value=0)
+                        p1_x0 = gr.Number(label="x0", value=0, elem_id="p1-x0")
+                        p1_y0 = gr.Number(label="y0", value=0, elem_id="p1-y0")
+                        p1_x1 = gr.Number(label="x1", value=0, elem_id="p1-x1")
+                        p1_y1 = gr.Number(label="y1", value=0, elem_id="p1-y1")
                     p1_new_label = gr.Dropdown(
                         LABEL_CHOICES, label="Nhãn box mới", value="Text"
                     )
@@ -256,7 +364,7 @@ def build_ui() -> gr.Blocks:
                     with gr.Row():
                         p1_new_bg = gr.ColorPicker(label="Màu nền", value="#ffffff")
                         p1_new_text = gr.ColorPicker(label="Màu chữ", value="#000000")
-                    p1_add_btn = gr.Button("➕ Thêm box")
+                    p1_add_btn = gr.Button("➕ Thêm box", elem_id="p1-add-btn")
             confirm_btn = gr.Button("② Xác nhận → Dịch & Render", variant="primary")
 
         # ---- Step 2: Phase-3 review ----------------------------------------
@@ -310,6 +418,44 @@ def build_ui() -> gr.Blocks:
             vis = mode == PAGE_MODE_RANGE
             return gr.update(visible=vis), gr.update(visible=vis)
 
+        def on_new_file(session):
+            """Reset all derived state when the uploaded PDF changes/clears.
+
+            Drops the previous file's work dir + session keys and hides every
+            review panel / download so a new file never shows the old one's
+            outputs.
+            """
+            old = session.get("work_dir")
+            if old:
+                shutil.rmtree(old, ignore_errors=True)
+            for k in (
+                "pdf_path",
+                "work_dir",
+                "pages",
+                "parsed",
+                "p1_page",
+                "p1_sel",
+                "p1_size",
+                "p1_boxes",
+                "translated",
+                "out_path",
+                "p3_page",
+                "p3_sel",
+                "p3_size",
+                "p3_boxes",
+            ):
+                session.pop(k, None)
+            return {
+                sess_state: session,
+                status: "",
+                p1_group: gr.update(visible=False),
+                p3_group: gr.update(visible=False),
+                p3_pdf: gr.update(value=None),
+                download: gr.update(value=None),
+                e2e_pdf: gr.update(value=None, visible=False),
+                e2e_download: gr.update(value=None, visible=False),
+            }
+
         # ---- End-to-end (skip the per-phase review) ------------------------
         def do_e2e(pdf, prov, key, mdl, lfrom, lto, fnt, mode, frm, to):
             req = TranslationRequest(
@@ -362,6 +508,9 @@ def build_ui() -> gr.Blocks:
                 yield {status: "⚠️ Thiếu API key."}
                 return
 
+            prev = session.get("work_dir")
+            if prev:
+                shutil.rmtree(prev, ignore_errors=True)
             work_dir = Path(tempfile.gettempdir()) / f"pdf2zh_{uuid.uuid4().hex}"
             work_dir.mkdir(parents=True, exist_ok=True)
             # Copy the uploaded PDF so later steps survive Gradio cache cleanup.
@@ -440,28 +589,14 @@ def build_ui() -> gr.Blocks:
             }
 
         def on_p1_img_click(session, draw_mode, evt: gr.SelectData):
+            # In draw mode the box is drawn client-side (see DRAW_JS), so a stray
+            # click here must not also select an element.
+            if draw_mode:
+                return {}
             pt = normalize_click(evt.index)
             if pt is None:
                 return {}
-            x_px, y_px = pt
-            if draw_mode:
-                # Capture a corner (converted to PDF points) into the box inputs.
-                pts = session.get("draw_pts", [])
-                pts.append((x_px / _SCALE, y_px / _SCALE))
-                session["draw_pts"] = pts
-                if len(pts) == 1:
-                    return {sess_state: session, p1_x0: pts[0][0], p1_y0: pts[0][1]}
-                # Second click: normalize the rectangle, then reset.
-                (ax, ay), (bx, by) = pts[0], pts[1]
-                session["draw_pts"] = []
-                return {
-                    sess_state: session,
-                    p1_x0: min(ax, bx),
-                    p1_y0: min(ay, by),
-                    p1_x1: max(ax, bx),
-                    p1_y1: max(ay, by),
-                }
-            elem_i = hit_test(session.get("p1_boxes", []), x_px, y_px)
+            elem_i = hit_test(session.get("p1_boxes", []), pt[0], pt[1])
             if elem_i is None:
                 return {}
             return _p1_select(session, elem_i)
@@ -649,6 +784,20 @@ def build_ui() -> gr.Blocks:
         api_key.blur(on_load_models, [provider, api_key], model)
         load_models_btn.click(on_load_models, [provider, api_key], model)
         page_mode.change(on_page_mode, page_mode, [page_from, page_to])
+        pdf_in.change(
+            on_new_file,
+            sess_state,
+            [
+                sess_state,
+                status,
+                p1_group,
+                p3_group,
+                p3_pdf,
+                download,
+                e2e_pdf,
+                e2e_download,
+            ],
+        )
 
         parse_out = [
             sess_state,
@@ -694,25 +843,44 @@ def build_ui() -> gr.Blocks:
             [status, e2e_pdf, e2e_download],
         )
 
-        p1_edit_out = [
+        # Page change reloads the base <img>; edit events must NOT touch p1_img
+        # (its presence in outputs makes Gradio flash a loading state over the
+        # image on every click). show_progress="hidden" suppresses the same
+        # pulse on the other edited components.
+        p1_page_out = [
             sess_state,
             p1_img,
+            p1_overlay,
             p1_elem_dd,
             p1_label,
             p1_source,
             p1_bypass,
-            p1_x0,
-            p1_y0,
-            p1_x1,
-            p1_y1,
-            status,
-            p1_overlay,
         ]
-        p1_page_dd.change(on_p1_page, [sess_state, p1_page_dd], p1_edit_out)
-        p1_img.select(on_p1_img_click, [sess_state, p1_draw_mode], p1_edit_out)
-        p1_elem_dd.select(on_p1_pick, [sess_state, p1_elem_dd], p1_edit_out)
+        p1_edit_out = [
+            sess_state,
+            p1_overlay,
+            p1_elem_dd,
+            p1_label,
+            p1_source,
+            p1_bypass,
+            p1_new_source,
+            status,
+        ]
+        p1_page_dd.change(on_p1_page, [sess_state, p1_page_dd], p1_page_out)
+        p1_img.select(
+            on_p1_img_click,
+            [sess_state, p1_draw_mode],
+            p1_edit_out,
+            show_progress="hidden",
+        )
+        p1_elem_dd.select(
+            on_p1_pick, [sess_state, p1_elem_dd], p1_edit_out, show_progress="hidden"
+        )
         p1_save_btn.click(
-            do_p1_save, [sess_state, p1_label, p1_source, p1_bypass], p1_edit_out
+            do_p1_save,
+            [sess_state, p1_label, p1_source, p1_bypass],
+            p1_edit_out,
+            show_progress="hidden",
         )
         p1_add_btn.click(
             do_p1_add,
@@ -728,7 +896,8 @@ def build_ui() -> gr.Blocks:
                 p1_new_bg,
                 p1_new_text,
             ],
-            p1_edit_out + [p1_new_source],
+            p1_edit_out,
+            show_progress="hidden",
         )
 
         confirm_out = [
@@ -748,21 +917,43 @@ def build_ui() -> gr.Blocks:
             confirm_out,
         )
 
-        p3_edit_out = [
+        # Same split as Phase 1: only page-change / re-render reload p3_img.
+        p3_page_out = [
             sess_state,
             p3_img,
+            p3_overlay,
             p3_elem_dd,
             p3_source,
             p3_translated,
+        ]
+        p3_edit_out = [
+            sess_state,
+            p3_overlay,
+            p3_elem_dd,
+            p3_source,
+            p3_translated,
+            status,
+        ]
+        p3_rerender_out = [
+            sess_state,
+            status,
             p3_pdf,
             download,
-            status,
+            p3_img,
             p3_overlay,
         ]
-        p3_page_dd.change(on_p3_page, [sess_state, p3_page_dd], p3_edit_out)
-        p3_img.select(on_p3_img_click, [sess_state], p3_edit_out)
-        p3_elem_dd.select(on_p3_pick, [sess_state, p3_elem_dd], p3_edit_out)
-        p3_save_btn.click(do_p3_save, [sess_state, p3_translated], p3_edit_out)
-        rerender_btn.click(do_rerender, [sess_state, font], p3_edit_out)
+        p3_page_dd.change(on_p3_page, [sess_state, p3_page_dd], p3_page_out)
+        p3_img.select(
+            on_p3_img_click, [sess_state], p3_edit_out, show_progress="hidden"
+        )
+        p3_elem_dd.select(
+            on_p3_pick, [sess_state, p3_elem_dd], p3_edit_out, show_progress="hidden"
+        )
+        p3_save_btn.click(
+            do_p3_save, [sess_state, p3_translated], p3_edit_out, show_progress="hidden"
+        )
+        rerender_btn.click(do_rerender, [sess_state, font], p3_rerender_out)
+
+        demo.load(js=DRAW_JS)
 
     return demo
