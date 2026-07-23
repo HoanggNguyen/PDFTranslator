@@ -32,6 +32,7 @@ LABEL_CHOICES = [
     SuryaLabel.PAGE_HEADER,
     SuryaLabel.PAGE_FOOTER,
     SuryaLabel.CAPTION,
+    SuryaLabel.TABLE,
     SuryaLabel.TABLE_OF_CONTENTS,
     SuryaLabel.PICTURE,
     SuryaLabel.FIGURE,

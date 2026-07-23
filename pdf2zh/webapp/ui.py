@@ -566,7 +566,7 @@ def build_ui() -> gr.Blocks:
 
         def on_p1_page(session, page_i):
             if page_i is None:
-                return {}
+                return {sess_state: session}
             session["p1_page"] = int(page_i)
             session["p1_sel"] = None
             page = session["parsed"]["pages"][int(page_i)]
@@ -598,18 +598,18 @@ def build_ui() -> gr.Blocks:
             # In draw mode the box is drawn client-side (see DRAW_JS), so a stray
             # click here must not also select an element.
             if draw_mode:
-                return {}
+                return {sess_state: session}
             pt = normalize_click(evt.index)
             if pt is None:
-                return {}
+                return {sess_state: session}
             elem_i = hit_test(session.get("p1_boxes", []), pt[0], pt[1])
             if elem_i is None:
-                return {}
+                return {sess_state: session}
             return _p1_select(session, elem_i)
 
         def on_p1_pick(session, elem_i):
             if elem_i is None:
-                return {}
+                return {sess_state: session}
             return _p1_select(session, int(elem_i))
 
         def do_p1_save(session, label, source, bypass):
@@ -705,7 +705,7 @@ def build_ui() -> gr.Blocks:
 
         def on_p3_page(session, page_i):
             if page_i is None:
-                return {}
+                return {sess_state: session}
             session["p3_page"] = int(page_i)
             session["p3_sel"] = None
             page = session["translated"]["pages"][int(page_i)]
@@ -733,15 +733,15 @@ def build_ui() -> gr.Blocks:
         def on_p3_img_click(session, evt: gr.SelectData):
             pt = normalize_click(evt.index)
             if pt is None:
-                return {}
+                return {sess_state: session}
             elem_i = hit_test(session.get("p3_boxes", []), pt[0], pt[1])
             if elem_i is None:
-                return {}
+                return {sess_state: session}
             return _p3_select(session, elem_i)
 
         def on_p3_pick(session, elem_i):
             if elem_i is None:
-                return {}
+                return {sess_state: session}
             return _p3_select(session, int(elem_i))
 
         def do_p3_save(session, translated_text):
