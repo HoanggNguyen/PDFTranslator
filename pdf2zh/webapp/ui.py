@@ -77,12 +77,12 @@ REVIEW_CSS = """
 svg.draw-rubber { position:absolute; pointer-events:none; z-index:6; }
 """
 
-# Client-side box drawing: in draw mode, mousedown+drag+mouseup paints a live
-# rubber-band rectangle (+ start-point marker) purely in the browser, then writes
-# the PDF-point coords into the hidden x0/y0/x1/y1 inputs. No server round-trip
-# happens until the user clicks "Thêm box", so drawing never flickers. Coords go
-# display-px → natural-px (naturalWidth/rect) → PDF points (÷ _SCALE), matching
-# ``on_p1_img_click``'s old math. __SCALE__ is filled from REVIEW_DPI below.
+# Client-side box drawing: in draw mode the user clicks two corners. Click 1 drops
+# a marker; moving the mouse shows a live dashed preview rectangle to the cursor;
+# click 2 locks it and writes the PDF-point coords into the hidden x0/y0/x1/y1
+# inputs. No server round-trip happens until "Thêm box", so drawing never flickers.
+# Coords go display-px → natural-px (naturalWidth/rect) → PDF points (÷ _SCALE),
+# matching ``on_p1_img_click``'s old math. __SCALE__ is filled from REVIEW_DPI below.
 _DRAW_JS_TMPL = """
 () => {
   const SCALE = __SCALE__;
@@ -117,40 +117,42 @@ _DRAW_JS_TMPL = """
     return svg;
   }
 
-  let A = null;
-  document.addEventListener('mousedown', (e) => {
+  function paint(stageEl, r, ax, ay, bx, by, dashed) {
+    const rx = Math.min(ax, bx), ry = Math.min(ay, by);
+    layer(stageEl, r).innerHTML =
+      '<rect x="'+rx+'" y="'+ry+'" width="'+Math.abs(bx-ax)+'" height="'
+        +Math.abs(by-ay)+'" fill="red" fill-opacity="0.12" stroke="red" '
+        +'stroke-width="2" '+(dashed ? 'stroke-dasharray="6 4" ' : '')+'/>'
+      +'<circle cx="'+ax+'" cy="'+ay+'" r="4" fill="red"/>';
+  }
+
+  const at = (r, e) => ({
+    x: Math.max(0, Math.min(r.width, e.clientX - r.left)),
+    y: Math.max(0, Math.min(r.height, e.clientY - r.top)),
+  });
+
+  let P = null;  // first corner: {stageEl, img, r, x, y} once click 1 lands
+  const reset = () => { P = null; };
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('#p1-add-btn')) { clearAll(); return; }
     if (!drawOn()) return;
     const stageEl = e.target.closest && e.target.closest('#'+CFG.stage);
     if (!stageEl) return;
     const img = stageEl.querySelector('img');
     if (!img) return;
     const r = img.getBoundingClientRect();
-    A = { stageEl, img, r, x0: e.clientX - r.left, y0: e.clientY - r.top };
-    layer(stageEl, r).innerHTML =
-      '<circle cx="'+A.x0+'" cy="'+A.y0+'" r="5" fill="red" fill-opacity="0.9"/>';
-    e.preventDefault();
-  }, true);
-
-  document.addEventListener('mousemove', (e) => {
-    if (!A) return;
-    const r = A.r;
-    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
-    const y = Math.max(0, Math.min(r.height, e.clientY - r.top));
-    const rx = Math.min(A.x0, x), ry = Math.min(A.y0, y);
-    layer(A.stageEl, r).innerHTML =
-      '<rect x="'+rx+'" y="'+ry+'" width="'+Math.abs(x-A.x0)+'" height="'
-        +Math.abs(y-A.y0)+'" fill="red" fill-opacity="0.12" stroke="red" '
-        +'stroke-width="2" stroke-dasharray="6 4"/>'
-      +'<circle cx="'+A.x0+'" cy="'+A.y0+'" r="4" fill="red"/>';
-  }, true);
-
-  document.addEventListener('mouseup', (e) => {
-    if (!A) return;
-    const r = A.r, img = A.img;
-    const x = Math.max(0, Math.min(r.width, e.clientX - r.left));
-    const y = Math.max(0, Math.min(r.height, e.clientY - r.top));
-    const x0 = Math.min(A.x0, x), y0 = Math.min(A.y0, y);
-    const x1 = Math.max(A.x0, x), y1 = Math.max(A.y0, y);
+    const p = at(r, e);
+    if (!P) {
+      // Click 1: mark the first corner.
+      P = { stageEl, img, r, x: p.x, y: p.y };
+      layer(stageEl, r).innerHTML =
+        '<circle cx="'+p.x+'" cy="'+p.y+'" r="5" fill="red" fill-opacity="0.9"/>';
+      return;
+    }
+    // Click 2: finalize.
+    const x0 = Math.min(P.x, p.x), y0 = Math.min(P.y, p.y);
+    const x1 = Math.max(P.x, p.x), y1 = Math.max(P.y, p.y);
     const sx = (img.naturalWidth || r.width) / r.width;
     const sy = (img.naturalHeight || r.height) / r.height;
     if (x1 - x0 >= 3 && y1 - y0 >= 3) {
@@ -158,26 +160,30 @@ _DRAW_JS_TMPL = """
       setNum(CFG.y0, y0 * sy / SCALE);
       setNum(CFG.x1, x1 * sx / SCALE);
       setNum(CFG.y1, y1 * sy / SCALE);
+      paint(P.stageEl, r, P.x, P.y, p.x, p.y, false);
     }
-    A = null;
+    reset();
   }, true);
 
-  const clearRubber = () => {
+  document.addEventListener('mousemove', (e) => {
+    if (!P || !drawOn()) return;
+    const p = at(P.r, e);
+    paint(P.stageEl, P.r, P.x, P.y, p.x, p.y, true);
+  }, true);
+
+  const clearAll = () => {
     const svg = q('#'+CFG.stage+' svg.draw-rubber');
     if (svg) svg.innerHTML = '';
+    reset();
   };
-  // Drop the preview when leaving draw mode, after adding the box, and whenever
-  // the base image (re)loads — page change, new file, re-render — so a stale
-  // rectangle never lingers over a different page.
+  // Clear the preview when leaving draw mode and whenever the base image
+  // (re)loads — page change, new file, re-render — so no stale rectangle lingers.
   document.addEventListener('change', (e) => {
-    if (e.target.closest && e.target.closest('#'+CFG.chk) && !drawOn()) clearRubber();
-  }, true);
-  document.addEventListener('click', (e) => {
-    if (e.target.closest && e.target.closest('#p1-add-btn')) clearRubber();
+    if (e.target.closest && e.target.closest('#'+CFG.chk) && !drawOn()) clearAll();
   }, true);
   document.addEventListener('load', (e) => {
     if (e.target.tagName === 'IMG' && e.target.closest
-        && e.target.closest('#'+CFG.stage)) clearRubber();
+        && e.target.closest('#'+CFG.stage)) clearAll();
   }, true);
 }
 """
@@ -346,7 +352,7 @@ def build_ui() -> gr.Blocks:
 
                     gr.Markdown("**Thêm box cho vùng bị sót**")
                     p1_draw_mode = gr.Checkbox(
-                        label="Chế độ vẽ box (kéo-thả trên ảnh)",
+                        label="Chế độ vẽ box (nhấn 2 điểm trên ảnh)",
                         elem_id="p1-draw-mode",
                     )
                     with gr.Row():
