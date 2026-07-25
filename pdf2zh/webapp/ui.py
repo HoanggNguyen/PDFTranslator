@@ -592,6 +592,7 @@ def build_ui() -> gr.Blocks:
                 p1_label: gr.update(value=elem.get("label")),
                 p1_source: gr.update(value=elem.get("source_text", "")),
                 p1_bypass: gr.update(value=elem.get("category") == "BYPASS"),
+                status: "",
             }
 
         def on_p1_img_click(session, draw_mode, evt: gr.SelectData):
@@ -615,23 +616,32 @@ def build_ui() -> gr.Blocks:
         def do_p1_save(session, label, source, bypass):
             sel = session.get("p1_sel")
             if sel is None:
-                return {status: "⚠️ Chưa chọn element nào."}
+                gr.Warning("Chưa chọn element nào.")
+                return {sess_state: session, status: "⚠️ Chưa chọn element nào."}
             msg = apply_phase1_edit(
                 session["parsed"], session["p1_page"], sel, label, source, bypass
             )
             page = session["parsed"]["pages"][session["p1_page"]]
+            if msg:
+                gr.Warning(msg)
+            else:
+                gr.Info(f"Đã lưu element #{sel}.")
             return {
                 sess_state: session,
                 p1_overlay: _overlay_p1(session, highlight=sel),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=sel),
-                status: f"⚠️ {msg}" if msg else "✅ Đã lưu element.",
+                status: f"⚠️ {msg}" if msg else f"✅ Đã lưu element #{sel}.",
             }
 
         def do_p1_add(
             session, x0, y0, x1, y1, label, source, auto_color, bg_hex, text_hex
         ):
             if x1 <= x0 or y1 <= y0:
-                return {status: "⚠️ Box không hợp lệ (cần x1>x0, y1>y0)."}
+                gr.Warning("Box không hợp lệ (cần x1>x0, y1>y0).")
+                return {
+                    sess_state: session,
+                    status: "⚠️ Box không hợp lệ (cần x1>x0, y1>y0).",
+                }
             page_i = session["p1_page"]
             # auto_color → let the renderer sample bg/text from the page (old
             # default); unchecked → pin the user-picked colors.
@@ -648,12 +658,17 @@ def build_ui() -> gr.Blocks:
             )
             page = session["parsed"]["pages"][page_i]
             session["p1_sel"] = new_idx
+            gr.Info(f"Đã thêm box #{new_idx}.")
             return {
                 sess_state: session,
                 p1_overlay: _overlay_p1(session, highlight=new_idx),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=new_idx),
                 p1_new_source: gr.update(value=""),
                 status: f"✅ Đã thêm box #{new_idx}.",
+                # Turn draw mode back off: leaving it checked would make the next
+                # click on the image be treated as drawing instead of selecting an
+                # element, silently blocking further edits.
+                p1_draw_mode: gr.update(value=False),
             }
 
         # ---- Confirm → translate + render ----------------------------------
@@ -728,6 +743,7 @@ def build_ui() -> gr.Blocks:
                 p3_elem_dd: gr.update(value=elem_i),
                 p3_source: gr.update(value=elem.get("source_text", "")),
                 p3_translated: gr.update(value=elem.get("translated_text", "")),
+                status: "",
             }
 
         def on_p3_img_click(session, evt: gr.SelectData):
@@ -747,10 +763,12 @@ def build_ui() -> gr.Blocks:
         def do_p3_save(session, translated_text):
             sel = session.get("p3_sel")
             if sel is None:
-                return {status: "⚠️ Chưa chọn element nào."}
+                gr.Warning("Chưa chọn element nào.")
+                return {sess_state: session, status: "⚠️ Chưa chọn element nào."}
             apply_phase2_edit(
                 session["translated"], session["p3_page"], sel, translated_text
             )
+            gr.Info(f"Đã lưu bản dịch #{sel} (bấm Render lại để cập nhật).")
             return {
                 sess_state: session,
                 status: "✅ Đã lưu bản dịch (bấm Render lại để cập nhật).",
@@ -902,7 +920,7 @@ def build_ui() -> gr.Blocks:
                 p1_new_bg,
                 p1_new_text,
             ],
-            p1_edit_out,
+            p1_edit_out + [p1_draw_mode],
             show_progress="hidden",
         )
 
@@ -960,6 +978,9 @@ def build_ui() -> gr.Blocks:
         )
         rerender_btn.click(do_rerender, [sess_state, font], p3_rerender_out)
 
-        demo.load(js=DRAW_JS)
+        # fn must be explicit: Blocks.load()'s fn defaults to the sentinel string
+        # "decorator" (for @demo.load()-style usage), not None — passing js= alone
+        # silently never registers the trigger, so the script never runs.
+        demo.load(fn=None, js=DRAW_JS)
 
     return demo

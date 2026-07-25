@@ -121,10 +121,15 @@ async def _run(doc: dict, cfg: TranslatorConfig) -> None:
                         or not (cells[idx].get("source_text") or "").strip()
                     ):
                         continue
-                    if "source_text" in corr:
+                    if isinstance(corr.get("source_text"), str):
                         cells[idx]["source_text"] = corr["source_text"]
-                    if "bbox_pdf" in corr:
-                        cells[idx]["bbox_pdf"] = corr["bbox_pdf"]
+                    bbox = corr.get("bbox_pdf")
+                    if (
+                        isinstance(bbox, list)
+                        and len(bbox) == 4
+                        and all(isinstance(v, (int, float)) for v in bbox)
+                    ):
+                        cells[idx]["bbox_pdf"] = bbox
                 logger.debug(
                     "table_vision p%d: corrected %d cells",
                     page_idx,
