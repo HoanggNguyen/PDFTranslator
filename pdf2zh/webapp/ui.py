@@ -57,6 +57,14 @@ REVIEW_DPI = 150
 _SCALE = REVIEW_DPI / 72.0
 _P1_SOURCE_LABEL = "Văn bản gốc (source_text)"
 
+
+def _paged_gallery(pdf_path: str, dpi: int = REVIEW_DPI):
+    """Render every page and tag each with a "Trang i/N" caption for the gallery."""
+    imgs = render_all_pages(pdf_path, dpi)
+    n = len(imgs)
+    return [(img, f"Trang {i}/{n}") for i, img in enumerate(imgs, 1)]
+
+
 # Static base image + live SVG overlay: the base <img> reloads only on page change
 # / re-render, the overlay (a pure innerHTML swap) updates on every edit action, so
 # selecting/saving/adding no longer flickers the preview.
@@ -502,7 +510,7 @@ def build_ui() -> gr.Blocks:
             preview = None
             if pdf:
                 try:
-                    preview = render_all_pages(pdf, REVIEW_DPI)
+                    preview = _paged_gallery(pdf)
                 except Exception:
                     preview = None
             return {
@@ -556,9 +564,7 @@ def build_ui() -> gr.Blocks:
             elapsed = time.perf_counter() - t0
             yield {
                 status: f"✅ Xong end-to-end trong {elapsed:.1f}s (xem log để biết chi tiết từng phase).",
-                e2e_pdf: gr.update(
-                    value=render_all_pages(result.out_path, REVIEW_DPI), visible=True
-                ),
+                e2e_pdf: gr.update(value=_paged_gallery(result.out_path), visible=True),
                 e2e_download: gr.update(value=result.out_path, visible=True),
             }
 
@@ -828,7 +834,7 @@ def build_ui() -> gr.Blocks:
                 sess_state: session,
                 status: "✅ Đã dịch & dựng. Soát bản dịch rồi tải về.",
                 p3_group: gr.update(visible=True),
-                p3_pdf: render_all_pages(session["out_path"], REVIEW_DPI),
+                p3_pdf: _paged_gallery(session["out_path"]),
                 download: session["out_path"],
                 p3_page_dd: gr.update(choices=page_choices, value=0),
                 p3_img: img,
@@ -945,7 +951,7 @@ def build_ui() -> gr.Blocks:
             yield {
                 sess_state: session,
                 status: "✅ Đã render lại.",
-                p3_pdf: render_all_pages(session["out_path"], REVIEW_DPI),
+                p3_pdf: _paged_gallery(session["out_path"]),
                 download: session["out_path"],
                 p3_img: _base_p3(session),
                 p3_overlay: _overlay_p3(session),
