@@ -90,13 +90,18 @@ def render_page_with_boxes(
     elements: list[dict],
     dpi: int = 150,
     highlight_idx: int | None = None,
+    highlight_cell: tuple[int, int] | None = None,
 ) -> tuple[Image.Image, list[dict], float]:
     """Rasterize page ``page_index`` and draw each element's bbox on top.
 
-    Returns ``(image, boxes, scale)`` where ``boxes`` is a list of
-    ``{"elem_idx", "bbox_img", "category"}`` (bbox_img in image pixels) and
-    ``scale = dpi/72``. Uses ``_fitz_render`` directly (deterministic scale) —
-    NOT ``render_page_to_image`` (which may return a native-res embedded image).
+    A TABLE element with cells is drawn cell-by-cell inside a thin outer
+    border (translation happens per cell, not per whole table); every other
+    element (and a TABLE with no cells) draws a single box. Returns
+    ``(image, boxes, scale)`` where ``boxes`` is a list of ``{"elem_idx",
+    "cell_idx", "bbox_img", "category"}`` (``cell_idx`` is None for
+    element-level boxes) and ``scale = dpi/72``. Uses ``_fitz_render`` directly
+    (deterministic scale) — NOT ``render_page_to_image`` (which may return a
+    native-res embedded image).
     """
     doc = fitz.open(pdf_path)
     try:
@@ -110,13 +115,50 @@ def render_page_with_boxes(
     draw = ImageDraw.Draw(img)
     boxes: list[dict] = []
     for elem_idx, elem in enumerate(elements):
+        category = elem.get("category", "")
+        cells = elem.get("cells", [])
+        if category == "TABLE" and cells:
+            outer = elem.get("bbox_pdf")
+            if outer and len(outer) == 4:
+                ox0, oy0, ox1, oy1 = (v * scale for v in outer)
+                outer_color = (
+                    _COLOR_HIGHLIGHT
+                    if elem_idx == highlight_idx
+                    else _COLOR_TRANSLATABLE
+                )
+                draw.rectangle([ox0, oy0, ox1, oy1], outline=outer_color, width=1)
+                draw.text((ox0 + 2, max(0, oy0 - 12)), str(elem_idx), fill=outer_color)
+            for cell_idx, cell in enumerate(cells):
+                bbox_pdf = cell.get("bbox_pdf")
+                if not bbox_pdf or len(bbox_pdf) != 4:
+                    continue
+                x0, y0, x1, y1 = (v * scale for v in bbox_pdf)
+                boxes.append(
+                    {
+                        "elem_idx": elem_idx,
+                        "cell_idx": cell_idx,
+                        "bbox_img": [x0, y0, x1, y1],
+                        "category": category,
+                    }
+                )
+                if highlight_cell == (elem_idx, cell_idx):
+                    color, width = _COLOR_HIGHLIGHT, 3
+                else:
+                    color, width = _COLOR_TRANSLATABLE, 1
+                draw.rectangle([x0, y0, x1, y1], outline=color, width=width)
+            continue
+
         bbox_pdf = elem.get("bbox_pdf")
         if not bbox_pdf or len(bbox_pdf) != 4:
             continue
         x0, y0, x1, y1 = (v * scale for v in bbox_pdf)
-        category = elem.get("category", "")
         boxes.append(
-            {"elem_idx": elem_idx, "bbox_img": [x0, y0, x1, y1], "category": category}
+            {
+                "elem_idx": elem_idx,
+                "cell_idx": None,
+                "bbox_img": [x0, y0, x1, y1],
+                "category": category,
+            }
         )
 
         if elem_idx == highlight_idx:
@@ -158,14 +200,21 @@ def overlay_svg(
     width: int,
     height: int,
     highlight_idx: int | None = None,
+    highlight_cell: tuple[int, int] | None = None,
 ) -> tuple[str, list[dict]]:
     """Build an SVG overlay drawing each element's bbox + index, and the boxes list.
 
     Mirrors the drawing loop of ``render_page_with_boxes`` so ``boxes`` is
-    identical (same ``bbox_img``/``elem_idx``/``category``) — ``hit_test`` is
-    unchanged. Only integers and fixed colors are emitted, so no escaping is
-    needed. The svg box equals the ``<img>`` box exactly (viewBox aspect ==
-    natural aspect), so rects align pixel-for-pixel with the base raster.
+    identical (same ``bbox_img``/``elem_idx``/``cell_idx``/``category``) —
+    ``hit_test`` is unchanged. A TABLE element with cells is drawn cell-by-cell
+    inside a thin dashed outer border (translation happens per cell, not per
+    whole table); every other element (and a TABLE with no cells) draws a
+    single box. ``highlight_idx`` marks a selected element (the whole table,
+    for label/bypass editing); ``highlight_cell`` marks a single selected cell
+    as ``(elem_idx, cell_idx)``. Only integers and fixed colors are emitted, so
+    no escaping is needed. The svg box equals the ``<img>`` box exactly
+    (viewBox aspect == natural aspect), so rects align pixel-for-pixel with
+    the base raster.
     """
     boxes: list[dict] = []
     parts = [
@@ -174,13 +223,62 @@ def overlay_svg(
         f'style="display:block;width:100%;height:auto">'
     ]
     for elem_idx, elem in enumerate(elements):
+        category = elem.get("category", "")
+        cells = elem.get("cells", [])
+        if category == "TABLE" and cells:
+            outer = elem.get("bbox_pdf")
+            if outer and len(outer) == 4:
+                ox0, oy0, ox1, oy1 = (v * scale for v in outer)
+                outer_color = (
+                    _COLOR_HIGHLIGHT
+                    if elem_idx == highlight_idx
+                    else _COLOR_TRANSLATABLE
+                )
+                outer_rgb = f"rgb({outer_color[0]},{outer_color[1]},{outer_color[2]})"
+                parts.append(
+                    f'<rect x="{ox0}" y="{oy0}" width="{ox1 - ox0}" '
+                    f'height="{oy1 - oy0}" fill="none" stroke="{outer_rgb}" '
+                    f'stroke-width="1" stroke-dasharray="4 3"/>'
+                )
+                parts.append(
+                    f'<text x="{ox0 + 2}" y="{max(0, oy0 - 2)}" font-size="12" '
+                    f'fill="{outer_rgb}">{elem_idx}</text>'
+                )
+            for cell_idx, cell in enumerate(cells):
+                bbox_pdf = cell.get("bbox_pdf")
+                if not bbox_pdf or len(bbox_pdf) != 4:
+                    continue
+                x0, y0, x1, y1 = (v * scale for v in bbox_pdf)
+                boxes.append(
+                    {
+                        "elem_idx": elem_idx,
+                        "cell_idx": cell_idx,
+                        "bbox_img": [x0, y0, x1, y1],
+                        "category": category,
+                    }
+                )
+                if highlight_cell == (elem_idx, cell_idx):
+                    color, stroke = _COLOR_HIGHLIGHT, 3
+                else:
+                    color, stroke = _COLOR_TRANSLATABLE, 1
+                rgb = f"rgb({color[0]},{color[1]},{color[2]})"
+                parts.append(
+                    f'<rect x="{x0}" y="{y0}" width="{x1 - x0}" height="{y1 - y0}" '
+                    f'fill="none" stroke="{rgb}" stroke-width="{stroke}"/>'
+                )
+            continue
+
         bbox_pdf = elem.get("bbox_pdf")
         if not bbox_pdf or len(bbox_pdf) != 4:
             continue
         x0, y0, x1, y1 = (v * scale for v in bbox_pdf)
-        category = elem.get("category", "")
         boxes.append(
-            {"elem_idx": elem_idx, "bbox_img": [x0, y0, x1, y1], "category": category}
+            {
+                "elem_idx": elem_idx,
+                "cell_idx": None,
+                "bbox_img": [x0, y0, x1, y1],
+                "category": category,
+            }
         )
 
         if elem_idx == highlight_idx:
@@ -202,13 +300,17 @@ def overlay_svg(
     return "".join(parts), boxes
 
 
-def hit_test(boxes: list[dict], x_img: float, y_img: float) -> int | None:
-    """Return the elem_idx of the smallest box containing the click, else None.
+def hit_test(
+    boxes: list[dict], x_img: float, y_img: float
+) -> tuple[int, int | None] | None:
+    """Return ``(elem_idx, cell_idx)`` of the smallest box containing the click.
 
-    ``x_img, y_img`` are in the same image-pixel space as ``bbox_img``.
-    Smallest-area-wins resolves overlapping boxes (e.g. caption inside figure).
+    ``cell_idx`` is None when the hit box is a whole element (not a table
+    cell). ``x_img, y_img`` are in the same image-pixel space as ``bbox_img``.
+    Smallest-area-wins resolves overlapping boxes (e.g. caption inside figure,
+    or a cell within its table's outer bounds).
     """
-    best_idx: int | None = None
+    best: tuple[int, int | None] | None = None
     best_area = float("inf")
     for box in boxes:
         x0, y0, x1, y1 = box["bbox_img"]
@@ -216,13 +318,23 @@ def hit_test(boxes: list[dict], x_img: float, y_img: float) -> int | None:
             area = (x1 - x0) * (y1 - y0)
             if area < best_area:
                 best_area = area
-                best_idx = box["elem_idx"]
-    return best_idx
+                best = (box["elem_idx"], box.get("cell_idx"))
+    return best
 
 
 def _get_element(doc: dict, page_i: int, elem_i: int) -> dict | None:
     try:
         return doc["pages"][page_i]["elements"][elem_i]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
+def _get_cell(doc: dict, page_i: int, elem_i: int, cell_i: int) -> dict | None:
+    elem = _get_element(doc, page_i, elem_i)
+    if elem is None:
+        return None
+    try:
+        return elem["cells"][cell_i]
     except (KeyError, IndexError, TypeError):
         return None
 
@@ -278,6 +390,40 @@ def apply_phase2_edit(
     if elem is None:
         return "Không tìm thấy element."
     elem["translated_text"] = translated_text
+    return None
+
+
+def apply_phase1_cell_edit(
+    parsed: dict,
+    page_i: int,
+    elem_i: int,
+    cell_i: int,
+    source_text: str,
+) -> str | None:
+    """Set a TABLE cell's source_text in place (used at Phase 1).
+
+    Cells have no label/category of their own — translation runs per cell, so
+    only the OCR text is editable here.
+    """
+    cell = _get_cell(parsed, page_i, elem_i, cell_i)
+    if cell is None:
+        return "Không tìm thấy cell."
+    cell["source_text"] = source_text
+    return None
+
+
+def apply_phase2_cell_edit(
+    translated: dict,
+    page_i: int,
+    elem_i: int,
+    cell_i: int,
+    translated_text: str,
+) -> str | None:
+    """Set a TABLE cell's translated_text in place (used at Phase 3)."""
+    cell = _get_cell(translated, page_i, elem_i, cell_i)
+    if cell is None:
+        return "Không tìm thấy cell."
+    cell["translated_text"] = translated_text
     return None
 
 

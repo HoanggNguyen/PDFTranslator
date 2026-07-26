@@ -31,7 +31,9 @@ from pdf2zh.webapp.config import (
 from pdf2zh.webapp.review import (
     LABEL_CHOICES,
     add_element,
+    apply_phase1_cell_edit,
     apply_phase1_edit,
+    apply_phase2_cell_edit,
     apply_phase2_edit,
     hex_to_rgb,
     hit_test,
@@ -53,6 +55,7 @@ from pdf2zh.webapp.runner import (
 
 REVIEW_DPI = 150
 _SCALE = REVIEW_DPI / 72.0
+_P1_SOURCE_LABEL = "Văn bản gốc (source_text)"
 
 # Static base image + live SVG overlay: the base <img> reloads only on page change
 # / re-render, the overlay (a pure innerHTML swap) updates on every edit action, so
@@ -221,11 +224,22 @@ def _base_p1(session: dict):
     return img
 
 
-def _overlay_p1(session: dict, highlight: int | None = None) -> str:
-    """Build the Phase-1 SVG overlay + refresh session box list for hit_test."""
+def _overlay_p1(session: dict) -> str:
+    """Build the Phase-1 SVG overlay + refresh session box list for hit_test.
+
+    Reads the current selection straight from ``session["p1_sel"]`` — a
+    ``(elem_i, cell_i)`` tuple (``cell_i`` None for a whole-element selection)
+    or None — so callers just set that key and never pass highlight state
+    separately (one less thing to keep in sync).
+    """
     page = session["parsed"]["pages"][session["p1_page"]]
     w, h = session["p1_size"]
-    svg, boxes = overlay_svg(page.get("elements", []), _SCALE, w, h, highlight)
+    sel = session.get("p1_sel")
+    highlight_idx = sel[0] if sel and sel[1] is None else None
+    highlight_cell = sel if sel and sel[1] is not None else None
+    svg, boxes = overlay_svg(
+        page.get("elements", []), _SCALE, w, h, highlight_idx, highlight_cell
+    )
     session["p1_boxes"] = boxes
     return svg
 
@@ -242,14 +256,26 @@ def _base_p3(session: dict):
     return img
 
 
-def _overlay_p3(session: dict, highlight: int | None = None) -> str:
-    """Build the Phase-3 SVG overlay + refresh session box list for hit_test."""
+def _overlay_p3(session: dict) -> str:
+    """Build the Phase-3 SVG overlay + refresh session box list for hit_test.
+
+    Reads the current selection straight from ``session["p3_sel"]``, same
+    convention as ``_overlay_p1``.
+    """
     size = session.get("p3_size")
     if size is None:
         return ""
     page = session["translated"]["pages"][session["p3_page"]]
+    sel = session.get("p3_sel")
+    highlight_idx = sel[0] if sel and sel[1] is None else None
+    highlight_cell = sel if sel and sel[1] is not None else None
     svg, boxes = overlay_svg(
-        page.get("elements", []), _SCALE, size[0], size[1], highlight
+        page.get("elements", []),
+        _SCALE,
+        size[0],
+        size[1],
+        highlight_idx,
+        highlight_cell,
     )
     session["p3_boxes"] = boxes
     return svg
@@ -346,7 +372,7 @@ def build_ui() -> gr.Blocks:
                     p1_label = gr.Dropdown(
                         LABEL_CHOICES, label="Nhãn (label)", value=None
                     )
-                    p1_source = gr.Textbox(label="Văn bản gốc (source_text)", lines=4)
+                    p1_source = gr.Textbox(label=_P1_SOURCE_LABEL, lines=4)
                     p1_bypass = gr.Checkbox(label="Bỏ qua element này (không dịch)")
                     p1_save_btn = gr.Button("💾 Lưu element", variant="secondary")
 
@@ -560,8 +586,13 @@ def build_ui() -> gr.Blocks:
                 p1_group: gr.update(visible=True),
                 p1_page_dd: gr.update(choices=page_choices, value=0),
                 p1_img: img,
-                p1_overlay: _overlay_p1(session, None),
+                p1_overlay: _overlay_p1(session),
                 p1_elem_dd: gr.update(choices=_elem_choices(first_page), value=None),
+                # Re-show label/bypass in case a table cell was selected in a
+                # previous file (which hides them) before this parse ran.
+                p1_label: gr.update(value=None, visible=True),
+                p1_source: gr.update(value="", label=_P1_SOURCE_LABEL),
+                p1_bypass: gr.update(value=False, visible=True),
             }
 
         def on_p1_page(session, page_i):
@@ -573,25 +604,52 @@ def build_ui() -> gr.Blocks:
             return {
                 sess_state: session,
                 p1_img: _base_p1(session),
-                p1_overlay: _overlay_p1(session, None),
+                p1_overlay: _overlay_p1(session),
                 p1_elem_dd: gr.update(choices=_elem_choices(page), value=None),
-                p1_label: gr.update(value=None),
-                p1_source: gr.update(value=""),
-                p1_bypass: gr.update(value=False),
+                p1_label: gr.update(value=None, visible=True),
+                p1_source: gr.update(value="", label=_P1_SOURCE_LABEL),
+                p1_bypass: gr.update(value=False, visible=True),
             }
 
-        def _p1_select(session, elem_i):
-            """Populate the edit panel for the selected element + highlight it."""
-            session["p1_sel"] = elem_i
+        def _p1_select_elem(session, elem_i):
+            """Populate the edit panel for a whole element + highlight it."""
+            session["p1_sel"] = (elem_i, None)
             page = session["parsed"]["pages"][session["p1_page"]]
             elem = page["elements"][elem_i]
             return {
                 sess_state: session,
-                p1_overlay: _overlay_p1(session, highlight=elem_i),
+                p1_overlay: _overlay_p1(session),
                 p1_elem_dd: gr.update(value=elem_i),
-                p1_label: gr.update(value=elem.get("label")),
-                p1_source: gr.update(value=elem.get("source_text", "")),
-                p1_bypass: gr.update(value=elem.get("category") == "BYPASS"),
+                p1_label: gr.update(value=elem.get("label"), visible=True),
+                p1_source: gr.update(
+                    value=elem.get("source_text", ""), label=_P1_SOURCE_LABEL
+                ),
+                p1_bypass: gr.update(
+                    value=elem.get("category") == "BYPASS", visible=True
+                ),
+                status: "",
+            }
+
+        def _p1_select_cell(session, elem_i, cell_i):
+            """Populate the edit panel for one TABLE cell + highlight it.
+
+            Cells have no label/category of their own (translation runs per
+            cell), so the label/bypass controls are hidden — only the cell's
+            OCR text is editable.
+            """
+            session["p1_sel"] = (elem_i, cell_i)
+            page = session["parsed"]["pages"][session["p1_page"]]
+            cell = page["elements"][elem_i]["cells"][cell_i]
+            return {
+                sess_state: session,
+                p1_overlay: _overlay_p1(session),
+                p1_elem_dd: gr.update(value=elem_i),
+                p1_label: gr.update(visible=False),
+                p1_source: gr.update(
+                    value=cell.get("source_text", ""),
+                    label=f"Văn bản gốc (Table #{elem_i}, cell #{cell_i})",
+                ),
+                p1_bypass: gr.update(visible=False),
                 status: "",
             }
 
@@ -603,34 +661,57 @@ def build_ui() -> gr.Blocks:
             pt = normalize_click(evt.index)
             if pt is None:
                 return {sess_state: session}
-            elem_i = hit_test(session.get("p1_boxes", []), pt[0], pt[1])
-            if elem_i is None:
+            hit = hit_test(session.get("p1_boxes", []), pt[0], pt[1])
+            if hit is None:
                 return {sess_state: session}
-            return _p1_select(session, elem_i)
+            elem_i, cell_i = hit
+            if cell_i is None:
+                return _p1_select_elem(session, elem_i)
+            return _p1_select_cell(session, elem_i, cell_i)
 
         def on_p1_pick(session, elem_i):
+            # Dropdown selects whole elements only — table cells are picked by
+            # clicking them directly on the image.
             if elem_i is None:
                 return {sess_state: session}
-            return _p1_select(session, int(elem_i))
+            return _p1_select_elem(session, int(elem_i))
 
         def do_p1_save(session, label, source, bypass):
             sel = session.get("p1_sel")
             if sel is None:
                 gr.Warning("Chưa chọn element nào.")
                 return {sess_state: session, status: "⚠️ Chưa chọn element nào."}
+            elem_i, cell_i = sel
+            if cell_i is not None:
+                msg = apply_phase1_cell_edit(
+                    session["parsed"], session["p1_page"], elem_i, cell_i, source
+                )
+                if msg:
+                    gr.Warning(msg)
+                else:
+                    gr.Info(f"Đã lưu cell #{cell_i} (Table #{elem_i}).")
+                return {
+                    sess_state: session,
+                    p1_overlay: _overlay_p1(session),
+                    status: (
+                        f"⚠️ {msg}"
+                        if msg
+                        else f"✅ Đã lưu cell #{cell_i} (Table #{elem_i})."
+                    ),
+                }
             msg = apply_phase1_edit(
-                session["parsed"], session["p1_page"], sel, label, source, bypass
+                session["parsed"], session["p1_page"], elem_i, label, source, bypass
             )
             page = session["parsed"]["pages"][session["p1_page"]]
             if msg:
                 gr.Warning(msg)
             else:
-                gr.Info(f"Đã lưu element #{sel}.")
+                gr.Info(f"Đã lưu element #{elem_i}.")
             return {
                 sess_state: session,
-                p1_overlay: _overlay_p1(session, highlight=sel),
-                p1_elem_dd: gr.update(choices=_elem_choices(page), value=sel),
-                status: f"⚠️ {msg}" if msg else f"✅ Đã lưu element #{sel}.",
+                p1_overlay: _overlay_p1(session),
+                p1_elem_dd: gr.update(choices=_elem_choices(page), value=elem_i),
+                status: f"⚠️ {msg}" if msg else f"✅ Đã lưu element #{elem_i}.",
             }
 
         def do_p1_add(
@@ -657,19 +738,25 @@ def build_ui() -> gr.Blocks:
                 text_color=text,
             )
             page = session["parsed"]["pages"][page_i]
-            session["p1_sel"] = new_idx
             gr.Info(f"Đã thêm box #{new_idx}.")
-            return {
-                sess_state: session,
-                p1_overlay: _overlay_p1(session, highlight=new_idx),
-                p1_elem_dd: gr.update(choices=_elem_choices(page), value=new_idx),
-                p1_new_source: gr.update(value=""),
-                status: f"✅ Đã thêm box #{new_idx}.",
-                # Turn draw mode back off: leaving it checked would make the next
-                # click on the image be treated as drawing instead of selecting an
-                # element, silently blocking further edits.
-                p1_draw_mode: gr.update(value=False),
-            }
+            # Populate the panel exactly as if the new element had been clicked
+            # (also re-shows label/bypass in case a table cell was selected
+            # beforehand, which hides them), then layer on the add-specific
+            # resets — including the dropdown's choices, which _p1_select_elem
+            # doesn't refresh since it doesn't know an element was just added.
+            out = _p1_select_elem(session, new_idx)
+            out.update(
+                {
+                    p1_elem_dd: gr.update(choices=_elem_choices(page), value=new_idx),
+                    p1_new_source: gr.update(value=""),
+                    status: f"✅ Đã thêm box #{new_idx}.",
+                    # Turn draw mode back off: leaving it checked would make the
+                    # next click on the image be treated as drawing instead of
+                    # selecting an element, silently blocking further edits.
+                    p1_draw_mode: gr.update(value=False),
+                }
+            )
+            return out
 
         # ---- Confirm → translate + render ----------------------------------
         def do_confirm(session, prov, key, mdl, lfrom, lto, fnt):
@@ -714,7 +801,7 @@ def build_ui() -> gr.Blocks:
                 download: session["out_path"],
                 p3_page_dd: gr.update(choices=page_choices, value=0),
                 p3_img: img,
-                p3_overlay: _overlay_p3(session, None),
+                p3_overlay: _overlay_p3(session),
                 p3_elem_dd: gr.update(choices=_elem_choices(first_page), value=None),
             }
 
@@ -727,22 +814,35 @@ def build_ui() -> gr.Blocks:
             return {
                 sess_state: session,
                 p3_img: _base_p3(session),
-                p3_overlay: _overlay_p3(session, None),
+                p3_overlay: _overlay_p3(session),
                 p3_elem_dd: gr.update(choices=_elem_choices(page), value=None),
                 p3_source: gr.update(value=""),
                 p3_translated: gr.update(value=""),
             }
 
-        def _p3_select(session, elem_i):
-            session["p3_sel"] = elem_i
+        def _p3_select_elem(session, elem_i):
+            session["p3_sel"] = (elem_i, None)
             page = session["translated"]["pages"][session["p3_page"]]
             elem = page["elements"][elem_i]
             return {
                 sess_state: session,
-                p3_overlay: _overlay_p3(session, highlight=elem_i),
+                p3_overlay: _overlay_p3(session),
                 p3_elem_dd: gr.update(value=elem_i),
                 p3_source: gr.update(value=elem.get("source_text", "")),
                 p3_translated: gr.update(value=elem.get("translated_text", "")),
+                status: "",
+            }
+
+        def _p3_select_cell(session, elem_i, cell_i):
+            session["p3_sel"] = (elem_i, cell_i)
+            page = session["translated"]["pages"][session["p3_page"]]
+            cell = page["elements"][elem_i]["cells"][cell_i]
+            return {
+                sess_state: session,
+                p3_overlay: _overlay_p3(session),
+                p3_elem_dd: gr.update(value=elem_i),
+                p3_source: gr.update(value=cell.get("source_text", "")),
+                p3_translated: gr.update(value=cell.get("translated_text", "")),
                 status: "",
             }
 
@@ -750,25 +850,44 @@ def build_ui() -> gr.Blocks:
             pt = normalize_click(evt.index)
             if pt is None:
                 return {sess_state: session}
-            elem_i = hit_test(session.get("p3_boxes", []), pt[0], pt[1])
-            if elem_i is None:
+            hit = hit_test(session.get("p3_boxes", []), pt[0], pt[1])
+            if hit is None:
                 return {sess_state: session}
-            return _p3_select(session, elem_i)
+            elem_i, cell_i = hit
+            if cell_i is None:
+                return _p3_select_elem(session, elem_i)
+            return _p3_select_cell(session, elem_i, cell_i)
 
         def on_p3_pick(session, elem_i):
+            # Dropdown selects whole elements only — table cells are picked by
+            # clicking them directly on the image.
             if elem_i is None:
                 return {sess_state: session}
-            return _p3_select(session, int(elem_i))
+            return _p3_select_elem(session, int(elem_i))
 
         def do_p3_save(session, translated_text):
             sel = session.get("p3_sel")
             if sel is None:
                 gr.Warning("Chưa chọn element nào.")
                 return {sess_state: session, status: "⚠️ Chưa chọn element nào."}
-            apply_phase2_edit(
-                session["translated"], session["p3_page"], sel, translated_text
-            )
-            gr.Info(f"Đã lưu bản dịch #{sel} (bấm Render lại để cập nhật).")
+            elem_i, cell_i = sel
+            if cell_i is not None:
+                apply_phase2_cell_edit(
+                    session["translated"],
+                    session["p3_page"],
+                    elem_i,
+                    cell_i,
+                    translated_text,
+                )
+                gr.Info(
+                    f"Đã lưu bản dịch cell #{cell_i} (Table #{elem_i}, "
+                    "bấm Render lại để cập nhật)."
+                )
+            else:
+                apply_phase2_edit(
+                    session["translated"], session["p3_page"], elem_i, translated_text
+                )
+                gr.Info(f"Đã lưu bản dịch #{elem_i} (bấm Render lại để cập nhật).")
             return {
                 sess_state: session,
                 status: "✅ Đã lưu bản dịch (bấm Render lại để cập nhật).",
@@ -798,7 +917,7 @@ def build_ui() -> gr.Blocks:
                 p3_pdf: session["out_path"],
                 download: session["out_path"],
                 p3_img: _base_p3(session),
-                p3_overlay: _overlay_p3(session, highlight=session.get("p3_sel")),
+                p3_overlay: _overlay_p3(session),
             }
 
         # ================================================================== #
