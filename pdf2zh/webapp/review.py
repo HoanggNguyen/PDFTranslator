@@ -15,6 +15,7 @@ the original page dimensions.
 
 from __future__ import annotations
 
+import html
 from typing import Any
 
 import fitz
@@ -99,9 +100,10 @@ def render_page_with_boxes(
     element (and a TABLE with no cells) draws a single box. Returns
     ``(image, boxes, scale)`` where ``boxes`` is a list of ``{"elem_idx",
     "cell_idx", "bbox_img", "category"}`` (``cell_idx`` is None for
-    element-level boxes) and ``scale = dpi/72``. Uses ``_fitz_render`` directly
-    (deterministic scale) — NOT ``render_page_to_image`` (which may return a
-    native-res embedded image).
+    element-level boxes) and ``scale = dpi/72``. Each box's tag shows its
+    ``label`` (e.g. "Table", "Caption"), not its index. Uses ``_fitz_render``
+    directly (deterministic scale) — NOT ``render_page_to_image`` (which may
+    return a native-res embedded image).
     """
     doc = fitz.open(pdf_path)
     try:
@@ -117,6 +119,7 @@ def render_page_with_boxes(
     for elem_idx, elem in enumerate(elements):
         category = elem.get("category", "")
         cells = elem.get("cells", [])
+        label = elem.get("label", "")
         if category == "TABLE" and cells:
             outer = elem.get("bbox_pdf")
             if outer and len(outer) == 4:
@@ -127,7 +130,7 @@ def render_page_with_boxes(
                     else _COLOR_TRANSLATABLE
                 )
                 draw.rectangle([ox0, oy0, ox1, oy1], outline=outer_color, width=1)
-                draw.text((ox0 + 2, max(0, oy0 - 12)), str(elem_idx), fill=outer_color)
+                draw.text((ox0 + 2, max(0, oy0 - 12)), label, fill=outer_color)
             for cell_idx, cell in enumerate(cells):
                 bbox_pdf = cell.get("bbox_pdf")
                 if not bbox_pdf or len(bbox_pdf) != 4:
@@ -168,8 +171,8 @@ def render_page_with_boxes(
         else:
             color, width = _COLOR_TRANSLATABLE, 2
         draw.rectangle([x0, y0, x1, y1], outline=color, width=width)
-        # Element number tag at the top-left corner.
-        draw.text((x0 + 2, max(0, y0 - 12)), str(elem_idx), fill=color)
+        # Label tag at the top-left corner.
+        draw.text((x0 + 2, max(0, y0 - 12)), label, fill=color)
 
     return img, boxes, scale
 
@@ -202,7 +205,7 @@ def overlay_svg(
     highlight_idx: int | None = None,
     highlight_cell: tuple[int, int] | None = None,
 ) -> tuple[str, list[dict]]:
-    """Build an SVG overlay drawing each element's bbox + index, and the boxes list.
+    """Build an SVG overlay drawing each element's bbox + label, and the boxes list.
 
     Mirrors the drawing loop of ``render_page_with_boxes`` so ``boxes`` is
     identical (same ``bbox_img``/``elem_idx``/``cell_idx``/``category``) —
@@ -211,10 +214,11 @@ def overlay_svg(
     whole table); every other element (and a TABLE with no cells) draws a
     single box. ``highlight_idx`` marks a selected element (the whole table,
     for label/bypass editing); ``highlight_cell`` marks a single selected cell
-    as ``(elem_idx, cell_idx)``. Only integers and fixed colors are emitted, so
-    no escaping is needed. The svg box equals the ``<img>`` box exactly
-    (viewBox aspect == natural aspect), so rects align pixel-for-pixel with
-    the base raster.
+    as ``(elem_idx, cell_idx)``. Each box's tag shows its ``label`` (e.g.
+    "Table", "Caption"), not its index — escaped since, unlike the fixed
+    colors/coordinates, it's arbitrary text. The svg box equals the ``<img>``
+    box exactly (viewBox aspect == natural aspect), so rects align
+    pixel-for-pixel with the base raster.
     """
     boxes: list[dict] = []
     parts = [
@@ -225,6 +229,7 @@ def overlay_svg(
     for elem_idx, elem in enumerate(elements):
         category = elem.get("category", "")
         cells = elem.get("cells", [])
+        label = html.escape(elem.get("label", ""))
         if category == "TABLE" and cells:
             outer = elem.get("bbox_pdf")
             if outer and len(outer) == 4:
@@ -242,7 +247,7 @@ def overlay_svg(
                 )
                 parts.append(
                     f'<text x="{ox0 + 2}" y="{max(0, oy0 - 2)}" font-size="12" '
-                    f'fill="{outer_rgb}">{elem_idx}</text>'
+                    f'fill="{outer_rgb}">{label}</text>'
                 )
             for cell_idx, cell in enumerate(cells):
                 bbox_pdf = cell.get("bbox_pdf")
@@ -294,7 +299,7 @@ def overlay_svg(
         )
         parts.append(
             f'<text x="{x0 + 2}" y="{max(0, y0 - 2)}" font-size="12" '
-            f'fill="{rgb}">{elem_idx}</text>'
+            f'fill="{rgb}">{label}</text>'
         )
     parts.append("</svg>")
     return "".join(parts), boxes

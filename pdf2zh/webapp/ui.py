@@ -365,7 +365,7 @@ def build_ui() -> gr.Blocks:
                         )
                 with gr.Column(scale=1):
                     p1_elem_dd = gr.Dropdown(
-                        label="Element đang chọn (# theo số trên ô)",
+                        label="Element đang chọn (khớp theo nhãn hiển thị trên ô)",
                         choices=[],
                         value=None,
                     )

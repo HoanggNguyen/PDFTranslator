@@ -424,11 +424,22 @@ class TestOverlaySvg:
         svg, boxes = overlay_svg(_OVERLAY_ELEMENTS, 1.0, 300, 200, highlight_idx=0)
         assert svg.startswith('<svg viewBox="0 0 300 200"')
         assert svg.count("<rect") == len(_OVERLAY_ELEMENTS) == 2
-        # index tag per element.
+        # label tag per element.
         assert svg.count("<text") == 2
         # highlighted element -> red stroke; bypass element -> gray stroke.
         assert "rgb(230,30,30)" in svg
         assert "rgb(150,150,150)" in svg
+
+    def test_box_tag_shows_label_not_index(self):
+        elements = [
+            {"label": "Text", "category": "FLOWING_TEXT", "bbox_pdf": [0, 0, 10, 10]},
+            {"label": "Caption", "category": "IN_PLACE", "bbox_pdf": [20, 0, 30, 10]},
+        ]
+        svg, _ = overlay_svg(elements, 1.0, 50, 50)
+        assert ">Text</text>" in svg
+        assert ">Caption</text>" in svg
+        assert ">0</text>" not in svg
+        assert ">1</text>" not in svg
 
     def test_skips_elements_without_valid_bbox(self):
         elements = [
