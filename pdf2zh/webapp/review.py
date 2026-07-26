@@ -197,6 +197,19 @@ def render_page_plain(
     return img, (img.width, img.height)
 
 
+def render_all_pages(pdf_path: str, dpi: int = 150) -> list[Image.Image]:
+    """Rasterize every page of ``pdf_path`` (opens the doc once).
+
+    Server-side render for previews that must not depend on a browser PDF
+    viewer / external CDN. Returns one RGB image per page, in order.
+    """
+    doc = fitz.open(pdf_path)
+    try:
+        return [_fitz_render(page, dpi).convert("RGB") for page in doc]
+    finally:
+        doc.close()
+
+
 def overlay_svg(
     elements: list[dict],
     scale: float,

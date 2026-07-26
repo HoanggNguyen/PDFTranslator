@@ -17,7 +17,6 @@ import uuid
 from pathlib import Path
 
 import gradio as gr
-from gradio_pdf import PDF
 
 from pdf2zh.e2e import BUNDLED_FONTS, DEFAULT_FONT, SUPPORTED_LANGUAGES
 from pdf2zh.webapp.config import (
@@ -40,6 +39,7 @@ from pdf2zh.webapp.review import (
     normalize_click,
     output_page_position,
     overlay_svg,
+    render_all_pages,
     render_page_plain,
 )
 from pdf2zh.webapp.runner import (
@@ -338,9 +338,25 @@ def build_ui() -> gr.Blocks:
                     "⚡ Chạy end-to-end (bỏ qua sửa)", variant="secondary"
                 )
             with gr.Column(scale=2):
-                pdf_in = PDF(label="Tải lên PDF", height=520)
+                pdf_in = gr.File(
+                    label="Tải lên PDF", file_types=[".pdf"], type="filepath"
+                )
+                pdf_preview = gr.Gallery(
+                    label="Xem trước (mọi trang)",
+                    height=520,
+                    columns=1,
+                    show_label=True,
+                    preview=True,
+                    visible=False,
+                )
                 status = gr.Markdown("")
-                e2e_pdf = PDF(label="Bản dịch (end-to-end)", height=520, visible=False)
+                e2e_pdf = gr.Gallery(
+                    label="Bản dịch (end-to-end)",
+                    height=520,
+                    columns=1,
+                    preview=True,
+                    visible=False,
+                )
                 e2e_download = gr.File(label="Tải PDF (end-to-end)", visible=False)
 
         # ---- Step 1: Phase-1 review ----------------------------------------
@@ -408,7 +424,12 @@ def build_ui() -> gr.Blocks:
             )
             with gr.Row():
                 with gr.Column(scale=1):
-                    p3_pdf = PDF(label="Bản dịch (xem trước)", height=560)
+                    p3_pdf = gr.Gallery(
+                        label="Bản dịch (xem trước)",
+                        height=560,
+                        columns=1,
+                        preview=True,
+                    )
                     download = gr.File(label="Tải PDF bản dịch")
                 with gr.Column(scale=1):
                     p3_page_dd = gr.Dropdown(label="Trang", choices=[], value=None)
@@ -450,12 +471,13 @@ def build_ui() -> gr.Blocks:
             vis = mode == PAGE_MODE_RANGE
             return gr.update(visible=vis), gr.update(visible=vis)
 
-        def on_new_file(session):
+        def on_new_file(session, pdf):
             """Reset all derived state when the uploaded PDF changes/clears.
 
             Drops the previous file's work dir + session keys and hides every
             review panel / download so a new file never shows the old one's
-            outputs.
+            outputs. Also rasterizes page 1 server-side (PyMuPDF) for the preview
+            so it never depends on a browser-side PDF viewer / external CDN.
             """
             old = session.get("work_dir")
             if old:
@@ -477,9 +499,16 @@ def build_ui() -> gr.Blocks:
                 "p3_boxes",
             ):
                 session.pop(k, None)
+            preview = None
+            if pdf:
+                try:
+                    preview = render_all_pages(pdf, REVIEW_DPI)
+                except Exception:
+                    preview = None
             return {
                 sess_state: session,
                 status: "",
+                pdf_preview: gr.update(value=preview, visible=bool(preview)),
                 p1_group: gr.update(visible=False),
                 p3_group: gr.update(visible=False),
                 p3_pdf: gr.update(value=None),
@@ -527,7 +556,9 @@ def build_ui() -> gr.Blocks:
             elapsed = time.perf_counter() - t0
             yield {
                 status: f"✅ Xong end-to-end trong {elapsed:.1f}s (xem log để biết chi tiết từng phase).",
-                e2e_pdf: gr.update(value=result.out_path, visible=True),
+                e2e_pdf: gr.update(
+                    value=render_all_pages(result.out_path, REVIEW_DPI), visible=True
+                ),
                 e2e_download: gr.update(value=result.out_path, visible=True),
             }
 
@@ -797,7 +828,7 @@ def build_ui() -> gr.Blocks:
                 sess_state: session,
                 status: "✅ Đã dịch & dựng. Soát bản dịch rồi tải về.",
                 p3_group: gr.update(visible=True),
-                p3_pdf: session["out_path"],
+                p3_pdf: render_all_pages(session["out_path"], REVIEW_DPI),
                 download: session["out_path"],
                 p3_page_dd: gr.update(choices=page_choices, value=0),
                 p3_img: img,
@@ -914,7 +945,7 @@ def build_ui() -> gr.Blocks:
             yield {
                 sess_state: session,
                 status: "✅ Đã render lại.",
-                p3_pdf: session["out_path"],
+                p3_pdf: render_all_pages(session["out_path"], REVIEW_DPI),
                 download: session["out_path"],
                 p3_img: _base_p3(session),
                 p3_overlay: _overlay_p3(session),
@@ -929,10 +960,11 @@ def build_ui() -> gr.Blocks:
         page_mode.change(on_page_mode, page_mode, [page_from, page_to])
         pdf_in.change(
             on_new_file,
-            sess_state,
+            [sess_state, pdf_in],
             [
                 sess_state,
                 status,
+                pdf_preview,
                 p1_group,
                 p3_group,
                 p3_pdf,

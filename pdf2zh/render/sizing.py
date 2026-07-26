@@ -217,7 +217,6 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
         else:
             # Non-table: use cluster's canonical size for each element.
             # Only reduce for elements whose overflow would collide with another element.
-            floor = fallback
             for uid, _ in items:
                 elem_canonical = uid_to_canonical.get(uid, fallback)
                 t_ceiling = translated_ceiling.get(uid, fallback)
@@ -226,7 +225,7 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     result[uid] = elem_canonical
                 else:
                     # Translated text overflows. Allow it only if the overflow
-                    # region doesn't collide with any other element on the page.
+                    # region doesn't collide with another element on the page.
                     meta = elem_meta.get(uid, {})
                     page_idx = meta.get("page_idx", -1)
                     bbox = meta.get("bbox", [0, 0, 10, 10])
@@ -237,6 +236,12 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                     if _overflow_collides(
                         bbox, translated, elem_canonical, cfg, others
                     ):
+                        # Shrink toward the fit ceiling, but keep a readability
+                        # floor. The floor must never exceed the size we shrink
+                        # from — otherwise a page whose canonical is below
+                        # ``fallback`` would inflate colliding blocks above the
+                        # cluster instead of reducing them.
+                        floor = min(fallback, elem_canonical)
                         result[uid] = max(floor, min(elem_canonical, t_ceiling))
                     else:
                         result[uid] = elem_canonical
