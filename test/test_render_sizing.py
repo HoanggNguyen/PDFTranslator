@@ -242,3 +242,49 @@ class TestAssignRenderSizes:
         # They're in separate page-scoped buckets, so cluster separately
         assert "p0:e0" in sizes
         assert "p1:e0" in sizes
+
+    def test_colliding_shrink_never_inflates_above_canonical(self):
+        # Regression: on a page whose cluster canonical is below fallback_size,
+        # a block whose translated text overflows AND collides with a neighbor
+        # used to be clamped UP to fallback (11pt) — larger than its cluster —
+        # instead of shrunk. It must stay at (or below) the canonical.
+        doc = _make_doc(
+            [
+                # e0 overflows at the 9pt canonical and collides with e1 below it.
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "font_size": 9.0,
+                    "source_text": "",
+                    "translated_text": "x" * 220,
+                    "bbox_pdf": [0, 0, 100, 20],
+                    "cells": [],
+                },
+                # e1 sits directly below e0 (tiny gap) → e0's overflow hits it.
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "font_size": 9.0,
+                    "source_text": "",
+                    "translated_text": "",
+                    "bbox_pdf": [0, 22, 100, 42],
+                    "cells": [],
+                },
+                # e2 sets the cluster too, off to the side (no collision).
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "font_size": 9.0,
+                    "source_text": "",
+                    "translated_text": "",
+                    "bbox_pdf": [300, 0, 400, 20],
+                    "cells": [],
+                },
+            ]
+        )
+        cfg = self._cfg()
+        sizes = assign_render_sizes(doc, cfg)
+        # The colliding block stays uniform with its cluster (9pt), and is never
+        # inflated up to fallback (11pt) by the readability floor.
+        assert sizes["p0:e0"] == sizes["p0:e2"]
+        assert sizes["p0:e0"] < cfg.fallback_size

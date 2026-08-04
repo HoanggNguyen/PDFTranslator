@@ -185,6 +185,55 @@ def _cover_rect(
     )
 
 
+def _downward_avail_height(
+    bbox: list[float],
+    all_bboxes: list[list[float]],
+    page_height: float,
+    max_expand: float,
+) -> float:
+    """Block height that lets text overflow DOWN into empty space only.
+
+    Extends the tight bbox height downward until it would reach the nearest
+    element below that horizontally overlaps it — capped by ``max_expand`` and
+    the page bottom. Mirrors the sizing heuristic: the Typst fit then keeps the
+    chosen size when overflow lands in empty space and only shrinks when the
+    text would actually collide with a neighbor below.
+    """
+    x0, y0, x1, y1 = bbox
+    limit = min(page_height, y1 + max_expand)
+    for ob in all_bboxes:
+        if ob is bbox or len(ob) != 4:
+            continue
+        ox0, oy0, ox1, _ = ob
+        if ox1 > x0 and ox0 < x1 and oy0 >= y1 - 0.5:  # below & horizontally overlaps
+            limit = min(limit, oy0)
+    return max(y1 - y0, limit - y0)
+
+
+def _rightward_avail_width(
+    bbox: list[float],
+    all_bboxes: list[list[float]],
+    page_width: float,
+) -> float:
+    """Block width that lets single-line text extend RIGHT into empty space only.
+
+    Extends the tight bbox width rightward until it would reach the nearest
+    element to the right that vertically overlaps it — capped by the page edge.
+    Without this, a single-line block expands to the page margin and can overrun
+    a right-hand neighbor (e.g. a TOC page number) without shrinking; bounding it
+    lets the no-wrap fit shrink the text before it collides.
+    """
+    x0, y0, x1, y1 = bbox
+    limit = page_width
+    for ob in all_bboxes:
+        if ob is bbox or len(ob) != 4:
+            continue
+        ox0, oy0, _, oy1 = ob
+        if ox0 >= x1 - 0.5 and oy0 < y1 and oy1 > y0:  # right & vertically overlaps
+            limit = min(limit, ox0)
+    return max(x1 - x0, limit - x0)
+
+
 def _text_block(
     var: str,
     x0: float,
@@ -199,10 +248,11 @@ def _text_block(
     text_color: RGB,
     font_family: str,
     expanded_w: float | None = None,
+    expanded_h: float | None = None,
     valign: str = "top",
 ) -> str:
     w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
-    h = max(4.0, y1 - y0)
+    h = max(4.0, expanded_h if expanded_h is not None else (y1 - y0))
     # Ensure min_size <= max_size; otherwise the binary-search fit helper
     # gets lo > hi and behaves incorrectly.
     effective_min = min(min_font, font_size)
@@ -243,10 +293,11 @@ def _text_block_typst(
     font_family: str,
     no_wrap: bool = False,
     expanded_w: float | None = None,
+    expanded_h: float | None = None,
     valign: str = "top",
 ) -> str:
     w = max(4.0, expanded_w if expanded_w is not None else (x1 - x0))
-    h = max(4.0, y1 - y0)
+    h = max(4.0, expanded_h if expanded_h is not None else (y1 - y0))
     effective_min = min(min_font, font_size)
     no_wrap_arg = ", no_wrap: true" if no_wrap else ""
     fit_call = (
@@ -353,13 +404,16 @@ def build_typst_source(
     ]
 
     pages = parsed.get("pages", [])
-    # 1-indexed page numbers that will appear in the output PDF — used to gate
-    # TOC links so we don't emit links to pages that were filtered out.
+    # 1-indexed anchor numbers actually emitted (enumerate position of each
+    # rendered page) — used to gate TOC links so we never #link a missing
+    # anchor (Typst errors on dangling label references).
     rendered_pages = {
-        i + 1 for i in range(len(pages)) if cfg.pages is None or i in cfg.pages
+        page_idx + 1
+        for page_idx, page in enumerate(pages)
+        if cfg.pages is None or page.get("page_index", page_idx) in cfg.pages
     }
     for page_idx, page in enumerate(pages):
-        if cfg.pages is not None and page_idx not in cfg.pages:
+        if cfg.pages is not None and page.get("page_index", page_idx) not in cfg.pages:
             continue
         pw = page.get("page_width", 595.0)
         ph = page.get("page_height", 842.0)
@@ -370,6 +424,9 @@ def build_typst_source(
         lines.append(f"#metadata(none)<pdftr-page-{page_idx + 1}>")
 
         elems = page.get("elements", [])
+        # All element bboxes on this page — used to bound downward text overflow
+        # so a block only shrinks when its overflow would hit a neighbor.
+        page_bboxes = [e.get("bbox_pdf") for e in elems if e.get("bbox_pdf")]
 
         for elem_idx, elem in enumerate(elems):
             category = elem.get("category", "")
@@ -562,7 +619,16 @@ def build_typst_source(
                     is_single_line = (y1 - y0) < font_size * 1.8
                     # Single-line: expand block width to available horizontal
                     # space so text flows right instead of wrapping down.
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
+                    exp_h = (
+                        _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
+                        if cfg.expand_downward and not is_single_line
+                        else None
+                    )
                     lines.append(
                         _text_block_typst(
                             var,
@@ -579,13 +645,23 @@ def build_typst_source(
                             cfg.font_family,
                             no_wrap=is_single_line,
                             expanded_w=exp_w,
+                            expanded_h=exp_h,
                         )
                     )
                 elif not use_fallback and _BARE_TYPST_MATH.search(translated):
                     # Bare Typst math functions (no <math> tags) — wrap in $ and use native path
                     typst_markup = f"${_split_math_vars(translated)}$"
                     is_single_line = (y1 - y0) < font_size * 1.8
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
+                    exp_h = (
+                        _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
+                        if cfg.expand_downward and not is_single_line
+                        else None
+                    )
                     lines.append(
                         _text_block_typst(
                             var,
@@ -602,13 +678,23 @@ def build_typst_source(
                             cfg.font_family,
                             no_wrap=is_single_line,
                             expanded_w=exp_w,
+                            expanded_h=exp_h,
                         )
                     )
                 else:
                     # No <math> tags, no Typst functions — plain text/LaTeX, use cmarker/mitex
                     markdown = to_typst_markup(translated)
                     is_single_line = (y1 - y0) < font_size * 1.8
-                    exp_w = (pw - x0) if is_single_line else None
+                    exp_w = (
+                        _rightward_avail_width(bbox, page_bboxes, pw)
+                        if is_single_line
+                        else None
+                    )
+                    exp_h = (
+                        _downward_avail_height(bbox, page_bboxes, ph, cfg.max_expand_pt)
+                        if cfg.expand_downward and not is_single_line
+                        else None
+                    )
                     lines.append(
                         _text_block(
                             var,
@@ -624,6 +710,7 @@ def build_typst_source(
                             tc,
                             cfg.font_family,
                             expanded_w=exp_w,
+                            expanded_h=exp_h,
                         )
                     )
 

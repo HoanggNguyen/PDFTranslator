@@ -25,21 +25,25 @@ PROVIDER_DEFAULT_MODEL = {
     "LiteLLM": "gpt-4o-mini",
 }
 
-# Page selection presets. CUSTOM_LABEL -> read the page count from the "First N" box.
-CUSTOM_LABEL = "First N…"
-PAGE_PRESETS: dict[str, object] = {
-    "All": None,
-    "First page": [0],
-    "First 5 pages": list(range(5)),
-    CUSTOM_LABEL: "CUSTOM",
-}
+# Page-selection modes. "All" translates the whole document; "Range" uses the
+# 1-based from/to boxes.
+PAGE_MODE_ALL = "Toàn bộ"
+PAGE_MODE_RANGE = "Khoảng trang"
+PAGE_MODES = [PAGE_MODE_ALL, PAGE_MODE_RANGE]
 MAX_CUSTOM_PAGES = 50  # guardrail against OOM on a single T4
 
 
-def resolve_pages(page_choice: str, page_n) -> list[int] | None:
-    """Map a preset label (+ the custom N) to a 0-based page index list or None."""
-    sel = PAGE_PRESETS[page_choice]
-    if sel == "CUSTOM":
-        n = max(1, min(int(page_n or 1), MAX_CUSTOM_PAGES))
-        return list(range(n))
-    return sel  # None or a list
+def resolve_pages(mode: str, from_page, to_page) -> list[int] | None:
+    """Map the page mode (+ 1-based from/to) to a 0-based page index list or None.
+
+    ``All`` → None (whole document). ``Range`` → inclusive 1-based ``[from, to]``
+    converted to 0-based indices, with the span capped at ``MAX_CUSTOM_PAGES``.
+    Out-of-range high values are harmless: the parser and compositor both drop
+    indices past the document's last page.
+    """
+    if mode != PAGE_MODE_RANGE:
+        return None
+    lo = max(1, int(from_page or 1))
+    hi = max(lo, int(to_page or lo))
+    hi = min(hi, lo + MAX_CUSTOM_PAGES - 1)  # cap the span
+    return list(range(lo - 1, hi))

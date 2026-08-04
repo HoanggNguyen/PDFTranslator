@@ -93,7 +93,7 @@ def render_document(
 
     # 3. Count rendered/skipped
     for page_idx, page in enumerate(parsed.get("pages", [])):
-        if cfg.pages is not None and page_idx not in cfg.pages:
+        if cfg.pages is not None and page.get("page_index", page_idx) not in cfg.pages:
             continue
         stats["pages"] += 1
         for elem_idx, elem in enumerate(page.get("elements", [])):
@@ -211,11 +211,12 @@ def _redact_text_layer(
     pad = cfg.background.eraser_padding_pt
     try:
         for page_idx, page_data in enumerate(parsed.get("pages", [])):
-            if cfg.pages is not None and page_idx not in cfg.pages:
+            orig = page_data.get("page_index", page_idx)
+            if cfg.pages is not None and orig not in cfg.pages:
                 continue
-            if page_idx >= doc.page_count:
+            if orig >= doc.page_count:
                 continue
-            page = doc[page_idx]
+            page = doc[orig]
             pw = page_data.get("page_width", page.rect.width)
             ph = page_data.get("page_height", page.rect.height)
             had_annot = False
@@ -305,11 +306,12 @@ def _sample_colors(
     doc = fitz.open(str(pdf_path))
     try:
         for page_idx, page_data in enumerate(parsed.get("pages", [])):
-            if cfg.pages is not None and page_idx not in cfg.pages:
+            orig = page_data.get("page_index", page_idx)
+            if cfg.pages is not None and orig not in cfg.pages:
                 continue
-            if page_idx >= doc.page_count:
+            if orig >= doc.page_count:
                 continue
-            page = doc[page_idx]
+            page = doc[orig]
             pw = page_data.get("page_width", page.rect.width)
             ph = page_data.get("page_height", page.rect.height)
 
@@ -337,10 +339,21 @@ def _sample_colors(
                         text_colors[cell_uid] = tc
                         stats["bg_samples"] += 1
                 else:
-                    bg = prepare_cover(page, bbox, pw, ph, cfg.background)
-                    bg_colors[uid] = bg.rgb
-                    tc = sample_text_color(page, bbox, pw, ph, bg.rgb, cfg.text_color)
-                    text_colors[uid] = tc
+                    # User-added boxes may carry explicit color overrides
+                    # (review.add_element); honor them instead of sampling.
+                    ov_bg = elem.get("bg_color")
+                    ov_tc = elem.get("text_color")
+                    if ov_bg:
+                        bg_rgb = tuple(ov_bg)
+                    else:
+                        bg_rgb = prepare_cover(page, bbox, pw, ph, cfg.background).rgb
+                    bg_colors[uid] = bg_rgb
+                    if ov_tc:
+                        text_colors[uid] = tuple(ov_tc)
+                    else:
+                        text_colors[uid] = sample_text_color(
+                            page, bbox, pw, ph, bg_rgb, cfg.text_color
+                        )
                     stats["bg_samples"] += 1
     finally:
         doc.close()

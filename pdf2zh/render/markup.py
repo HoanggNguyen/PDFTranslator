@@ -96,7 +96,27 @@ def to_typst_markup(text: str, *, is_equation: bool = False) -> str:
     # 7 & 8. Escape Typst-special chars and literal < > in plain text segments (outside $...$)
     result = _escape_typst_outside_math(result, clean_math=False, escape_lt_gt=True)
 
+    # 9. Preserve explicit line breaks: a lone '\n' in translated_text is a
+    #    deliberate break (address/signature blocks), but CommonMark renders a
+    #    single newline as a space. Convert it to a hard break so cmarker keeps it.
+    result = _hardbreak_newlines(result)
+
     return result
+
+
+def _hardbreak_newlines(text: str) -> str:
+    """Turn a lone ``\\n`` into a CommonMark hard line break (backslash + newline).
+
+    Paragraph breaks (``\\n\\n``) are left as-is; ``$...$`` math is never touched.
+    """
+    parts = _split_math(text)
+    out = []
+    for kind, chunk in parts:
+        if kind == "math":
+            out.append(chunk)
+        else:
+            out.append(re.sub(r"(?<!\n)\n(?!\n)", lambda _m: "\\\n", chunk))
+    return "".join(out)
 
 
 # ---------------------------------------------------------------------------

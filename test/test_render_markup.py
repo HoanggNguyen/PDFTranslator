@@ -216,3 +216,22 @@ class TestTocLineParsing:
         result = parse_toc_line("3.1 Derivatives of Polynomials 174")
         assert result is not None
         assert result[1] == "174"
+
+
+class TestNewlineHandling:
+    def test_lone_newline_becomes_hard_break(self):
+        # A single '\n' must become a CommonMark hard break (backslash + newline)
+        # so cmarker keeps the line break instead of collapsing it to a space.
+        out = to_typst_markup("Ho Chi Minh City\nStudent group")
+        assert "\\\n" in out
+        assert out == "Ho Chi Minh City\\\nStudent group"
+
+    def test_paragraph_break_preserved(self):
+        # A blank line (double newline) stays a paragraph break, not a hard break.
+        out = to_typst_markup("Para one.\n\nPara two.")
+        assert "\\\n" not in out
+        assert "\n\n" in out
+
+    def test_newline_inside_math_untouched(self):
+        out = to_typst_markup("text <math>a\nb</math> more")
+        assert "$a\nb$" in out  # no backslash injected inside math
