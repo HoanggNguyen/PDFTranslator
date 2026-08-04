@@ -777,7 +777,10 @@ class StageAParser:
 
                 containment_ratio = bbox_area(intersection) / block_area
                 kept_area = bbox_area(kept.bbox_image)
-                if containment_ratio >= containment_threshold and kept_area >= block_area:
+                if (
+                    containment_ratio >= containment_threshold
+                    and kept_area >= block_area
+                ):
                     should_drop = True
                     break
 
@@ -804,13 +807,10 @@ class StageAParser:
         lines = extract_text_for_region(page_ocr.ocr_result, block.bbox_image)
         if len(lines) != 1:
             return None
-        
-        print("hello")
 
         line_bbox = get_line_bbox(lines[0])
         if line_bbox is None or is_degenerate(line_bbox):
             return None
-        print(bbox_iou(block.bbox_image, line_bbox))
         if bbox_iou(block.bbox_image, line_bbox) < iou_threshold:
             return None
 
