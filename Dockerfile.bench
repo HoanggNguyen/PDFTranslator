@@ -1,0 +1,113 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Image BENCHMARK — chứa CẢ BA hệ mã nguồn bị đem so, để chúng chạy trên CÙNG một
+# phần cứng. Đây là điều kiện để cột "giây/trang" có nghĩa.
+#
+# Vì sao không dùng lại Dockerfile của Space demo:
+#   * Nó chỉ có môi trường PDFTranslator. Chạy baseline trong đó là đo nhầm hệ.
+#   * Hai venv baseline nặng thêm ~4 GB — nhét vào image demo là làm chậm build và
+#     phình runtime của bản đang phục vụ người dùng.
+#
+# Xung đột dep được giải bằng VENV, không phải bằng máy khác nhau:
+#   * PDFMathTranslate ghim pymupdf<1.25.3, BabelDOC cần >=1.26.7
+#   * cả hai repo đều đặt tên package là `pdf2zh`, trùng với PDFTranslator
+#   * PDFMathTranslate đòi Python >=3.11,<3.13, còn image nền là Ubuntu 22.04 (3.10)
+#     -> uv tự tải CPython standalone, không đụng python hệ thống.
+#
+# Dựng Space benchmark (HF Docker Space chỉ đọc `Dockerfile` ở gốc repo):
+#     cp Dockerfile.bench Dockerfile && git push <space> HEAD:main
+#   hoặc giữ một branch riêng cho Space với file đã đổi tên.
+# =============================================================================
+FROM nvidia/cuda:13.0.0-cudnn-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PIP_NO_CACHE_DIR=1 \
+    TORCH_DEVICE=cuda \
+    TYPST_BIN=typst \
+    PDF2ZH_FONT_DIR=/app/fonts
+
+WORKDIR /app
+
+# ── System deps ───────────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        python3 python3-pip python3-dev \
+        libgl1 libglib2.0-0 libxext6 libsm6 libxrender1 \
+        fontconfig fonts-noto-core fonts-noto-cjk \
+        git wget xz-utils ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# ── Typst + font (PDFTranslator render bằng typst) ────────────────────────────
+ARG TYPST_VERSION=v0.14.2
+RUN wget -qO /tmp/typst.tar.xz \
+        "https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" && \
+    tar -xJf /tmp/typst.tar.xz -C /tmp && \
+    install -m 0755 /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst && \
+    rm -rf /tmp/typst* && typst --version
+
+RUN mkdir -p /app/fonts && \
+    for w in Regular Bold Italic; do \
+        wget -qO "/app/fonts/BeVietnamPro-${w}.ttf" \
+          "https://github.com/google/fonts/raw/main/ofl/bevietnampro/BeVietnamPro-${w}.ttf" || true; \
+    done && \
+    cp -n /usr/share/fonts/truetype/noto/*.ttf /app/fonts/ 2>/dev/null || true && \
+    cp -n /usr/share/fonts/opentype/noto/*.otf /app/fonts/ 2>/dev/null || true && \
+    fc-cache -f
+
+# ── Hệ đang được kiểm: PDFTranslator (python hệ thống) ────────────────────────
+COPY requirements.txt .
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r requirements.txt
+
+# ── Tầng CHẤM ĐIỂM ────────────────────────────────────────────────────────────
+# docling: detector chấm chung (§3) — cố ý chọn model KHÔNG hệ nào dưới bài kiểm dùng.
+# fasttext: LID cho UTB. Thiếu nó thì langid rơi về heuristic và UTB không dùng được.
+# unbabel-comet: CometKiwi QE (§4.4).
+RUN python3 -m pip install \
+        "docling" "docling-ibm-models" \
+        "fasttext-wheel" \
+        "scikit-image" "opencv-python-headless" \
+        "unbabel-comet" \
+        "huggingface_hub[cli]"
+
+# ── uv + hai venv baseline ────────────────────────────────────────────────────
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Pin theo tag để tái lập được. Đổi tag = đổi hệ được so, phải ghi lại trong luận văn.
+ARG BABELDOC_REF=v0.6.4
+ARG PDFMATH_REF=v1.9.11
+RUN git clone --depth 1 --branch ${BABELDOC_REF} \
+        https://github.com/funstory-ai/BabelDOC /opt/BabelDOC && \
+    git clone --depth 1 --branch ${PDFMATH_REF} \
+        https://github.com/Byaidu/PDFMathTranslate /opt/PDFMathTranslate
+
+RUN uv venv /opt/venv-babeldoc --python 3.12 && \
+    uv pip install --python /opt/venv-babeldoc -e /opt/BabelDOC && \
+    uv venv /opt/venv-pdfmath --python 3.12 && \
+    uv pip install --python /opt/venv-pdfmath -e /opt/PDFMathTranslate
+
+# Runner đọc hai biến này. Trỏ tường minh vào venv — KHÔNG để rơi về PATH: tên
+# `pdf2zh` trong PATH gần như chắc chắn là console script của chính PDFTranslator.
+ENV BABELDOC_BIN=/opt/venv-babeldoc/bin/babeldoc \
+    PDFMATHTRANSLATE_BIN=/opt/venv-pdfmath/bin/pdf2zh
+
+# ── Code harness ──────────────────────────────────────────────────────────────
+# Chạy từ /app nên package `pdf2zh` nằm sẵn trên sys.path, khỏi cài editable.
+COPY . .
+
+RUN mkdir -p /app/.cache && chmod -R 777 /app/.cache && \
+    install -m 0755 script/entrypoint-bench.sh /usr/local/bin/entrypoint-bench.sh
+
+# Pre-cache typst package để runtime không cần mạng.
+RUN mkdir -p /app/.cache/typst && \
+    TYPST_PACKAGE_CACHE_PATH=/app/.cache/typst sh -c '\
+      printf "#import \"@preview/cmarker:0.1.8\"\n#import \"@preview/mitex:0.2.6\": *\n#cmarker.render(\"ok\")\n" > /tmp/warm.typ && \
+      typst compile /tmp/warm.typ /tmp/warm.pdf' || echo "typst pre-cache skipped"
+
+# ENTRYPOINT, KHÔNG phải CMD: `hf jobs run` thay CMD nhưng không thay ENTRYPOINT.
+# Xem script/entrypoint-bench.sh để biết vì sao chi tiết đó tốn tiền thật.
+ENTRYPOINT ["/usr/local/bin/entrypoint-bench.sh"]
+CMD ["bash", "-lc", "python3 -m benchmark.e2e.manifest list --out benchmark/e2e/out || true; sleep infinity"]
