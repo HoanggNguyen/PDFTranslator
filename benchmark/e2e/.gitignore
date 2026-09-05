@@ -1,0 +1,6 @@
+out/
+datasets/corpus/
+datasets/omnidoc/
+.doclaynet_scan.json
+datasets/.doclaynet_scan.json
+__pycache__/
