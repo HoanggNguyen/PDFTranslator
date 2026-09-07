@@ -439,15 +439,15 @@ Theo thứ tự phụ thuộc:
    thứ chặn **trục chính**. Chọn Docling vì **không hệ nào dưới bài kiểm dùng nó**, và
    nó train trên DocLayNet train split nên trần đo rất cao — mọi sụt giảm quy được cho
    translator chứ không cho detector. Không rò rỉ vì corpus lấy từ split `test`.
-3. **`metrics/eval_preserve.py`** — mIoU, F1@0.5, mF1@[.5:.95], **Anchor-IoU**, text
-   containment, element retention, **collision rate**, **margin violation**,
-   reading-order τ. Tái dùng lõi hình học của
-   `benchmark/parser/evaluation/eval_layout.py`, chỉ đổi nguồn ground truth.
+3. **`metrics/eval_preserve.py`** — reading-order τ cho bảng chính; mIoU, mF1,
+   box ratio, collision và margin chỉ còn là chẩn đoán phụ thuộc detector.
 4. **Hàng `Source ceiling`** — chạy detector trên PDF nguồn chưa dịch rồi chấm với GT
    người vẽ. Mọi điểm phải đọc *tương đối* so với hàng này. Cùng với Identity, đây là
    hai hàng chuẩn mà paper BabelDOC không có.
-5. **`metrics/eval_visual.py`** — Masked-SSIM, ink-profile distance.
-6. **`metrics/eval_qe.py`** — CometKiwi QE + hiệu chuẩn bằng WMT24++ `vi_VN`.
+5. **`metrics/eval_visual.py`** — NT-PPR, IO-PPR, OF-harm và Page-fail không dùng
+   detector. Masked-SSIM/ink-profile được giữ trong JSON làm chẩn đoán.
+6. **`metrics/eval_text.py` + `metrics/eval_qe.py`** — UTB/trang và CometKiwi QE;
+   hiệu chuẩn QE bằng WMT24++ `vi_VN`.
 7. **`metrics/aggregate.py`** — bootstrap CI 95% + paired test + `report.md`.
 
 Việc 2–4 là phần lõi. Không có chúng thì chưa có luận điểm nào về layout preservation.

@@ -1,0 +1,330 @@
+\section{FULL STRUCTURE-ANALYSIS RESULTS BY SLICE}
+\label{app:parser-slices}
+
+This appendix reports every parser metric of Section~\ref{subsec:res-parser}
+across all four slicing dimensions (\texttt{language}, \texttt{layout},
+\texttt{subset}, \texttt{data\_source}). All numbers come from the same run: the
+\textbf{split} configuration (sparse-block splitting enabled) at the
+\textbf{fine} ground-truth granularity, coordinates normalised to $[0,1]$, over
+the 1{,}651 pages of OmniDocBench. \textbf{Bold} marks the best value within a
+slicing group and \underline{underline} the worst; $\downarrow$ marks
+lower-is-better metrics.
+
+\subsection{Localisation}
+
+Table~\ref{tab:app-res-loc} breaks class-agnostic localisation down by slice for
+both matchers.
+
+\begin{table}[H]
+\centering
+\caption{Class-agnostic localisation by slice: precision, recall and $F_1$ at
+IoU $0.5$, plus mF1 averaged over thresholds $[.5{:}.95]$, for both matchers.}
+\label{tab:app-res-loc}
+\small
+\begin{tabular}{@{}l rrrr rrrr@{}}
+\toprule
+ & \multicolumn{4}{c}{$N$--$M$} & \multicolumn{4}{c}{COCO 1-1} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9}
+Slice & P@.5 & R@.5 & F1@.5 & mF1 & P@.5 & R@.5 & F1@.5 & mF1 \\
+\midrule
+    \textbf{all} & 0.927 & 0.954 & 0.940 & 0.700 & 0.580 & 0.751 & 0.654 & 0.464 \\ \midrule
+    \texttt{language=en\_ch\_mixed} & 0.876 & 0.920 & 0.898 & 0.588 & 0.433 & \underline{0.502} & 0.465 & 0.275 \\
+    \texttt{language=english} & \textbf{0.962} & \textbf{0.973} & \textbf{0.967} & \textbf{0.757} & \textbf{0.674} & \textbf{0.819} & \textbf{0.740} & \textbf{0.550} \\
+    \texttt{language=simplified\_chinese} & 0.911 & 0.944 & 0.927 & 0.674 & 0.537 & 0.737 & 0.621 & 0.428 \\
+    \texttt{language=traditional\_chinese} & \underline{0.745} & \underline{0.865} & \underline{0.801} & \underline{0.412} & \underline{0.203} & 0.570 & \underline{0.300} & \underline{0.197} \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 0.968 & 0.977 & 0.973 & 0.758 & 0.715 & 0.816 & 0.762 & \textbf{0.586} \\
+    \texttt{layout=double\_column} & 0.962 & 0.969 & 0.965 & 0.734 & 0.646 & \textbf{0.821} & 0.723 & 0.549 \\
+    \texttt{layout=other\_layout} & 0.916 & \underline{0.941} & \underline{0.928} & 0.691 & \underline{0.491} & 0.739 & \underline{0.590} & \underline{0.416} \\
+    \texttt{layout=single\_column} & \underline{0.911} & 0.952 & 0.931 & \underline{0.670} & 0.641 & \underline{0.724} & 0.680 & 0.455 \\
+    \texttt{layout=three\_column} & \textbf{0.984} & \textbf{0.989} & \textbf{0.987} & \textbf{0.767} & \textbf{0.793} & 0.748 & \textbf{0.770} & 0.560 \\
+    \midrule
+    \texttt{subset=equation\_hard} & \textbf{0.984} & \textbf{0.992} & \textbf{0.988} & \textbf{0.721} & 0.696 & \textbf{0.820} & 0.753 & 0.447 \\
+    \texttt{subset=layout\_hard} & \underline{0.818} & \underline{0.929} & \underline{0.870} & \underline{0.614} & \underline{0.460} & \underline{0.644} & \underline{0.537} & \underline{0.367} \\
+    \texttt{subset=table\_hard} & 0.974 & 0.966 & 0.970 & 0.708 & \textbf{0.714} & 0.814 & \textbf{0.760} & \textbf{0.515} \\
+    \texttt{subset=v1.5} & 0.928 & 0.952 & 0.940 & 0.703 & 0.576 & 0.750 & 0.652 & 0.469 \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 0.908 & 0.926 & 0.917 & 0.693 & 0.641 & 0.755 & 0.693 & 0.510 \\
+    \texttt{data\_source=academic\_literature} & \textbf{0.989} & \textbf{0.988} & \textbf{0.989} & \textbf{0.780} & 0.779 & \textbf{0.880} & \textbf{0.826} & 0.600 \\
+    \texttt{data\_source=book} & 0.945 & 0.976 & 0.960 & 0.705 & 0.731 & 0.790 & 0.759 & 0.519 \\
+    \texttt{data\_source=colorful\_textbook} & 0.936 & 0.955 & 0.945 & 0.667 & 0.656 & 0.758 & 0.704 & 0.481 \\
+    \texttt{data\_source=exam\_paper} & 0.921 & 0.947 & 0.934 & 0.663 & 0.534 & 0.732 & 0.618 & 0.435 \\
+    \texttt{data\_source=historical\_document} & \underline{0.754} & \underline{0.698} & \underline{0.725} & \underline{0.382} & \underline{0.063} & \underline{0.295} & \underline{0.104} & \underline{0.060} \\
+    \texttt{data\_source=magazine} & 0.950 & 0.960 & 0.955 & 0.753 & \textbf{0.789} & 0.814 & 0.802 & \textbf{0.619} \\
+    \texttt{data\_source=newspaper} & 0.919 & 0.945 & 0.931 & 0.709 & 0.472 & 0.750 & 0.579 & 0.415 \\
+    \texttt{data\_source=note} & 0.818 & 0.927 & 0.869 & 0.595 & 0.438 & 0.369 & 0.401 & 0.242 \\
+    \texttt{data\_source=research\_report} & 0.970 & 0.969 & 0.969 & 0.707 & 0.740 & 0.834 & 0.784 & 0.538 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classification}
+
+Table~\ref{tab:app-res-cls} reports coarse-group label accuracy per slice.
+
+\begin{table}[H]
+\centering
+% This table and the OCR one below together come to just over one page, and [H]
+% cannot split or move them. These four lines reclaim the difference from the
+% table's own spacing; the table environment is a group, so they stay local to
+% it and travel with it if rows are added or the table is moved.
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\aboverulesep}{1.5pt}
+\setlength{\belowrulesep}{1.5pt}
+\renewcommand{\arraystretch}{0.95}
+\caption{Coarse-group label accuracy by slice, computed on pairs matched at
+IoU $0.5$.}
+\label{tab:app-res-cls}
+\scriptsize
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Slice & Label accuracy & \#matched pairs \\
+\midrule
+    \textbf{all} & 0.889 & 31105 \\ \midrule
+    \texttt{language=en\_ch\_mixed} & 0.903 & 1835 \\
+    \texttt{language=english} & \textbf{0.913} & 13805 \\
+    \texttt{language=simplified\_chinese} & \underline{0.866} & 15304 \\
+    \texttt{language=traditional\_chinese} & 0.910 & 144 \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 0.887 & 2806 \\
+    \texttt{layout=double\_column} & \textbf{0.919} & 4169 \\
+    \texttt{layout=other\_layout} & \underline{0.876} & 12936 \\
+    \texttt{layout=single\_column} & 0.892 & 9479 \\
+    \texttt{layout=three\_column} & 0.904 & 1715 \\
+    \midrule
+    \texttt{subset=equation\_hard} & \textbf{0.943} & 2091 \\
+    \texttt{subset=layout\_hard} & 0.888 & 1302 \\
+    \texttt{subset=table\_hard} & \underline{0.853} & 939 \\
+    \texttt{subset=v1.5} & 0.886 & 26773 \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 0.863 & 1346 \\
+    \texttt{data\_source=academic\_literature} & 0.928 & 3355 \\
+    \texttt{data\_source=book} & 0.904 & 4365 \\
+    \texttt{data\_source=colorful\_textbook} & 0.879 & 2778 \\
+    \texttt{data\_source=exam\_paper} & 0.872 & 5047 \\
+    \texttt{data\_source=historical\_document} & \textbf{0.948} & 77 \\
+    \texttt{data\_source=magazine} & 0.878 & 2205 \\
+    \texttt{data\_source=newspaper} & 0.901 & 9480 \\
+    \texttt{data\_source=note} & 0.846 & 913 \\
+    \texttt{data\_source=research\_report} & \underline{0.827} & 1539 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Text Recognition}
+
+Table~\ref{tab:app-res-ocr} reports edit distance, CER and WER per slice.
+
+\begin{table}[H]
+\centering
+% Same compaction as Table~\ref{tab:app-res-cls}, so the two share a page.
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\aboverulesep}{1.5pt}
+\setlength{\belowrulesep}{1.5pt}
+\renewcommand{\arraystretch}{0.95}
+\caption{OCR by slice: edit distance, CER and WER; BYPASS groups
+(\texttt{header\_footer}, \texttt{code}) excluded.}
+\label{tab:app-res-ocr}
+\scriptsize
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+Slice & edit ($\downarrow$) & CER ($\downarrow$) & WER ($\downarrow$) & \#regions \\
+\midrule
+    \textbf{all} & 0.105 & 0.108 & 0.260 & 24290 \\ \midrule
+    \texttt{language=en\_ch\_mixed} & 0.165 & 0.169 & 0.406 & 1530 \\
+    \texttt{language=english} & \textbf{0.054} & \textbf{0.055} & \textbf{0.149} & 10158 \\
+    \texttt{language=simplified\_chinese} & 0.212 & 0.224 & \underline{1.247} & 12488 \\
+    \texttt{language=traditional\_chinese} & \underline{0.366} & \underline{0.403} & 0.893 & 104 \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 0.057 & 0.058 & 0.198 & 2108 \\
+    \texttt{layout=double\_column} & 0.085 & 0.086 & 0.234 & 3256 \\
+    \texttt{layout=other\_layout} & 0.125 & 0.131 & 0.304 & 11240 \\
+    \texttt{layout=single\_column} & \underline{0.143} & \underline{0.145} & \underline{0.344} & 6224 \\
+    \texttt{layout=three\_column} & \textbf{0.035} & \textbf{0.036} & \textbf{0.112} & 1462 \\
+    \midrule
+    \texttt{subset=equation\_hard} & \underline{0.262} & \underline{0.262} & \underline{0.484} & 900 \\
+    \texttt{subset=layout\_hard} & 0.191 & 0.198 & 0.476 & 944 \\
+    \texttt{subset=table\_hard} & \textbf{0.077} & \textbf{0.078} & \textbf{0.176} & 562 \\
+    \texttt{subset=v1.5} & 0.095 & 0.098 & 0.239 & 21884 \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 0.102 & 0.104 & 0.221 & 1016 \\
+    \texttt{data\_source=academic\_literature} & 0.076 & 0.077 & 0.190 & 1963 \\
+    \texttt{data\_source=book} & 0.123 & 0.124 & 0.320 & 2918 \\
+    \texttt{data\_source=colorful\_textbook} & 0.167 & 0.171 & 0.432 & 2218 \\
+    \texttt{data\_source=exam\_paper} & 0.160 & 0.164 & 0.385 & 3998 \\
+    \texttt{data\_source=historical\_document} & \underline{0.741} & \underline{0.967} & \underline{1.375} & 67 \\
+    \texttt{data\_source=magazine} & \textbf{0.031} & \textbf{0.032} & \textbf{0.101} & 1703 \\
+    \texttt{data\_source=newspaper} & 0.105 & 0.110 & 0.233 & 8731 \\
+    \texttt{data\_source=note} & 0.223 & 0.229 & 0.637 & 727 \\
+    \texttt{data\_source=research\_report} & 0.093 & 0.097 & 1.276 & 949 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reading Order}
+
+Table~\ref{tab:app-res-ro} reports the per-page normalised edit distance between
+the annotated and emitted reading orders.
+
+\begin{table}[H]
+\centering
+\caption{Reading order by slice: normalised edit distance between the annotated
+order and the order emitted by the parser, averaged per page (lower is better).}
+\label{tab:app-res-ro}
+\scriptsize
+\begin{tabular}{@{}l r r@{}}
+\toprule
+Slice & edit ($\downarrow$) & \#pages \\
+\midrule
+    \textbf{all} & 0.067 & 1501 \\ \midrule
+    \texttt{language=en\_ch\_mixed} & 0.056 & 92 \\
+    \texttt{language=english} & \textbf{0.046} & 695 \\
+    \texttt{language=simplified\_chinese} & 0.084 & 699 \\
+    \texttt{language=traditional\_chinese} & \underline{0.272} & 13 \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 0.045 & 154 \\
+    \texttt{layout=double\_column} & 0.051 & 180 \\
+    \texttt{layout=other\_layout} & \underline{0.155} & 363 \\
+    \texttt{layout=single\_column} & \textbf{0.030} & 752 \\
+    \texttt{layout=three\_column} & 0.099 & 52 \\
+    \midrule
+    \texttt{subset=equation\_hard} & \textbf{0.029} & 100 \\
+    \texttt{subset=layout\_hard} & \underline{0.130} & 96 \\
+    \texttt{subset=table\_hard} & 0.085 & 97 \\
+    \texttt{subset=v1.5} & 0.063 & 1208 \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 0.029 & 180 \\
+    \texttt{data\_source=academic\_literature} & 0.043 & 215 \\
+    \texttt{data\_source=book} & 0.060 & 264 \\
+    \texttt{data\_source=colorful\_textbook} & 0.038 & 147 \\
+    \texttt{data\_source=exam\_paper} & 0.046 & 189 \\
+    \texttt{data\_source=historical\_document} & \underline{0.594} & 5 \\
+    \texttt{data\_source=magazine} & 0.075 & 146 \\
+    \texttt{data\_source=newspaper} & 0.225 & 151 \\
+    \texttt{data\_source=note} & \textbf{0.003} & 76 \\
+    \texttt{data\_source=research\_report} & 0.057 & 128 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Formulas}
+
+Table~\ref{tab:app-res-formula} reports isolated-formula coverage, edit distance
+and CDM per slice.
+
+\begin{table}[H]
+\centering
+\caption{Isolated formulas by slice: coverage, edit distance and CDM
+($F_1$/P/R). Coverage and CDM: higher is better; \texttt{edit\_m} and
+\texttt{render\_fail}: lower is better.}
+\label{tab:app-res-formula}
+\scriptsize
+\begin{tabular}{@{}l r r r r r r r@{}}
+\toprule
+Slice & GT & cov & edit\_m ($\downarrow$) & CDM $F_1$ & CDM P & CDM R & render\_fail \\
+\midrule
+    \textbf{all} & 2066 & 0.917 & 0.345 & 0.863 & 0.897 & 0.831 & 0.055 \\ \midrule
+    \texttt{language=english} & 1660 & \textbf{0.940} & \textbf{0.329} & \textbf{0.868} & \textbf{0.903} & \textbf{0.837} & \textbf{0.022} \\
+    \texttt{language=simplified\_chinese} & 405 & 0.822 & 0.461 & 0.816 & 0.848 & 0.786 & 0.207 \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 200 & 0.950 & 0.311 & \textbf{0.927} & \textbf{0.959} & \textbf{0.898} & 0.016 \\
+    \texttt{layout=double\_column} & 389 & 0.954 & \textbf{0.280} & 0.888 & 0.889 & 0.887 & 0.032 \\
+    \texttt{layout=other\_layout} & 130 & 0.831 & 0.481 & 0.795 & 0.831 & \underline{0.762} & 0.056 \\
+    \texttt{layout=single\_column} & 1205 & \textbf{0.965} & 0.349 & 0.853 & 0.898 & 0.813 & \underline{0.071} \\
+    \texttt{layout=three\_column} & 142 & \underline{0.444} & \underline{0.608} & \underline{0.746} & \underline{0.680} & 0.825 & \textbf{0.000} \\
+    \midrule
+    \texttt{subset=equation\_hard} & 888 & \textbf{0.994} & 0.353 & 0.853 & \textbf{0.905} & 0.806 & 0.042 \\
+    \texttt{subset=layout\_hard} & 48 & \underline{0.792} & \underline{0.480} & \underline{0.836} & \underline{0.883} & \underline{0.793} & \textbf{0.026} \\
+    \texttt{subset=v1.5} & 1124 & 0.861 & \textbf{0.322} & \textbf{0.877} & 0.885 & \textbf{0.870} & \underline{0.067} \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 84 & 0.905 & \underline{0.446} & \underline{0.802} & \underline{0.791} & 0.813 & 0.040 \\
+    \texttt{data\_source=academic\_literature} & 591 & \textbf{0.995} & 0.313 & 0.863 & \textbf{0.926} & 0.808 & 0.025 \\
+    \texttt{data\_source=book} & 742 & 0.873 & 0.413 & 0.830 & 0.860 & \underline{0.802} & \underline{0.116} \\
+    \texttt{data\_source=colorful\_textbook} & 75 & \underline{0.867} & 0.368 & 0.906 & \textbf{0.926} & 0.887 & \textbf{0.015} \\
+    \texttt{data\_source=exam\_paper} & 549 & 0.938 & \textbf{0.260} & \textbf{0.908} & 0.910 & \textbf{0.907} & 0.019 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Tables}
+
+Table~\ref{tab:app-res-table} reports table coverage and content accuracy per
+slice.
+
+\begin{table}[H]
+\centering
+\caption{Tables by slice: coverage and content accuracy. Cell geometry is
+reported separately in Table~\ref{tab:app-res-cells}.}
+\label{tab:app-res-table}
+\small
+\begin{tabular}{@{}l c c c c c@{}}
+\toprule
+Slice & GT & cov & edit\_m ($\downarrow$) & CER\_m ($\downarrow$) & edit\_all ($\downarrow$) \\
+\midrule
+    \textbf{all} & 665 & 0.801 & 0.207 & 0.216 & 0.311 \\ \midrule
+    \texttt{language=en\_ch\_mixed} & 30 & \underline{0.733} & 0.204 & 0.212 & 0.274 \\
+    \texttt{language=english} & 243 & 0.749 & \underline{0.230} & \underline{0.240} & 0.312 \\
+    \texttt{language=simplified\_chinese} & 382 & 0.835 & 0.175 & 0.183 & \underline{0.317} \\
+    \texttt{language=traditional\_chinese} & 10 & \textbf{1.000} & \textbf{0.148} & \textbf{0.150} & \textbf{0.148} \\
+    \midrule
+    \texttt{layout=1andmore\_column} & 77 & \textbf{0.896} & \textbf{0.125} & \textbf{0.127} & \textbf{0.150} \\
+    \texttt{layout=double\_column} & 52 & 0.731 & \underline{0.290} & \underline{0.301} & 0.328 \\
+    \texttt{layout=other\_layout} & 131 & \underline{0.580} & 0.176 & 0.181 & \underline{0.373} \\
+    \texttt{layout=single\_column} & 402 & 0.863 & 0.228 & 0.240 & 0.319 \\
+    \midrule
+    \texttt{subset=layout\_hard} & 10 & \textbf{1.000} & \textbf{0.119} & \textbf{0.122} & \textbf{0.119} \\
+    \texttt{subset=table\_hard} & 136 & 0.904 & \underline{0.231} & \underline{0.243} & 0.277 \\
+    \texttt{subset=v1.5} & 517 & \underline{0.770} & 0.190 & 0.196 & \underline{0.337} \\
+    \midrule
+    \texttt{data\_source=PPT2PDF} & 25 & 0.800 & 0.185 & 0.189 & 0.263 \\
+    \texttt{data\_source=academic\_literature} & 123 & 0.976 & 0.249 & 0.261 & 0.264 \\
+    \texttt{data\_source=book} & 87 & 0.989 & 0.203 & 0.212 & 0.206 \\
+    \texttt{data\_source=colorful\_textbook} & 38 & 0.921 & 0.207 & 0.215 & 0.219 \\
+    \texttt{data\_source=exam\_paper} & 73 & 0.685 & 0.173 & 0.182 & 0.291 \\
+    \texttt{data\_source=magazine} & 13 & \textbf{1.000} & 0.163 & 0.166 & \textbf{0.163} \\
+    \texttt{data\_source=newspaper} & 69 & \underline{0.290} & \textbf{0.120} & \textbf{0.123} & \underline{0.684} \\
+    \texttt{data\_source=note} & 37 & 0.811 & \underline{0.372} & \underline{0.388} & 0.474 \\
+    \texttt{data\_source=research\_report} & 200 & 0.795 & 0.128 & 0.133 & 0.343 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cell Geometry: Sampling and Sensitivity}
+\label{app:cells}
+
+The sample is 1{,}499 of the 93{,}834 tables in the PubTables-1M test split, drawn with a
+fixed seed and stratified by presence of a spanning cell and by cell count. The proportion
+of tables containing a spanning cell is $52.8\%$ in the sample against $52.7\%$ in the
+population; the median table has 50 cells.
+
+Table~\ref{tab:app-res-cells} varies the three choices that could otherwise be read as
+tuning. The confidence threshold is inert: $F_1$ moves by $0.013$ across the range, with
+precision and recall trading off as expected. The non-overlap filter is not inert: it
+costs $0.117$ recall on spanning cells while leaving $F_1$ unchanged, which is why it is
+reported in the main text as a trade-off rather than an oversight. The table region
+matters most---measured on the padded source image instead of the annotated region, $F_1$
+falls to $0.785$ and $F_1$ at the strict threshold to $0.459$, which bounds how much the
+cell stage depends on the quality of the box it is given.
+
+\begin{table}[H]
+\centering
+\caption{Cell geometry under varied settings. Default configuration in the first row.}
+\label{tab:app-res-cells}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}l c c c c c@{}}
+\toprule
+Setting & $F_1$@$.5$ & $F_1$@$.75$ & AP & R spanning & R ordinary \\
+\midrule
+\textbf{Default} & \textbf{0.902} & \textbf{0.750} & \textbf{0.529} & \textbf{0.504} & \textbf{0.945} \\
+\midrule
+Threshold $0.2$              & 0.892 & 0.740 & 0.527 & 0.434 & 0.946 \\
+Threshold $0.5$              & 0.905 & 0.757 & 0.522 & 0.555 & 0.925 \\
+\midrule
+No non-overlap filter        & 0.901 & 0.749 & 0.534 & 0.621 & 0.952 \\
+Filter inverted              & 0.903 & 0.749 & 0.522 & 0.604 & 0.930 \\
+\midrule
+Padded region, not annotated & 0.785 & 0.459 & 0.343 & 0.436 & 0.832 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -36,6 +36,7 @@ import time
 from pathlib import Path
 
 from benchmark.e2e.manifest import now_iso
+from benchmark.e2e.security import redact
 
 SYSTEM = "deepl-document"
 
@@ -118,11 +119,11 @@ def translate_one(client, pdf: Path, dest: Path, lang: str, tier: str) -> dict:
         client.translate_document_from_filepath(
             str(pdf), str(out_pdf), source_lang=SOURCE_LANG, target_lang=TARGET_LANG[lang],
         )
-    except deepl.DocumentTranslationException as exc:
-        # Carries document_handle — DeepL has already billed, so keep it for recovery.
-        error = f"DocumentTranslationException: {exc} (handle={getattr(exc, 'document_handle', None)})"
+    except deepl.DocumentTranslationException:
+        # document_handle contains a document_key: never publish it in artifacts.
+        error = "DocumentTranslationException: document processing failed; handle omitted"
     except deepl.DeepLException as exc:
-        error = f"{type(exc).__name__}: {exc}"
+        error = redact(f"{type(exc).__name__}: {exc}")
     wall = time.perf_counter() - t0
     after = client.get_usage()
 
@@ -233,7 +234,7 @@ def main() -> int:
           flush=True)
     print(f"  characters billed this run: {billed_total:,}", flush=True)
     print(f"  usage now: {client.get_usage().character.count:,}", flush=True)
-    return 1 if failed and not done else 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

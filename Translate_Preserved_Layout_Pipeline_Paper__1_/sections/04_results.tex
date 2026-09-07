@@ -1,0 +1,296 @@
+\section{RESULTS}
+\label{sec:results}
+
+This section reports the three measurements set up in
+Section~\ref{subsec:method-eval}. Parser accuracy on OmniDocBench tests M1;
+translation quality and length-compliance on WMT24++ test M2 and M3. Full
+per-slice tables are kept in Appendices~\ref{app:parser-slices}
+and~\ref{app:translation-full}.
+
+\subsection{Finding 1: The Parser Loses Little, but What It Loses Is
+Unrecoverable}
+\label{subsec:res-parser}
+
+\emph{The parser usually recovers page regions, labels and order. Its largest
+apparent localisation weakness is over-segmentation, which is mostly benign for
+translation; the dangerous errors are missed regions, weak OCR slices and missed
+structured content.}
+
+Table~\ref{tab:res-headline} gives the global scores over all 1{,}651
+OmniDocBench pages using the split parser configuration and fine ground-truth
+granularity. The granularity-invariant matcher reaches $F_1@.5=0.940$, showing
+that predicted and annotated regions usually cover the same page areas. The
+strict COCO 1-1 score is lower ($0.654$), mainly because sparse-block splitting
+emits multiple useful fragments for a single annotated block. That gap is the
+cost of granularity, not simply missed content.
+
+\begin{table}[H]
+\centering
+\caption{Headline structure-analysis results over all 1{,}651 pages.}
+\label{tab:res-headline}
+\small
+\begin{tabular}{@{}l l r@{}}
+\toprule
+\textbf{Task} & \textbf{Metric} & \textbf{Value} \\
+\midrule
+Localisation      & $F_1@.5$ ($N$--$M$)          & 0.940 \\
+                  & $F_1@.5$ (COCO 1-1)         & 0.654 \\
+                  & mF1$[.5{:}.95]$ ($N$--$M$)   & 0.700 \\
+Classification    & label accuracy              & 0.889 \\
+Text recognition  & edit distance ($\downarrow$) & 0.105 \\
+                  & CER ($\downarrow$)          & 0.108 \\
+Reading order     & NED ($\downarrow$)          & 0.067 \\
+Formula           & coverage                    & 0.917 \\
+                  & CDM $F_1$                   & 0.863 \\
+Table (content)   & coverage                    & 0.801 \\
+                  & CER on matched ($\downarrow$) & 0.216 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The remaining risks are concentrated rather than diffuse
+(Table~\ref{tab:res-risk-slices}). English OCR is strong (CER $0.055$), while
+Simplified and Traditional Chinese are substantially harder; degraded historical
+documents are the clearest failure case. Formula recognition is better than
+edit distance alone suggests: CDM $F_1=0.863$ indicates many string differences
+render equivalently, so the main formula issue is detection coverage, especially
+on three-column pages. Tables show the same pattern: matched content is readable,
+but about one table in five is not covered at all.
+
+\begin{table}[H]
+\centering
+\caption{Parser failure slices that most affect downstream translation.}
+\label{tab:res-risk-slices}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabularx}{\textwidth}{@{}l l r >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Slice} & \textbf{Metric} & \textbf{Value} & \textbf{Interpretation} \\
+\midrule
+English text & CER $\downarrow$ & 0.055 & Intended source direction is comparatively safe. \\
+Simplified Chinese text & CER $\downarrow$ & 0.224 & Script-specific OCR errors can propagate fluently. \\
+Traditional Chinese text & CER $\downarrow$ & 0.403 & Small slice, but high recognition risk. \\
+Historical documents & $N$--$M$ recall & 0.698 & Nearly a third of regions can be absent. \\
+Three-column formulas & coverage & 0.444 & More than half of formulas are missed. \\
+All tables & coverage & 0.801 & Table loss is mainly detection coverage. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Cell geometry.} OmniDocBench has no per-cell boxes, so the cell stage is scored
+separately on PubTables-1M (Table~\ref{tab:res-cells}). Given a correct table region,
+cells are usually found but their edges are not tight: $F_1$ falls from $0.902$ at IoU
+$0.5$ to $0.750$ at $0.75$. The loss is again concentrated---recall is $0.945$ on ordinary
+cells but $0.504$ on cells spanning several rows or columns---and again it is a loss of
+geometry rather than of content, because text falling outside every detected cell is
+recovered through a supplementary text-line path. What is lost is that a spanning header
+reaches the translator as several fragments rather than one region.
+
+\begin{table}[H]
+\centering
+\caption{Cell geometry on 1{,}499 PubTables-1M tables, given the annotated table region.}
+\label{tab:res-cells}
+\small
+\begin{tabular}{@{}l r@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+$F_1$ @ IoU $0.50$            & 0.902 \\
+$F_1$ @ IoU $0.75$            & 0.750 \\
+AP@$[.5{:}.95]$               & 0.529 \\
+\midrule
+Recall, ordinary cells        & 0.945 \\
+Recall, spanning cells        & 0.504 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Most of that gap is a deliberate trade-off rather than an oversight. The parser discards
+any cell box that encloses a smaller one, which guarantees that cell regions never
+overlap; removing that filter raises spanning-cell recall to $0.621$ but leaves nested
+boxes in $43\%$ of tables, and nested boxes cannot be reconstructed without drawing the
+same text twice, because each cell is masked and re-typeset independently. Layout
+preservation therefore constrains structure analysis, and not only the reverse---the
+coupling H2 asserts, seen from the opposite direction. Appendix~\ref{app:cells} reports
+how sensitive these numbers are to the settings involved.
+
+\subsection{Finding 2: Model Choice Is the Smaller Lever}
+\label{subsec:res-mt}
+
+\emph{Across five hosted LLMs, the controllable model-choice spread is narrow
+compared with the spread across target languages.}
+
+Over all 55 \texttt{en}$\rightarrow$\texttt{xx} WMT24++ pairs
+(Table~\ref{tab:comet-per-lang}),
+\texttt{gemini-3.1-flash-lite} has the highest mean COMET-DA ($0.841$),
+followed by \texttt{gpt-5.4-nano} ($0.826$),
+\texttt{gemini-2.5-flash-lite} ($0.821$), \texttt{gpt-4.1-nano} ($0.800$) and
+\texttt{qwen3.5-flash} ($0.788$). The whole system band is therefore $0.053$
+COMET-DA.
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{COMET-DA (chrF++ in parentheses) by target language $\times$
+    system for representative languages. Full results are in
+    Table~\ref{tab:appendix-comet-full}.}
+    \label{tab:comet-per-lang}
+    \setlength{\tabcolsep}{4pt}
+    \makebox[\textwidth][c]{%
+    \begin{tabular}{@{}lccccc@{}}
+        \toprule
+        Language & gemini-2.5 & gemini-3.1 & gpt-4.1 & gpt-5.4 & qwen3.5 \\
+         & flash-lite & flash-lite & nano & nano & flash \\
+        \midrule
+        Vietnamese (vi\_VN)         & 0.844 (51.7) & \textbf{0.853 (51.4)} & 0.823 (48.5) & 0.837 (48.7) & 0.813 (45.8) \\
+        German (de\_DE)             & 0.827 (56.4) & \textbf{0.829 (54.6)} & 0.811 (53.5) & 0.823 (55.2) & 0.760 (44.9) \\
+        Simplified Chinese (zh\_CN) & 0.835 (33.1) & \textbf{0.852 (31.9)} & 0.828 (28.5) & 0.833 (29.0) & 0.713 (14.4) \\
+        Japanese (ja\_JP)           & 0.867 (29.0) & \textbf{0.873 (27.8)} & 0.859 (27.3) & 0.868 (29.3) & 0.843 (25.8) \\
+        Egyptian Arabic (ar\_EG)    & 0.769 (34.6) & \textbf{0.774 (35.8)} & 0.739 (33.1) & 0.769 (33.2) & 0.742 (28.7) \\
+        Hindi (hi\_IN)              & 0.733 (38.9) & \textbf{0.751 (38.6)} & 0.703 (34.4) & 0.738 (37.4) & 0.698 (33.4) \\
+        \midrule
+        \textbf{Mean over 55 languages} & 0.821 (48.4) & \textbf{0.841 (48.9)} & 0.800 (44.6) & 0.826 (47.6) & 0.788 (41.7) \\
+        \bottomrule
+    \end{tabular}}
+\end{table}
+
+The language spread is larger: averaged over systems, the lowest-scoring
+languages include Marathi ($0.693$), Hindi ($0.725$), Serbian ($0.734$), Zulu
+($0.744$) and Swahili ($0.757$), while Finnish, Norwegian, Japanese, Korean and
+Indonesian all exceed $0.855$. The $\approx0.18$ gap between language extremes
+is more than three times the typical spread between systems on the same
+language. Script alone does not explain the result, since Japanese and Korean
+are non-Latin and morphologically distant from English yet remain in the top
+group.
+
+\subsection{Finding 3: A Prompt-Level Length Constraint Does Not Buy Layout
+Fidelity}
+\label{subsec:res-compliance}
+
+\emph{A $\pm15\%$ character-length instruction is only weakly obeyed, mostly
+measures script density, and is essentially unrelated to adequacy.}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Segment-level compliance with the $\pm15\%$ length constraint.}
+    \label{tab:compliance-results}
+    \setlength{\tabcolsep}{5pt}
+    \begin{tabular}{@{}lccccc@{}}
+        \toprule
+        System & compl.\ & too & too & med.\ & IQR \\
+               & \%$\uparrow$ & short & long & ratio & $\downarrow$ \\
+        \midrule
+        gemini-2.5-flash-lite & 71.4 & 16.4 & 12.2 & \textbf{1.000} & \textbf{0.182} \\
+        gemini-3.1-flash-lite & \textbf{73.0} & 19.0 & 8.0 & 0.980 & 0.187 \\
+        gpt-4.1-nano          & 68.9 & 17.9 & 13.2 & \textbf{1.000} & 0.192 \\
+        gpt-5.4-nano          & 68.6 & 13.2 & 18.2 & 1.036 & 0.188 \\
+        qwen3.5-flash         & 71.7 & 20.7 & 7.6 & 0.977 & 0.185 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+No model exceeds 73\% compliance (Table~\ref{tab:compliance-results}), so about
+27--31\% of valid segments fall outside the requested band; the median and IQR
+columns report the per-segment target/source character-length ratio and its
+spread (a value near $1.0$ means target length tracks the source). Per-language results in Appendix~\ref{app:compliance}
+show that the violation direction is mainly a property of target-script
+character density: CJK languages are too short in 89--99\% of segments, while
+German, French and Filipino violate mostly by expansion. Vietnamese expands only
+mildly in characters despite being grouped a priori with German. The correlation
+between per-language violation rate and COMET-DA is $r=0.066$, effectively zero.
+
+\subsection{Where the Bottleneck Is}
+\label{subsec:res-bottleneck}
+
+The three findings are not on a single numeric scale, but they differ in kind.
+Changing among the five translation systems moves adequacy within a bounded band
+on content that exists. In contrast, an undetected formula, table or page region
+never reaches the translator, and an OCR error becomes fluent wrong input. In
+this implementation, the most plausible controllable headroom is therefore
+parser coverage on hard layouts, script-specific OCR and reconstruction metrics
+that are computed from the page itself rather than requested from the language
+model.
+
+\subsection{Pilot Runtime on Seven PDFs}
+\label{subsec:res-pilot-runtime}
+
+Table~\ref{tab:pipeline-pilot-runtime} profiles the complete pipeline on seven
+held-out PDFs (207 pages). The set is small and unannotated, so it is an
+implementation diagnostic rather than a benchmark or SLA.
+
+Structure analysis accounts for 65.3\% of elapsed time, translation for 27.4\%
+and rendering for 7.3\%. This matches the quality-side result: the visual parser
+is both the largest local cost and the stage whose failures are least
+recoverable.
+
+\begin{table}[H]
+\centering
+\caption{Pilot full-pipeline runtime. Times are wall-clock seconds.}
+\label{tab:pipeline-pilot-runtime}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}l r r r r r r@{}}
+\toprule
+Document & Pages & Parse & Translate & Render & Total & s/page \\
+\midrule
+Book --- EN      & 27 & 50.17 & 21.41 & 4.28 & 75.87 & 2.81 \\
+Book --- VI      & 36 & 36.06 & 18.41 & 3.52 & 57.98 & 1.61 \\
+Mix Type --- EN  & 25 & 61.36 & 21.31 & 8.08 & 90.75 & 3.63 \\
+Mix Type --- VI  & 18 & 28.20 & 20.90 & 3.11 & 52.21 & 2.90 \\
+Paper --- EN     & 11 & 23.88 & 23.71 & 2.92 & 50.51 & 4.59 \\
+Slide --- EN     & 32 & 68.19 & 12.79 & 8.48 & 89.46 & 2.80 \\
+Slide --- VI     & 58 & 58.93 & 18.55 & 5.93 & 83.41 & 1.44 \\
+\midrule
+\textbf{Total / mean} & \textbf{207} & \textbf{326.79} & \textbf{137.08} & \textbf{36.32} & \textbf{500.19} & \textbf{2.42} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{End-to-End Qualitative Behaviour}
+
+Figure~\ref{fig:qualitative} shows the complete pipeline on a slide, a book page
+and a mathematics-heavy page. Source geometry, figures and bypassed regions are
+preserved, while translated text is re-typeset in the original regions with
+group-consistent font sizes and pixel-estimated appearance. Additional examples
+are in Appendix~\ref{app:examples}.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{source_1.png}
+    \caption{Slide --- source}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{source_3.png}
+    \caption{Book --- source}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{source_math.png}
+    \caption{Mathematics --- source}
+  \end{subfigure}
+
+  \vspace{0.6em}
+
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{des_1.png}
+    \caption{Slide --- translated}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{des_3.png}
+    \caption{Book --- translated}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{des_math.png}
+    \caption{Mathematics --- translated}
+  \end{subfigure}
+  \caption{End-to-end output on three document genres. Top row: source pages.
+  Bottom row: the corresponding pages produced by the pipeline.}
+  \label{fig:qualitative}
+\end{figure}

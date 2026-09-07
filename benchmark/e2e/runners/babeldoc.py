@@ -99,8 +99,11 @@ def build_cmd(base: list[str], pdf: Path, raw_dir: Path, lang: str,
         "--output", str(raw_dir),
         "--no-dual",
         "--no-watermark",
+        "--ignore-cache",
         "--openai",
         "--openai-model", args.model,
+        # v0.6.4 không đọc OPENAI_API_KEY từ env (parser.error trước khi tạo
+        # client) — bắt buộc qua argv. run_child đã redact giá trị này trong log.
         "--openai-api-key", api_key,
     ]
     if args.base_url:
@@ -166,6 +169,9 @@ def main() -> int:
     if not api_key:
         print(f"[{SYSTEM}] thiếu API key: đặt LITELLM_API_KEY hoặc --api-key")
         return 1
+    # BabelDOC passes api_key=None to OpenAI when the CLI option is omitted;
+    # OpenAI resolves OPENAI_API_KEY. Keep the value out of argv entirely.
+    env = C.child_env({"OPENAI_API_KEY": api_key})
     if not args.model:
         print(f"[{SYSTEM}] --model là bắt buộc — phải trùng model của PDFTranslator, "
               f"để mặc định thì BabelDOC dùng gpt-4o-mini và bảng so sánh vô nghĩa.")
@@ -243,7 +249,7 @@ def main() -> int:
 
     print(f"\n[{SYSTEM}] xong. {done} dịch, {skipped} bỏ qua, {failed} lỗi.", flush=True)
     print(f"  peak RSS (children): {C.peak_rss_children_mb()} MB", flush=True)
-    return 1 if failed and not done else 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

@@ -25,6 +25,8 @@ import re
 import unicodedata
 from pathlib import Path
 
+import numpy as np
+
 LID_URL = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz"
 CACHE_DIR = Path(os.environ.get("BENCH_CACHE_DIR",
                                 Path.home() / ".cache" / "pdftranslator-bench"))
@@ -40,6 +42,30 @@ it an or which at was were has have will would can such between""".split())
 # Chữ có dấu riêng của tiếng Việt (đã tổ hợp sẵn). Dùng phân rã Unicode nên không
 # cần liệt kê đủ 134 ký tự: chỉ cần biết một chữ Latin có mang dấu phụ hay không.
 _VI_BASE = frozenset("aeiouyd")
+
+
+_numpy2_patched = False
+
+
+def _patch_fasttext_numpy2() -> None:
+    """fasttext 0.9.2 dùng np.array(x, copy=False) — numpy 2 raise thay vì copy.
+    Đấm vào np.array một wrapper bỏ keyword copy khi giá trị là list/tuple,
+    đúng semantics numpy 1. Chỉ áp một lần, chỉ ảnh hưởng process này."""
+    global _numpy2_patched
+    if _numpy2_patched:
+        return
+    major = int(np.__version__.split(".")[0])
+    if major < 2:
+        return
+    original = np.array
+
+    def array_no_copy(obj, *args, **kwargs):
+        if isinstance(obj, (list, tuple)) and "copy" in kwargs:
+            kwargs.pop("copy")
+        return original(obj, *args, **kwargs)
+
+    np.array = array_no_copy  # noqa: A001 — shim có chủ đích cho fasttext
+    _numpy2_patched = True
 
 
 def _vi_diacritic_ratio(text: str) -> float:
@@ -77,6 +103,11 @@ class LangID:
         except ImportError:
             return
 
+        # fasttext-wheel 0.9.2 gọi np.array(probs, copy=False) — numpy 2 đã bỏ
+        # semantics đó và predict chết BÊN TRONG thư viện. Shim: chặn 'copy'
+        # keyword cho list đầu vào, hành vi giống hệt numpy 1.
+        _patch_fasttext_numpy2()
+
         path = Path(model_path) if model_path else CACHE_DIR / "lid.176.ftz"
         if not path.exists() and allow_download:
             try:
@@ -101,6 +132,8 @@ class LangID:
             return "un", 0.0
         if self._model is not None:
             labels, probs = self._model.predict(text, k=1)
+            # numpy 2 bỏ copy=False;_probs có thể là list -> asarray an toàn cả 2 bên.
+            probs = np.asarray(probs, dtype=float)
             return labels[0].replace("__label__", ""), float(probs[0])
         return self._heuristic(text)
 

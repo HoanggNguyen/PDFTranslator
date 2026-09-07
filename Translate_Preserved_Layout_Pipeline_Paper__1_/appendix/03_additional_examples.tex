@@ -1,0 +1,50 @@
+\section{ADDITIONAL END-TO-END EXAMPLES}
+\label{app:examples}
+
+The figures below complement Figure~\ref{fig:qualitative} with two further
+source/target page pairs produced by the complete
+\texttt{parse}\,$\to$\,\texttt{translate}\,$\to$\,\texttt{render} pipeline. In
+every case, images and \texttt{BYPASS} regions are composited unchanged from the
+source page, and the translated text is typeset inside the original bounding
+boxes at a font size chosen by the group-consistent sizing rule
+(Section~\ref{subsubsec:sizing}). Figure~\ref{fig:app-slide-2} shows a slide
+and Figure~\ref{fig:app-book-2} a book page.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.46\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{source_2.png}
+    \caption{Source page}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.46\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{des_2.png}
+    \caption{Translated page}
+  \end{subfigure}
+  \caption{End-to-end result on a presentation-slide PDF. Short boxed text is
+  the hardest case for the length constraint, since each box has little slack;
+  the group-wise sizing rule (Section~\ref{subsubsec:sizing}) keeps sibling boxes
+  visually consistent, and the per-element appearance estimate
+  (Section~\ref{subsubsec:colour}) keeps the coloured fills and non-black type of the
+  source slide instead of masking them white.}
+  \label{fig:app-slide-2}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.46\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{source_4.png}
+    \caption{Source page}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.46\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{des_4.png}
+    \caption{Translated page}
+  \end{subfigure}
+  \caption{End-to-end result on a book page with dense flowing text. Because
+  paragraphs have vertical slack, overflow rarely collides with a neighbour and
+  the canonical group font size is retained.}
+  \label{fig:app-book-2}
+\end{figure}

@@ -11,11 +11,12 @@
 # =============================================================================
 set -e
 
-if mkdir -p /data 2>/dev/null && [ -w /data ]; then
+if [ "${BENCH_CACHE_MOUNTED:-0}" = "1" ]; then
+  [ -d /data ] && [ -w /data ] || { echo "Cache mount unavailable"; exit 1; }
   CACHE_ROOT=/data                 # volume HF Jobs mount vào -> sống qua nhiều job
 else
   CACHE_ROOT=/app/.cache           # không mount -> ephemeral, tải lại mỗi lần
-  echo "[bench] CẢNH BÁO: /data không ghi được — model sẽ tải lại mỗi job."
+  echo "[bench] No persistent cache requested; model cache is ephemeral."
 fi
 
 export MODEL_CACHE_DIR="$CACHE_ROOT/datalab/models"     # Surya

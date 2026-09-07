@@ -38,16 +38,14 @@ from pathlib import Path
 
 # Metric đưa vào bootstrap: (nhãn, nhóm, khoá, chiều tốt hơn)
 HEADLINE = [
-    ("mIoU",            "layout", "iou",        "up"),
-    ("Anchor-IoU",      "layout", "anchor_iou", "up"),
-    ("Text containment", "layout", "contain",   "up"),
-    ("Collisions/trang", "layout", "collisions", "down"),
-    ("Margin violation", "layout", "margin",    "down"),
-    ("Reading-order τ", "layout", "tau",        "up"),
-    ("Masked-SSIM",     "visual", "ssim_masked", "up"),
-    ("Ink distance",    "visual", "ink",        "down"),
+    ("NT-PPR",          "visual", "nt_ppr",     "up"),
+    ("IO-PPR",          "visual", "io_ppr",     "up"),
+    ("OF-harm",         "visual", "of_harm",    "down"),
+    ("IC-harm",         "ink",    "ic_harm",    "down"),
+    ("Page-fail rate",  "visual", "page_fail",  "down"),
+    ("τ reading-order", "layout", "tau",        "up"),
     ("UTB/trang",       "text",   "utb",        "down"),
-    ("Number recall",   "text",   "numbers",    "up"),
+    ("CometKiwi QE",    "qe",     "qe",         "up"),
 ]
 
 CEILING = "source_ceiling"
@@ -67,6 +65,7 @@ def parse_args() -> argparse.Namespace:
                         "các trang trong một tài liệu tương quan với nhau.")
     p.add_argument("--iters", type=int, default=1000, help="Số lần bootstrap.")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--smoke", action="store_true", help="Descriptive scores only; no CI or significance tests")
     return p.parse_args()
 
 
@@ -76,7 +75,8 @@ def parse_args() -> argparse.Namespace:
 def series_layout(path: Path) -> dict[str, dict[tuple, float]]:
     data = json.loads(path.read_text(encoding="utf-8"))
     out: dict[str, dict[tuple, float]] = {k: {} for k in
-                                          ("iou", "anchor_iou", "contain",
+                                          ("iou", "mf1", "box_ratio",
+                                           "anchor_iou", "contain",
                                            "collisions", "margin", "tau")}
     for rec in data["records"]:
         if rec.get("skipped"):
@@ -85,6 +85,15 @@ def series_layout(path: Path) -> dict[str, dict[tuple, float]]:
             key = (rec["doc_id"], p.get("page", i))
             if p["n_matched"]:
                 out["iou"][key] = p["sum_iou"] / p["n_matched"]
+            # Với matching 1-1, F1 tại một ngưỡng bằng 2*TP/(n_gt+n_pred).
+            # Khác mIoU, mọi box thiếu và box thừa đều nằm trong mẫu số.
+            denom = p["n_gt"] + p["n_pred"]
+            if denom:
+                f1_values = [2.0 * tp / denom for tp in p["tp"].values()]
+                if f1_values:
+                    out["mf1"][key] = sum(f1_values) / len(f1_values)
+            if p["n_gt"]:
+                out["box_ratio"][key] = p["n_pred"] / p["n_gt"]
             if p["n_matched_anchor"]:
                 out["anchor_iou"][key] = p["sum_iou_anchor"] / p["n_matched_anchor"]
             if p["n_contain"]:
@@ -99,7 +108,10 @@ def series_layout(path: Path) -> dict[str, dict[tuple, float]]:
 
 def series_visual(path: Path) -> dict[str, dict[tuple, float]]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    out: dict[str, dict[tuple, float]] = {"ssim_masked": {}, "ink": {}}
+    out: dict[str, dict[tuple, float]] = {
+        "nt_ppr": {}, "io_ppr": {}, "of_harm": {}, "page_fail": {},
+        "ssim_masked": {}, "ink": {},
+    }
     for rec in data["records"]:
         if rec.get("skipped"):
             continue
@@ -107,10 +119,27 @@ def series_visual(path: Path) -> dict[str, dict[tuple, float]]:
             if "error" in p:
                 continue
             key = (rec["doc_id"], p["page"])
+            for source, target in (("nt_ppr", "nt_ppr"),
+                                   ("io_ppr", "io_ppr"),
+                                   ("of_harm", "of_harm"),
+                                   ("page_fail", "page_fail")):
+                if p.get(source) is not None:
+                    out[target][key] = float(p[source])
             if p.get("ssim_masked") is not None:
                 out["ssim_masked"][key] = p["ssim_masked"]
             if p.get("ink_mean") is not None:
                 out["ink"][key] = p["ink_mean"]
+    return out
+
+
+def series_ink(path: Path) -> dict[str, dict[tuple, float]]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out: dict[str, dict[tuple, float]] = {"ic_harm": {}}
+    for rec in data["records"]:
+        if rec.get("skipped"):
+            continue
+        for p in rec["pages"]:
+            out["ic_harm"][(rec["doc_id"], p["page"])] = float(p["ic_harm"])
     return out
 
 
@@ -151,11 +180,25 @@ def load_all(out_root: Path, langs: list[str], detector: str,
             if systems and system not in systems:
                 continue
             result.setdefault(f"{system}/{lang}", {}).update(series_visual(path))
+        for path in sorted((out_root / "_metrics" / "ink").glob(f"*.{lang}.json")):
+            system = path.name[:-len(f".{lang}.json")]
+            if systems and system not in systems:
+                continue
+            result.setdefault(f"{system}/{lang}", {}).update(series_ink(path))
         for path in sorted((out_root / "_metrics" / "text").glob(f"*.{lang}.json")):
             system = path.name[:-len(f".{lang}.json")]
             if systems and system not in systems:
                 continue
             result.setdefault(f"{system}/{lang}", {}).update(series_text(path))
+        for path in sorted((out_root / "_metrics" / "qe").glob(f"*.{lang}.json")):
+            system = path.name[:-len(f".{lang}.json")]
+            if systems and system not in systems:
+                continue
+            data = json.loads(path.read_text())
+            result.setdefault(f"{system}/{lang}", {})["qe"] = {
+                (doc, 0): values["mean"] for doc, values in data["by_doc"].items()
+                if values.get("mean") is not None
+            }
     return result
 
 
@@ -178,6 +221,8 @@ def ci(values: dict[tuple, float], unit: str, iters: int, rng: random.Random) ->
         return {"n": 0, "mean": None, "lo": None, "hi": None}
     clusters = group_keys(keys, unit)
     point = sum(values[k] for k in keys) / len(keys)
+    if len(clusters) < 2 or iters == 0:
+        return {"n": len(keys), "mean": round(point, 4), "lo": None, "hi": None}
 
     means = []
     for _ in range(iters):
@@ -197,7 +242,7 @@ def paired(a: dict[tuple, float], b: dict[tuple, float], unit: str, iters: int,
            rng: random.Random) -> dict:
     """Bootstrap trên HIỆU từng trang. Trả CI của hiệu + p hai phía."""
     keys = sorted(set(a) & set(b))
-    if len(keys) < 3:
+    if len(group_keys(keys, unit)) < 3 or iters == 0:
         return {"n": len(keys), "diff": None, "lo": None, "hi": None, "p": None}
     diffs = {k: a[k] - b[k] for k in keys}
     point = sum(diffs.values()) / len(keys)
@@ -235,14 +280,26 @@ def write_report(dest: Path, table: dict, tests: dict, args: argparse.Namespace,
         f"detector `{args.detector}` · bootstrap {args.iters} lần theo "
         f"`{args.unit}` · seed {args.seed} · hệ đối chứng `{args.baseline}`",
         "",
-        "Mọi con số layout/visual đọc **tương đối so với hàng `source_ceiling`** — "
-        "đó là trần thật của detector, không phải 1.0. Hàng `identity` phải trùng "
-        "khít ceiling; lệch là lỗi harness.",
+        "`NT-PPR` và `IO-PPR` là tỷ lệ pixel được bảo toàn ngoài text và trong "
+        "Picture/Formula. `OF-harm` đo dòng chữ thật tràn sang element khác; "
+        "`IC-harm` đo mực chồng mực nhìn thấy được (connected-component cao bất "
+        "thường so với trang nguồn — chữ đè chữ chảy thành blob); `Page-fail` "
+        "dùng ngưỡng cố định để không che các trang hỏng nặng. Năm metric này "
+        "không dùng detector và hàng `identity` phải lần lượt là 1, 1, 0, 0, 0.",
+        "",
+        "`IO-PPR` chỉ chấm Picture/Formula sau khi loại vùng text GT; Table và "
+        "header/footer không bị coi là object bất biến. Ngưỡng mặc định: sai khác "
+        "pixel `8/255`; trang fail khi PPR < 0.95 hoặc OF-harm > 0.05. "
+        "`IC-harm` = phần vượt mức của tỉ lệ mực nằm trong blob cao (>1.8× chiều "
+        "cao chữ trung vị trang nguồn) so với chính trang nguồn. `CometKiwi` "
+        "là QE không reference và chỉ tính trên các cặp text align được.",
         "",
         "## Bảng chính (trung bình, CI 95%)",
         "",
     ]
     systems = sorted(table)
+    if args.smoke:
+        lines += ["**SMOKE TEST: kiểm luồng trên một PDF; không suy luận thống kê hoặc xếp hạng tổng quát.**", ""]
     head = "| metric | " + " | ".join(systems) + " |"
     lines += [head, "|" + "---|" * (len(systems) + 1)]
     for label, _, key, direction in HEADLINE:
@@ -252,8 +309,8 @@ def write_report(dest: Path, table: dict, tests: dict, args: argparse.Namespace,
             if not c or c["mean"] is None:
                 cells.append("—")
             else:
-                cells.append(f"{fmt(c['mean'])} [{fmt(c['lo'])}, {fmt(c['hi'])}]")
-        arrow = "↑" if direction == "up" else "↓"
+                cells.append(fmt(c['mean']) if c['lo'] is None else f"{fmt(c['mean'])} [{fmt(c['lo'])}, {fmt(c['hi'])}]")
+        arrow = {"up": "↑", "down": "↓", "target": "→ ceiling"}[direction]
         lines.append(f"| {label} {arrow} | " + " | ".join(cells) + " |")
 
     lines += ["", f"## Kiểm định ghép cặp — `{args.baseline}` so với từng baseline", "",
@@ -282,6 +339,16 @@ def write_report(dest: Path, table: dict, tests: dict, args: argparse.Namespace,
                      f"{fmt(s.get('success_rate'))} | "
                      f"{fmt(s.get('sec_per_page_mean'), '.1f')} |")
 
+    lines += ["", "QE chỉ đo những cặp align được; xem n_pairs và by_doc trong _metrics/qe. "
+              "Chưa calibrate QE thì không coi đây là đánh giá chất lượng dịch tuyệt đối.", "",
+              "Thời gian runner có ranh giới warmup/cache khác nhau giữa hệ; sec/trang chỉ là chẩn đoán, "
+              "chưa phải phép đo latency chuẩn hoá. Chi phí không quan sát được không được coi là 0.", ""]
+    cost_path = args.out / "_costs" / "summary.json"
+    if cost_path.exists():
+        costs = json.loads(cost_path.read_text())
+        lines += ["## Chi phí từ proxy (operator export)", "", "| system | tokens in | tokens out | USD |", "|---|---|---|---|"]
+        for system, cost in sorted(costs.items()):
+            lines.append(f"| {system} | {cost['tokens_in']} | {cost['tokens_out']} | {cost['usd']:.6f} |")
     lines += ["", "---", "",
               "Doc bị loại khỏi metric layout/visual vì số trang đầu ra khác số "
               "trang nguồn — không có phép ghép trang nào đúng. Áp cho mọi hệ như "
@@ -303,6 +370,8 @@ def write_csv(dest: Path, table: dict) -> None:
 
 def main() -> int:
     args = parse_args()
+    if args.smoke:
+        args.iters = 0
     langs = [x.strip() for x in args.langs.split(",") if x.strip()]
     systems = ([s.strip() for s in args.systems.split(",") if s.strip()]
                if args.systems else None)
@@ -330,7 +399,7 @@ def main() -> int:
             tests[other] = {
                 key: paired(data[base_key].get(key, {}), data[other].get(key, {}),
                             args.unit, args.iters, rng)
-                for _l, _g, key, _d in HEADLINE}
+                for _l, _g, key, direction in HEADLINE if direction != "target"}
 
     # Số mức tài liệu lấy thẳng từ summary của từng nhóm.
     summaries: dict[str, dict] = {}
@@ -357,8 +426,13 @@ def main() -> int:
         cells = ""
         for s in sorted(table):
             c = table[s].get(key)
-            cells += (f"{fmt(c['mean'])} [{fmt(c['lo'])},{fmt(c['hi'])}]".rjust(26)
-                      if c and c["mean"] is not None else "—".rjust(26))
+            if not c or c["mean"] is None:
+                cell = "—"
+            elif c["lo"] is None:
+                cell = fmt(c["mean"])
+            else:
+                cell = f"{fmt(c['mean'])} [{fmt(c['lo'])},{fmt(c['hi'])}]"
+            cells += cell.rjust(26)
         print(f"{label:20}{cells}")
     print(f"\nbáo cáo: {dest / 'report.md'}   |   bảng: {dest / 'tables'}/")
     if len(data) < 3:

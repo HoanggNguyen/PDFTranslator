@@ -10,3 +10,15 @@ Everything here lives OUTSIDE ``pdf2zh/`` and only calls its public entrypoints
 (``pdf2zh.e2e``) or shells out to the baselines. ``git diff pdf2zh/`` must stay
 empty. Full design: docs/EVALUATION_PLAN.md.
 """
+
+# Environment exports win over .env; remote Jobs never load a local credentials file.
+import os
+from pathlib import Path
+
+if not os.environ.get("BENCH_REMOTE"):
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        pass  # Pure stdlib mock tests may run without optional dependencies.
+    else:
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)

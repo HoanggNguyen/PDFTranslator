@@ -100,6 +100,11 @@ def parse_args() -> argparse.Namespace:
                         help="Output folder for the merged PDFs + gt.json + mapping.json.")
     parser.add_argument("--per-domain", type=int, default=20,
                         help="Pages sampled per domain (default 20 -> 120 pages).")
+    parser.add_argument("--pages-per-doc", type=int, default=1,
+                        help="Pages per distinct source document in the first "
+                             "sampling pass (default 1 = max doc diversity). "
+                             "E.g. 2 with --per-domain 34: up to 2 consecutive "
+                             "pages from each source doc before re-visiting any.")
     parser.add_argument("--seed", type=int, default=42,
                         help="Sampling seed (default 42). Same seed = same corpus.")
     parser.add_argument("--domains", default=",".join(DOMAINS),
@@ -221,11 +226,15 @@ def report_density(rows: list[dict], domains: list[str]) -> None:
 
 
 def sample(rows: list[dict], domains: list[str], per_domain: int, seed: int,
-           min_chars: int, over: int) -> list[dict]:
-    """Stratified sample, preferring one page per distinct source document.
+           min_chars: int, over: int, pages_per_doc: int = 1) -> list[dict]:
+    """Stratified sample, preferring ``pages_per_doc`` per distinct source document.
 
     Diversity matters more than raw count here: 20 pages from 20 different PDFs
     exercise 20 layout styles, 20 pages from one PDF exercise roughly one.
+    ``pages_per_doc`` > 1 trades a little diversity for within-document pages
+    (consecutive pages of the same source PDF, in original order) when scaling
+    the corpus up — the first pass still exhausts every distinct document before
+    any doc is revisited, so coverage never collapses into a few long PDFs.
 
     ``min_chars`` drops pages with too little text to be informative. It is a
     deliberately *low* floor, not a bias toward prose: figure- and table-heavy
@@ -261,15 +270,24 @@ def sample(rows: list[dict], domains: list[str], per_domain: int, seed: int,
         rng.shuffle(pool)
 
         want = per_domain + over
-        picked, seen_docs, taken = [], set(), set()
-        for row in pool:                                   # first pass: unique docs
-            if len(picked) >= want:
-                break
-            name = row["meta"]["original_filename"]
-            if name not in seen_docs:
-                seen_docs.add(name)
-                taken.add((row["shard"], row["row"]))
-                picked.append(row)
+        picked, doc_count, taken = [], defaultdict(int), set()
+        # taken theo (filename, page_no): DocLayNet có nhiều row trùng page
+        # (row-group lặp) — chặn theo (shard,row) vẫn cho page đôi vào corpus.
+        used_pages = set()
+        # Pass 1: mỗi doc gốc tối đa `pages_per_doc` trang LIỀN KỀ (theo thứ tự
+        # trang gốc), ưu tiên doc chưa dùng. Hết lượt duyệt 1 thì lượt duyệt sau
+        # mới ghé lại doc cũ — nên coverage doc không bao giờ sụp về vài PDF dài.
+        for round_no in range(pages_per_doc):
+            for row in sorted(pool, key=lambda r: r["meta"].get("page_no", 0)):
+                if len(picked) >= want:
+                    break
+                name = row["meta"]["original_filename"]
+                page_key = (name, row["meta"].get("page_no"))
+                if doc_count[name] == round_no and page_key not in used_pages:
+                    doc_count[name] += 1
+                    used_pages.add(page_key)
+                    taken.add((row["shard"], row["row"]))
+                    picked.append(row)
         for row in pool:                                   # top up if the pool is thin
             if len(picked) >= want:
                 break
@@ -281,7 +299,7 @@ def sample(rows: list[dict], domains: list[str], per_domain: int, seed: int,
             print(f"  [warn] {domain}: only {len(picked)}/{per_domain} pages available",
                   flush=True)
         print(f"  [sample] {domain:22} {len(picked):3d} candidates "
-              f"(want {per_domain}+{over}) from {len(seen_docs)} distinct documents",
+              f"(want {per_domain}+{over}) from {len(doc_count)} distinct documents",
               flush=True)
         selected.extend(picked)
     return selected
@@ -497,7 +515,8 @@ def main() -> int:
     report_density(rows, domains)
 
     over = args.over if args.over is not None else max(3, args.per_domain // 4)
-    selected = sample(rows, domains, args.per_domain, args.seed, args.min_chars, over)
+    selected = sample(rows, domains, args.per_domain, args.seed, args.min_chars,
+                      over, args.pages_per_doc)
     print(f"[build_doclaynet] {len(selected)} candidates for "
           f"{args.per_domain * len(domains)} slots "
           f"(seed={args.seed}, min_chars={args.min_chars}, over={over})", flush=True)

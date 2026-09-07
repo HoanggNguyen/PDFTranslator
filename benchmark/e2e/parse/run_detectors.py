@@ -126,14 +126,15 @@ class DoclingDetector:
         """
         from huggingface_hub import snapshot_download
 
-        repo = "ds4sd/docling-models"
-        try:
-            predictor = LayoutPredictor(snapshot_download(repo_id=repo))
-        except TypeError:
-            try:
-                predictor = LayoutPredictor(artifact_path=snapshot_download(repo_id=repo))
-            except TypeError:
-                predictor = LayoutPredictor()
+        import torch
+        # LayoutPredictor expects the layout subfolder, NOT the snapshot root.
+        snapshot = snapshot_download(repo_id="docling-project/docling-models",
+                                     revision="v2.2.0",
+                                     allow_patterns=["model_artifacts/layout/*"])
+        predictor = LayoutPredictor(
+            artifact_path=str(Path(snapshot) / "model_artifacts" / "layout"),
+            device="cuda" if torch.cuda.is_available() else "cpu",
+        )
         return predictor.predict
 
     def __call__(self, images: list) -> list[list[dict]]:

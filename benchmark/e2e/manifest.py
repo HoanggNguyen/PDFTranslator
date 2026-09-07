@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Hệ không dùng LLM ⇒ không có gì để đối chiếu về model.
-NO_LLM = {"deepl-document"}
+NO_LLM = {"deepl-document", "identity"}
 
 # Thư viện mà phiên bản của nó ảnh hưởng trực tiếp đến CON SỐ, không chỉ đến việc
 # code chạy được hay không.
@@ -143,6 +143,10 @@ def verify(out: Path, systems: list[str], langs: list[str]) -> tuple[list[str], 
     metas = load_metas(out, systems, langs)
     if not metas:
         return ["không thấy meta.json nào — chưa chạy runner?"], []
+    for system in systems:
+        for lang in langs:
+            if not any(m["system"] == system and m["lang"] == lang for m in metas):
+                errors.append(f"thiếu toàn bộ metadata: {system}/{lang}")
 
     # 1. Cùng doc_id mà sha256 nguồn khác nhau ⇒ corpus đã bị dựng lại giữa 2 lượt.
     by_doc: dict[str, dict[str, str]] = {}
@@ -184,7 +188,7 @@ def verify(out: Path, systems: list[str], langs: list[str]) -> tuple[list[str], 
         for key, docs in sorted(cover.items()):
             missing = sorted(full - docs)
             if missing:
-                warns.append(f"{key} thiếu {len(missing)} doc: {', '.join(missing[:4])}"
+                errors.append(f"{key} thiếu {len(missing)} doc: {', '.join(missing[:4])}"
                              + (" …" if len(missing) > 4 else ""))
 
     # 5. Khoảng thời gian giữa lượt sớm nhất và muộn nhất.

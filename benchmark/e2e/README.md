@@ -1,5 +1,11 @@
 # Benchmark E2E — PDFTranslator vs BabelDOC / PDFMathTranslate / DeepL
 
+> **HF workflow hiện tại:** dùng [HF_GUIDE.md](../../docs/HF_GUIDE.md),
+> `python -m benchmark.e2e.hf_driver --help` và `.env.bench.example`.
+> Hỗ trợ mock local → smoke 1 PDF/3 hệ trên HF → eval 3/4 hệ. Driver mới dùng
+> run ID, corpus contract và checkpoint từng document. Các lệnh `run_all.sh`
+> bên dưới là workflow local/legacy, không phải driver HF chính thức.
+
 Đo **PDF output** của từng hệ: layout preservation, visual fidelity, toàn vẹn nội
 dung, chất lượng dịch, chi phí. Thiết kế đầy đủ: [../../docs/EVALUATION_PLAN.md](../../docs/EVALUATION_PLAN.md).
 Hướng dẫn thao tác từ đầu đến bảng kết quả (kể cả HF Jobs): [../../docs/E2E_RUNBOOK.md](../../docs/E2E_RUNBOOK.md).
@@ -32,11 +38,11 @@ Bất biến: harness **chỉ đọc và gọi**, không sửa `pdf2zh/`. Sau m�
 | ✅ Driver HF Jobs | `run_hf.sh` — warm / check / run / score / pull |
 | ✅ Render trang 150 DPI | `parse/render_pages.py` — dùng chung cho detector và SSIM |
 | ✅ Detector chấm điểm | `parse/run_detectors.py` — Docling RT-DETR (+ surya cho §P6) |
-| ✅ Metric layout (nhóm A) | `metrics/eval_preserve.py` — mIoU, Anchor-IoU, collision, margin, τ |
-| ✅ Metric visual (nhóm B) | `metrics/eval_visual.py` — Masked-SSIM, ink-profile |
+| ✅ Metric layout phụ (nhóm A) | `metrics/eval_preserve.py` — reading-order τ; box-IoU/collision chỉ để chẩn đoán detector |
+| ✅ Metric bảo toàn chính (nhóm B) | `metrics/eval_visual.py` — NT-PPR, IO-PPR, OF-harm, Page-fail; không dùng detector |
 | ✅ Metric không cần detector (nhóm C/E) | `metrics/eval_text.py` — page inflation, UTB, number recall, sec/page, success rate |
 | ✅ Ghép cặp câu dùng chung 4 hệ | `align/extract_pairs.py` |
-| ✅ Metric chất lượng dịch (nhóm D) | `metrics/eval_qe.py` — CometKiwi + hiệu chuẩn |
+| ✅ Metric chất lượng dịch (nhóm D) | `metrics/eval_text.py` + `eval_qe.py` — UTB/trang, CometKiwi QE + hiệu chuẩn |
 | ✅ Bootstrap CI + paired test + report | `metrics/aggregate.py` |
 | ⬜ Venv baseline / image chưa dựng trên máy này | mạng đang chặn pypi + huggingface |
 | ⬜ T2 (multi-page), T3 (scanned) | §2 |

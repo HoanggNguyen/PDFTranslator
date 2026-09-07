@@ -1,0 +1,85 @@
+\section{IMPLEMENTATION NOTES}
+\label{app:implementation}
+
+This appendix records the operational settings needed to reproduce the
+experiments. None of it is a contribution of the paper; it is collected here so
+that Section~\ref{sec:methodology} can stay on the decisions that affect output
+quality.
+
+\subsection{Model Gateway}
+\label{app:gateway}
+
+Every model call, including targeted repair calls and the vision calls of
+Section~\ref{subsubsec:special}, is issued through one gateway. It fixes two
+things: the degree of parallelism, and the response to provider-side failures.
+Concurrency is bounded by an asynchronous semaphore, held at 8 in-flight calls in
+every experiment so that model comparisons are made under identical conditions.
+
+Responses are classified into three groups. \textbf{Success} (HTTP 2xx) returns
+immediately. \textbf{Transient failure} (429, or $\ge$~500) is retried: the
+gateway waits for the interval given by the \texttt{Retry-After} header when
+present (capped at 60~s), otherwise it applies exponential backoff with
+jitter~\citep{exponential-backoff,aws-backoff-jitter},
+\[
+    \text{delay} = \min(30,\ 2^{\text{retry}}) + \mathrm{U}(0,1)\ \text{seconds},
+\]
+where $\mathrm{U}(0,1)$ is a uniform random term that prevents many workers from
+retrying in lockstep; the retry budget is $N = 2$. \textbf{Permanent failure}
+(401, or 400 for other reasons) is reported immediately without retry. Status 429
+signals that the client has exceeded the provider's request allowance for the
+current interval, and \texttt{Retry-After} carries the provider's own instruction
+about when to resume, which takes precedence over any local
+schedule~\citep{api-rate-limit-design}. The same policy governs text and vision
+calls alike.
+
+The gateway additionally handles responses truncated by the output-token limit
+(\texttt{finish\_reason = "length"}) by issuing up to two continuation calls and
+stitching the partial JSON fragments together. Per-call service time is observed
+by a read-only \texttt{httpx} event hook that does not interfere with control
+flow, which is the source of the $T_{\text{req}}$ figures of
+Section~\ref{subsubsec:eval-mt}.
+
+\subsection{Parser Runtime}
+\label{app:parser-runtime}
+
+The parser processes pages in batches to exploit hardware parallelism. Batch
+sizes are set per module (layout~32, text detection~32, text recognition~128,
+table-cell detection~256). To prevent VRAM growth and out-of-memory failures, all
+intermediate image objects are released at the end of each batch and the GPU
+cache is cleared (\texttt{gc.collect}, \texttt{torch.cuda.empty\_cache}). Vision
+models are instantiated lazily---loaded on first inference and reused
+afterwards---to reduce start-up cost.
+
+\subsection{Fixed Pipeline Parameters}
+
+Table~\ref{tab:app-params} lists the values held constant across all five
+systems in the translation experiment, so that the model is the only variable.
+
+\begin{table}[H]
+\centering
+\caption{Pipeline parameters held fixed across systems.}
+\label{tab:app-params}
+\small
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Concurrent in-flight calls   & 8 \\
+Retry budget                 & 2 \\
+Sampling temperature         & 0.7 \\
+Chunk byte threshold $B$     & 3000 \\
+Length tolerance $\tau$      & 0.15 \\
+Length-check exemption       & source $<$ 20 characters \\
+\midrule
+Font-size cluster width $\epsilon$ & 2.0~pt \\
+Readability floor $f_{\min}$       & 7.0~pt \\
+Table-cell size factor             & 0.88 \\
+Downward expansion cap             & 80~pt \\
+\midrule
+Background ring margin $m$   & 6~pt \\
+Appearance raster scale $s$  & $2\times$ \\
+Text distance threshold $\theta$ & 80 \\
+Centre fraction $\phi$       & 0.6 \\
+\bottomrule
+\end{tabular}
+\end{table}

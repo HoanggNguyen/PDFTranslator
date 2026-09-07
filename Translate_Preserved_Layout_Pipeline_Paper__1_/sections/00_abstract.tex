@@ -1,0 +1,32 @@
+\begin{abstract}
+  % Equal-contribution note. The title block is set in a box (see main.tex) and
+  % footnotes cannot escape from a box, so the marker is written by hand there
+  % and the note itself is emitted here, from ordinary page body.
+  \blfootnote{$^{*}$These authors contributed equally to this work.}%
+  PDF translation is a joint machine-translation and reconstruction problem:
+  pages store positioned glyphs rather than semantic paragraphs, and translated
+  text rarely occupies the same visual space as the source. This paper studies
+  where errors arise in a layout-preserving PDF translation pipeline and which of
+  them its design can control. We hypothesise that document structure analysis is
+  a binding stage because its errors are unrecoverable downstream, and that
+  layout fidelity is better computed during reconstruction than requested from a
+  language model as a length constraint. Our three-stage system parses every page
+  visually with layout detection, OCR and table-cell detection, translates
+  addressable elements with an identifier-preserving LLM contract, and
+  reconstructs the page by estimating font size and appearance from the source
+  geometry and pixels. Stage-level evaluation supports this design. On 1{,}651
+  OmniDocBench pages, the parser reaches $F_1@.5 = 0.940$ under a
+  granularity-invariant matcher and $0.889$ label accuracy; symbol recognition is
+  strong (formula CDM $F_1 = 0.863$), so the remaining loss is one of
+  \emph{detection}---formulas on three-column pages and roughly a fifth of
+  tables---rather than reading. The same shape appears at cell level on
+  PubTables-1M, used because OmniDocBench has no per-cell boxes: $F_1 = 0.902$
+  overall, but recall of $0.504$ on cells spanning several rows or columns.
+  On all 55 \texttt{en}$\rightarrow$\texttt{xx}
+  WMT24++ pairs, five LLMs span $0.788$--$0.841$ COMET-DA, with smaller
+  between-model than between-language variation. Finally, a $\pm15\%$
+  character-length constraint is honoured only 69--73\% of the time and is
+  uncorrelated with adequacy ($r = 0.066$). These results are not a substitute
+  for an end-to-end PDF benchmark, but they identify the stages and document
+  types where such a benchmark should focus.
+\end{abstract}

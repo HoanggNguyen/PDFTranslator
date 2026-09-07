@@ -46,6 +46,7 @@ import time
 from pathlib import Path
 
 from benchmark.e2e.manifest import now_iso
+from benchmark.e2e.security import redact, safe_json
 
 SYSTEM = "pdftranslator"
 
@@ -141,7 +142,7 @@ def translate_and_render(pdf: Path, parsed: dict, dest: Path, lang: str,
             json.dumps(translated, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception as exc:  # noqa: BLE001 — a failed doc must not kill the run
         meta["translate_s"] = round(time.perf_counter() - t0, 2)
-        meta["error"] = f"translate: {type(exc).__name__}: {exc}"
+        meta["error"] = redact(f"translate: {type(exc).__name__}: {exc}")
     finally:
         stats = inst.since(mark)
         meta.update(n_req=stats.n_req, n_retry=stats.n_retry,
@@ -156,7 +157,7 @@ def translate_and_render(pdf: Path, parsed: dict, dest: Path, lang: str,
             meta["render_s"] = round(time.perf_counter() - t1, 2)
         except Exception as exc:  # noqa: BLE001
             meta["render_s"] = round(time.perf_counter() - t1, 2)
-            meta["error"] = f"render: {type(exc).__name__}: {exc}"
+            meta["error"] = redact(f"render: {type(exc).__name__}: {exc}")
 
     return meta
 
@@ -247,13 +248,13 @@ def main() -> int:
                     except Exception as exc:  # noqa: BLE001
                         failed += 1
                         dest.mkdir(parents=True, exist_ok=True)
-                        meta_path.write_text(json.dumps({
+                        meta_path.write_text(safe_json({
                             "system": SYSTEM, "tier": tier, "lang": lang,
                             "ts": now_iso(),
                             "doc_id": pdf.stem, "src": pdf.name,
                             "error": f"parse: {type(exc).__name__}: {exc}",
-                        }, indent=2, ensure_ascii=False), encoding="utf-8")
-                        print(f"  [fail] parse {pdf.name}: {exc}", flush=True)
+                        }), encoding="utf-8")
+                        print(redact(f"  [fail] parse {pdf.name}: {exc}"), flush=True)
                         break
                 else:
                     parse_s, was_cached = 0.0, True
@@ -266,6 +267,7 @@ def main() -> int:
                     "doc_id": pdf.stem, "src": pdf.name,
                     "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(),
                     "provider": args.provider,
+                    "key_alias": os.environ.get("LITELLM_KEY_ALIAS", ""),
                     "model": args.model or provider["model"],
                     "parse_s": round(parse_s, 2),
                     "parse_cached": was_cached,
@@ -279,7 +281,7 @@ def main() -> int:
                     round(meta["n_pages_out"] / meta["n_pages_in"], 4)
                     if meta["n_pages_in"] else None
                 )
-                meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False),
+                meta_path.write_text(safe_json(meta),
                                      encoding="utf-8")
 
                 if meta["error"]:
@@ -302,7 +304,7 @@ def main() -> int:
     print(f"\n[{SYSTEM}] done. {done} translated, {skipped} skipped, {failed} failed. "
           f"(* = parse reused from cache)", flush=True)
     print(f"  peak RSS: {peak_rss_mb()} MB", flush=True)
-    return 1 if failed and not done else 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

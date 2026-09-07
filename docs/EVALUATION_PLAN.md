@@ -146,10 +146,11 @@ EN→VI **giãn** (~1.15–1.3×), EN→ZH **co** (~0.6×). Cùng một engine t
 
 - **Detector chấm chính:** **Docling layout (RT-DETR, huấn luyện trên DocLayNet train split)** — **không hệ nào dưới bài kiểm dùng nó**, và vì cùng phân bố nhãn với GT DocLayNet nên **trần đo rất cao** ⇒ mọi sụt giảm quy được cho translator chứ không cho detector. Không rò rỉ dữ liệu vì lấy mẫu từ split **test**.
 - **Robustness (P6):** chạy lại toàn bộ với **DocLayout-YOLO** và **Surya**. Thứ hạng không đổi qua cả 3 ⇒ kết luận vững; đổi ⇒ phải nói ra. Chính là chỗ paper im lặng.
-- **Trục thứ hai không cần detector:** metric visual (§4.2). Trục detector và trục pixel **đồng thuận** ⇒ claim rất mạnh.
-- **Hai hàng chuẩn bắt buộc có trong MỌI bảng:**
-  - `Identity` — copy PDF gốc làm "output" ⇒ mọi metric phải ≈ lý tưởng. Kiểm tra chính harness.
-  - `Source ceiling` — detector chạy trên PDF gốc chưa dịch, chấm với GT ⇒ trần thực tế. Mọi điểm đọc *tương đối* so với hàng này.
+- **Trục chính không cần detector:** metric pixel/overflow (§4.1). Metric detector
+  chỉ còn hỗ trợ reading order và chẩn đoán cấu trúc.
+- **Hàng `Identity` bắt buộc trong bảng chính:** copy PDF gốc làm output ⇒ PPR=1,
+  OF-harm/Page-fail=0. `Source ceiling` bắt buộc cho các metric phụ thuộc detector;
+  nó không áp dụng cho metric pixel.
 
 ---
 
@@ -159,15 +160,31 @@ Nguyên tắc: **tách nhóm câu hỏi, không gộp thành một con số.** T
 
 > Phân biệt rõ: `eval_layout.py` hiện đo **"parser tìm box giỏi tới đâu"** (accuracy vs GT). Cái mới đo **"PDF output giữ layout trang nguồn tới đâu"** (preservation vs source). Hình học giống hệt, ngữ nghĩa khác nhau ⇒ module mới `eval_preserve.py` import helper từ `eval_layout`.
 
-### 4.1 Nhóm A — Layout / hình học
+### 4.1 Nhóm A — Bảo toàn pixel và overflow (headline, không dùng detector)
+
+Render nguồn và đích cùng DPI/khổ trang. Mặt nạ luôn lấy từ GT nguồn; không lấy
+từ detector trên output vì hệ làm tràn chữ có thể tự che chính lỗi của nó.
+
+| Metric | Định nghĩa | Vì sao cần |
+|---|---|---|
+| **NT-PPR** ↑ | Tỷ lệ pixel có sai khác lớn nhất trên ba kênh sRGB không quá `8/255`, ngoài GT text mask (dilate 2 px) | Đo trực tiếp phần trang không được phép thay đổi, kể cả sai màu |
+| **IO-PPR** ↑ | Cùng phép đo trong `Picture`/`Formula`, sau khi loại phần giao text | Kiểm chứng đúng tuyên bố giữ nguyên hình và công thức; không gộp Table/header/footer vì chữ ở đó có thể được dịch |
+| **OF-harm** ↓ | Tỷ lệ dòng text thật trong PDF vừa tràn khỏi GT owner, vừa đi vào element khác, và vùng giao có pixel thay đổi | Bắt chữ chồng chữ/hình mà box-IoU có thể bỏ qua |
+| **Page-fail rate** ↓ | Tỷ lệ trang có `NT-PPR < .95`, `IO-PPR < .95`, hoặc `OF-harm > .05` | Báo đuôi lỗi; vài trang hỏng nặng không bị trung bình che mất |
+
+Hàng `Identity` bắt buộc ra `(1, 1, 0, 0)`. Báo thêm kết quả theo domain và theo
+scanned/born-digital. Với trang không có Picture/Formula, `IO-PPR` để trống thay vì
+gán 1 giả tạo.
+
+### 4.2 Nhóm B — Layout / hình học phụ thuộc detector
 
 Ghép hộp bằng **Hungarian**, cost `1 − IoU`, ràng buộc cùng class sau khi map taxonomy về bộ rút gọn `{Text, Title/Header, List, Table, Figure, Formula, Caption, Page-furniture}`. Toạ độ chuẩn hoá theo khổ trang. Map nhãn surya pin theo `surya/layout/label.py`, **không** theo README.
 
 | Metric | Định nghĩa | Vì sao cần |
 |---|---|---|
-| **mIoU (≈ BIoU)** | IoU trung bình trên cặp đã ghép | Trục so sánh trực tiếp với paper |
+| **mIoU (≈ BIoU)** | IoU trung bình trên cặp đã ghép | Chẩn đoán/đối chiếu paper; không dùng để kết luận pixel được bảo toàn |
 | **F1@0.5 / mF1@[.5:.95]** | Đã có sẵn trong `eval_layout.py` | mIoU thô bỏ qua box không ghép được; F1/mF1 thì không |
-| **Anchor-IoU** ⭐ | mIoU **chỉ trên** `Figure, Table, Formula, Page-furniture` | Các phần tử này **phải đứng yên tuyệt đối** — tín hiệu sạch nhất, không nhiễu bởi text nở/co |
+| Anchor-IoU | mIoU trên box detector của nhóm anchor cũ | Chỉ giữ để phân tích độ nhạy detector; đã được thay bằng IO-PPR trong bảng chính |
 | **Text containment** | `area(pred ∩ gt) / area(pred)` trên block text | Text tràn ngoài khung gốc ⇒ containment tụt. Ghép với IoU thành cặp precision/recall |
 | **Element retention** | `count_out / count_gt` theo từng class | Bắt lỗi **mất hẳn hình/bảng** — mIoU giấu lỗi này |
 | **Collision rate** ⭐ | Tỉ lệ block output chồng lên block khác (`intersection > ε`) | Chữ đè chữ là lỗi nhìn thấy được số 1. **BabelDOC không đo** |
@@ -177,18 +194,18 @@ Ghép hộp bằng **Hungarian**, cost `1 − IoU`, ràng buộc cùng class sau
 
 ⭐ = mới so với BabelDOC → đóng góp của luận văn.
 
-### 4.2 Nhóm B — Visual (không cần detector)
+### 4.3 Nhóm C — Visual chẩn đoán
 
 Render nguồn và đích cùng DPI (150), cùng khổ. Tái dùng `raster_geometry.py` + pattern SSIM ở `detect_scanned_file.py:151-172`. `scikit-image` + `opencv-python-headless` đã là dependency sẵn.
 
 | Metric | Ghi chú |
 |---|---|
-| **Masked-SSIM** ⭐ | Che toàn bộ vùng text (GT box, dilate 2 px) rồi SSIM phần còn lại ⇒ đo hình/bảng/đường kẻ/logo có **đứng nguyên từng pixel** không. Tín hiệu rất cao, gần như không mơ hồ |
+| Masked-SSIM | Chẩn đoán độ tương đồng ngoài text; NT-PPR là headline dễ diễn giải hơn |
 | **Ink-profile distance** | Chiếu mật độ mực lên trục ngang/dọc → 1D Wasserstein. Rẻ, không phụ thuộc hệ chữ viết |
 | Full-page SSIM | **Chỉ báo cáo để chứng minh nó là metric tồi ở đây** — glyph khác ngôn ngữ làm SSIM sụp bất kể layout tốt hay xấu. Một đoạn phân tích ngắn, có ích cho luận văn |
 | LPIPS / DreamSim | Tuỳ chọn. Nhiễu khi đổi hệ chữ viết ⇒ **không** làm metric chính |
 
-### 4.3 Nhóm C — Toàn vẹn nội dung
+### 4.4 Nhóm D — Toàn vẹn nội dung
 
 | Metric | Cách đo |
 |---|---|
@@ -198,7 +215,7 @@ Render nguồn và đích cùng DPI (150), cùng khổ. Tái dùng `raster_geome
 | **Terminology consistency tự động** ⭐ | Mỗi thuật ngữ nguồn → đếm số bản dịch đích khác nhau trong cùng tài liệu ⇒ `1 − (distinct−1)/occurrences`. **Tự động hoá được TC mà paper phải thuê người chấm** |
 | **Render-failure signals** | Free từ dict trả về của `render_document` (`renderer.py:77`): `elements_fallback > 0` = typst repair loop đã cháy; `elements_skipped` = nội dung bị rơi. Không cần instrument thêm |
 
-### 4.4 Nhóm D — Chất lượng dịch
+### 4.5 Nhóm E — Chất lượng dịch
 
 **(i) Xếp hạng cross-system ở mức PDF — không cần reference:**
 - **CometKiwi QE**: `Unbabel/wmt23-cometkiwi-da-xl` (XLM-R XL 3.5B, cần ≥15 GB VRAM; fallback `wmt22-cometkiwi-da`). Hỗ trợ tiếng Việt. `score_comet.py` hiện dùng `wmt22-comet-da` (có tham chiếu) → **thêm nhánh QE**.
@@ -208,7 +225,7 @@ Render nguồn và đích cùng DPI (150), cùng khổ. Tái dùng `raster_geome
   - *Visual Aesthetics* — "professional typography, line spacing, absence of text overlaps or bleeding"
   - *Terminology Consistency* — "uniform use of domain-specific jargon, citations, figure labels"
   - Thang 1–5 + đếm UTB. Judge 1 = **Gemini-2.5-Flash** (để so trực tiếp với paper), judge 2 = model mạnh hơn. **Báo cáo độ đồng thuận giữa 2 judge** (Spearman + % agreement). Anonymize hệ thống + random hoá thứ tự trình bày.
-- \+ UTB, terminology consistency, content loss ở §4.3.
+- \+ UTB, terminology consistency, content loss ở §4.4.
 
 **(ii) ⭐ Hiệu chuẩn metric QE bằng reference — đây là lập luận then chốt để (i) hợp lệ:**
 
@@ -600,7 +617,8 @@ Chạy được cả **local** (`RUNTIME=local`) và **HF Jobs** (`RUNTIME=hfjob
 
 ## 10. Verification
 
-1. **Identity test** — đưa PDF gốc làm "output" ⇒ mIoU ≈ 1.0, collision ≈ 0, masked-SSIM ≈ 1.0. Sai thì harness sai, không phải hệ thống sai.
+1. **Identity test** — đưa PDF gốc làm output ⇒ `NT-PPR=1`, `IO-PPR=1` khi có
+   object, `OF-harm=0`, `Page-fail=0`. Sai thì harness sai, không phải hệ thống sai.
 2. **Ceiling test** — detector trên PDF gốc vs GT DocLayNet ⇒ công bố con số trần.
 3. **Synthetic perturbation** — script dịch mọi box đi 5 pt / phóng 10% ⇒ metric phải biến thiên **đúng hướng và đúng độ lớn**.
 4. **Matcher ablation** — chạy `compare_matchers.py` trên dữ liệu preservation ⇒ kết luận không phụ thuộc chiến lược ghép.
@@ -638,7 +656,7 @@ trong lúc dựng P0, để plan không nói sai so với thực tế.
 | 2 | *(không nêu)* | GT nằm trong không gian **COCO vuông 1025×1025**, PDF là vd 612×792 ⇒ scale **bất đẳng hướng** (x 1.675, y 1.294) | Chuẩn hoá **từng trục theo chiều của nó**. Scale đều ⇒ bbox sai hệ thống |
 | 3 | "ép cùng LLM, `temperature=0` cho mọi hệ" | `pdf2zh/translation/gateway.py` **hardcode** temperature 0.7 (dòng 146) và 0.2 (dòng 246), **không có knob config** | `temperature=0` **không đặt được trong hệ**. Phải ép ở **LiteLLM proxy** — thực ra công bằng hơn vì cả 3 hệ nhận cùng override tại một điểm |
 | 4 | T1 = "PDF born-digital, có text layer" | DocLayNet có trang là **ảnh scan nhúng** (0 font, 0 drawing, `get_text()` rỗng) mà vẫn có `pdf_cells` đầy. Gặp 2/150 ứng viên | `pdf_cells` **không** là bằng chứng đọc được text. Builder kiểm lại bằng `get_text()` thật rồi bù từ dự phòng (`--over`, mặc định 25%) |
-| 5 | "T1: 200 trang, ~33 trang/domain" | Chốt **120 trang, 20 trang/domain** (quy mô 300 trang). Mật độ chữ DocLayNet lệch rất mạnh: patents p10=140 ký tự, p25=398; 27% trang patents và 22% trang laws dưới 500 ký tự | Thêm `--min-chars` (mặc định **500**) loại trang gần như không có gì để dịch, vẫn giữ trang nhiều hình/bảng vì đó là thứ Anchor-IoU đo. Loại 580/4999 trang |
+| 5 | "T1: 200 trang, ~33 trang/domain" | Chốt **120 trang, 20 trang/domain** (quy mô 300 trang). Mật độ chữ DocLayNet lệch rất mạnh: patents p10=140 ký tự, p25=398; 27% trang patents và 22% trang laws dưới 500 ký tự | Thêm `--min-chars` (mặc định **500**) loại trang gần như không có gì để dịch, vẫn giữ trang nhiều hình/công thức để IO-PPR có coverage. Loại 580/4999 trang |
 | 6 | *(không nêu)* | **`manuals` chỉ có 7 tài liệu gốc** cho 20 trang; `government_tenders` 16. Giới hạn của dataset, không phải lựa chọn lấy mẫu | Ghi `n_source_docs` vào `mapping.json` và **phải công bố trong luận văn** |
 
 ### 12.2 Ngân sách DeepL — đo thật, đối chiếu §7.4b
@@ -672,7 +690,8 @@ lại còn ~700s nhưng tổng **~20 phút → ~12 phút (1.7×, không phải 6
 Phân bố class GT: Text 785 · List-item 400 · Section-header 166 · Page-header 105 ·
 Page-footer 87 · Picture 69 · Table 60 · Footnote 36 · Title 31 · Formula 30 · Caption 16.
 
-Nhóm **anchor** của §4.1 (Picture + Table + Formula + Page-header/footer) = **351 box** — đủ để Anchor-IoU có ý nghĩa.
+Nhóm bất biến của IO-PPR gồm **99 box Picture/Formula**. Table được chấm riêng ở
+phần đường kẻ; Page-header/footer là text có thể dịch.
 
 ### 12.5 Ba rủi ro P0 — trạng thái
 

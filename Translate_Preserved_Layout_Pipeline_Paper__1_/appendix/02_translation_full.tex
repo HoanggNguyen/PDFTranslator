@@ -1,0 +1,303 @@
+\section{FULL TRANSLATION RESULTS OVER ALL 55 LANGUAGES}
+\label{app:translation-full}
+
+This appendix gives the complete per-language figures for all five systems
+(Section~\ref{subsubsec:eval-mt}), of which Section~\ref{subsec:res-mt} shows
+only six representative languages.
+
+\subsection{Translation Quality per Language}
+
+Table~\ref{tab:appendix-comet-full} lists COMET-DA with chrF++ in parentheses
+for every target language. \textbf{Bold} = best system per row by COMET.
+
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}lccccc@{}}
+    \caption{COMET-DA (chrF++) by target language $\times$ system --- all 55
+    languages. Bold = best system per row.}
+    \label{tab:appendix-comet-full} \\
+    \toprule
+    Language & gemini-2.5 & gemini-3.1 & gpt-4.1 & gpt-5.4 & qwen3.5 \\
+     & flash-lite & flash-lite & nano & nano & flash \\
+    \midrule
+    \endfirsthead
+    \multicolumn{6}{l}{\textit{(continued from previous page)}} \\
+    \toprule
+    Language & gemini-2.5 & gemini-3.1 & gpt-4.1 & gpt-5.4 & qwen3.5 \\
+     & flash-lite & flash-lite & nano & nano & flash \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{6}{r}{\textit{(continued)}} \\
+    \endfoot
+    \bottomrule
+    \endlastfoot
+    Egyptian Arabic (ar\_EG) & 0.769 (34.6) & \textbf{0.774 (35.8)} & 0.739 (33.1) & 0.769 (33.2) & 0.742 (28.7) \\
+    Arabic (ar\_SA) & 0.785 (33.9) & \textbf{0.787 (32.7)} & 0.761 (31.2) & 0.783 (33.0) & 0.766 (31.6) \\
+    Bulgarian (bg\_BG) & 0.866 (60.0) & \textbf{0.872 (58.4)} & 0.827 (53.0) & 0.855 (56.2) & 0.816 (49.8) \\
+    Bengali (bn\_IN) & 0.831 (40.3) & \textbf{0.842 (39.3)} & 0.787 (34.3) & 0.828 (38.5) & 0.796 (34.2) \\
+    Catalan (ca\_ES) & 0.824 (60.5) & \textbf{0.827 (59.7)} & 0.805 (56.5) & 0.816 (57.7) & 0.802 (56.3) \\
+    Czech (cs\_CZ) & 0.853 (51.4) & \textbf{0.873 (53.5)} & 0.818 (46.6) & 0.850 (50.5) & 0.819 (45.1) \\
+    Danish (da\_DK) & 0.857 (59.1) & \textbf{0.866 (58.9)} & 0.832 (55.2) & 0.855 (57.4) & 0.837 (54.3) \\
+    German (de\_DE) & 0.827 (56.4) & \textbf{0.829 (54.6)} & 0.811 (53.5) & 0.823 (55.2) & 0.760 (44.9) \\
+    Greek (el\_GR) & \textbf{0.871 (58.7)} & 0.870 (56.2) & 0.847 (53.6) & 0.868 (57.2) & 0.807 (45.3) \\
+    Mexican Spanish (es\_MX) & 0.833 (62.8) & \textbf{0.835 (60.1)} & 0.820 (60.5) & 0.826 (61.0) & 0.781 (48.6) \\
+    Estonian (et\_EE) & 0.869 (54.1) & \textbf{0.883 (54.7)} & 0.840 (49.2) & 0.862 (52.2) & 0.814 (44.8) \\
+    Persian (fa\_IR) & 0.834 (49.5) & \textbf{0.842 (48.0)} & 0.800 (43.6) & 0.812 (43.1) & 0.808 (44.2) \\
+    Finnish (fi\_FI) & 0.891 (57.5) & \textbf{0.900 (56.6)} & 0.854 (50.6) & 0.882 (55.0) & 0.854 (50.3) \\
+    Filipino (fil\_PH) & \textbf{0.820 (55.7)} & 0.818 (53.0) & 0.801 (52.0) & 0.813 (53.6) & 0.776 (48.6) \\
+    Canadian French (fr\_CA) & \textbf{0.834 (63.9)} & 0.829 (60.7) & 0.821 (61.0) & 0.827 (61.5) & 0.807 (57.2) \\
+    French (fr\_FR) & 0.818 (58.9) & \textbf{0.818 (57.0)} & 0.803 (56.3) & 0.814 (55.4) & 0.763 (46.8) \\
+    Gujarati (gu\_IN) & 0.838 (44.7) & \textbf{0.869 (47.1)} & 0.782 (36.2) & 0.846 (41.3) & 0.802 (37.4) \\
+    Hebrew (he\_IL) & 0.831 (51.3) & \textbf{0.833 (50.2)} & 0.799 (45.0) & 0.825 (49.6) & 0.787 (42.9) \\
+    Hindi (hi\_IN) & 0.733 (38.9) & \textbf{0.751 (38.6)} & 0.703 (34.4) & 0.738 (37.4) & 0.698 (33.4) \\
+    Croatian (hr\_HR) & 0.860 (54.1) & \textbf{0.872 (55.3)} & 0.836 (50.0) & 0.850 (52.0) & 0.826 (47.6) \\
+    Hungarian (hu\_HU) & 0.849 (49.5) & \textbf{0.857 (50.3)} & 0.820 (44.4) & 0.840 (48.1) & 0.813 (42.9) \\
+    Indonesian (id\_ID) & 0.863 (57.7) & \textbf{0.871 (56.2)} & 0.847 (54.0) & 0.862 (55.6) & 0.834 (50.1) \\
+    Icelandic (is\_IS) & 0.790 (44.1) & \textbf{0.814 (46.8)} & 0.762 (40.1) & 0.796 (44.6) & 0.721 (35.5) \\
+    Italian (it\_IT) & \textbf{0.848 (61.8)} & 0.846 (58.7) & 0.830 (57.7) & 0.837 (58.5) & 0.823 (55.6) \\
+    Japanese (ja\_JP) & 0.867 (29.0) & \textbf{0.873 (27.8)} & 0.859 (27.3) & 0.868 (29.3) & 0.843 (25.8) \\
+    Kannada (kn\_IN) & 0.835 (52.4) & \textbf{0.848 (49.7)} & 0.744 (39.5) & 0.814 (43.5) & 0.787 (41.7) \\
+    Korean (ko\_KR) & \textbf{0.869 (34.4)} & 0.865 (30.5) & 0.848 (29.8) & 0.864 (31.2) & 0.835 (27.6) \\
+    Lithuanian (lt\_LT) & 0.846 (46.8) & \textbf{0.863 (48.2)} & 0.814 (42.5) & 0.842 (45.8) & 0.775 (37.8) \\
+    Latvian (lv\_LV) & 0.843 (52.4) & \textbf{0.864 (53.9)} & 0.798 (45.8) & 0.840 (50.5) & 0.796 (44.2) \\
+    Malayalam (ml\_IN) & 0.794 (39.1) & \textbf{0.862 (44.1)} & 0.741 (33.0) & 0.828 (40.0) & 0.779 (35.7) \\
+    Marathi (mr\_IN) & 0.708 (42.2) & \textbf{0.726 (42.4)} & 0.656 (36.1) & 0.707 (40.0) & 0.666 (35.9) \\
+    Dutch (nl\_NL) & 0.831 (55.5) & \textbf{0.850 (57.1)} & 0.825 (53.8) & 0.836 (56.1) & 0.822 (52.7) \\
+    Norwegian (no\_NO) & 0.856 (61.9) & \textbf{0.878 (64.4)} & 0.857 (62.6) & 0.869 (63.5) & 0.853 (60.0) \\
+    Punjabi (pa\_IN) & 0.752 (41.6) & \textbf{0.837 (50.5)} & 0.699 (29.5) & 0.786 (38.8) & 0.790 (42.5) \\
+    Polish (pl\_PL) & 0.838 (46.7) & \textbf{0.850 (46.1)} & 0.820 (43.8) & 0.831 (43.8) & 0.799 (39.9) \\
+    Brazilian Portuguese (pt\_BR) & 0.838 (61.3) & \textbf{0.848 (61.2)} & 0.836 (59.9) & 0.837 (59.9) & 0.763 (41.9) \\
+    Portuguese (pt\_PT) & 0.815 (52.8) & \textbf{0.829 (53.5)} & 0.810 (51.6) & 0.813 (52.4) & 0.773 (42.8) \\
+    Romanian (ro\_RO) & 0.846 (57.1) & \textbf{0.865 (58.4)} & 0.831 (53.6) & 0.851 (56.3) & 0.826 (52.4) \\
+    Russian (ru\_RU) & 0.821 (45.4) & \textbf{0.842 (45.8)} & 0.805 (42.3) & 0.819 (44.1) & 0.796 (39.8) \\
+    Slovak (sk\_SK) & 0.812 (46.2) & \textbf{0.862 (50.1)} & 0.810 (44.1) & 0.834 (47.3) & 0.800 (42.7) \\
+    Slovenian (sl\_SI) & 0.796 (46.8) & \textbf{0.856 (53.8)} & 0.813 (48.1) & 0.838 (52.2) & 0.815 (47.7) \\
+    Serbian (sr\_RS) & 0.715 (20.4) & 0.730 (5.1) & 0.728 (16.4) & \textbf{0.799 (40.4)} & 0.698 (13.9) \\
+    Swedish (sv\_SE) & 0.845 (57.1) & \textbf{0.876 (61.7)} & 0.850 (59.4) & 0.864 (60.8) & 0.841 (55.9) \\
+    Swahili (sw\_KE) & 0.741 (44.0) & \textbf{0.799 (50.8)} & 0.750 (44.1) & 0.784 (48.8) & 0.713 (39.8) \\
+    Swahili (sw\_TZ) & 0.733 (43.6) & \textbf{0.815 (54.1)} & 0.770 (47.8) & 0.796 (51.6) & 0.735 (43.1) \\
+    Tamil (ta\_IN) & 0.835 (42.0) & \textbf{0.861 (41.4)} & 0.765 (33.9) & 0.842 (40.7) & 0.811 (36.5) \\
+    Telugu (te\_IN) & 0.804 (42.1) & \textbf{0.841 (42.0)} & 0.759 (35.8) & 0.824 (40.6) & 0.778 (36.4) \\
+    Thai (th\_TH) & 0.829 (38.9) & \textbf{0.858 (40.8)} & 0.822 (37.1) & 0.843 (38.5) & 0.812 (35.3) \\
+    Turkish (tr\_TR) & 0.838 (53.0) & \textbf{0.864 (55.4)} & 0.824 (48.0) & 0.842 (50.1) & 0.811 (46.0) \\
+    Ukrainian (uk\_UA) & 0.842 (50.3) & \textbf{0.857 (49.5)} & 0.823 (45.2) & 0.842 (48.4) & 0.803 (41.6) \\
+    Urdu (ur\_PK) & 0.778 (45.5) & \textbf{0.814 (48.1)} & 0.765 (42.7) & 0.778 (42.5) & 0.762 (41.5) \\
+    Vietnamese (vi\_VN) & 0.844 (51.7) & \textbf{0.853 (51.4)} & 0.823 (48.5) & 0.837 (48.7) & 0.813 (45.8) \\
+    Simplified Chinese (zh\_CN) & 0.835 (33.1) & \textbf{0.852 (31.9)} & 0.828 (28.5) & 0.833 (29.0) & 0.713 (14.4) \\
+    Traditional Chinese (zh\_TW) & 0.835 (26.3) & \textbf{0.854 (26.1)} & 0.840 (26.4) & 0.848 (27.0) & 0.794 (19.7) \\
+    Zulu (zu\_ZA) & 0.718 (44.9) & \textbf{0.777 (51.3)} & 0.744 (43.4) & 0.764 (50.1) & 0.717 (36.8) \\
+    \midrule
+    \textbf{Mean over 55 languages} & 0.821 (48.4) & \textbf{0.841 (48.9)} & 0.800 (44.6) & 0.826 (47.6) & 0.788 (41.7) \\
+\end{longtable}
+\endgroup
+
+Two anomalies are worth keeping in mind when reading
+Table~\ref{tab:appendix-comet-full}:
+
+\begin{enumerate}
+    \item \textbf{Serbian (\texttt{sr\_RS}) --- an extreme chrF++ spread across
+    systems} (5.1--40.4) despite a much smaller COMET spread. The cause is that
+    some systems translate into Cyrillic while the reference uses Latin script
+    (or vice versa), which collapses chrF++ (surface character matching) while
+    barely affecting COMET (semantic matching through embeddings). This is a
+    direct illustration of the limitation of lexical metrics discussed in
+    Section~\ref{subsec:lit-models}.
+
+    \item \textbf{CJK languages (\texttt{ja\_JP}, \texttt{ko\_KR},
+    \texttt{zh\_CN}/\texttt{zh\_TW}) --- low chrF++ on every system}
+    ($\approx$~26--34) despite high COMET, because these languages do not
+    separate words with spaces. This does \emph{not} indicate poor translation.
+\end{enumerate}
+
+\subsection{Latency per Language}
+
+Table~\ref{tab:appendix-latency-full} lists the median seconds per document for
+each target language. The same production-faithfulness caveat applies:
+measurements were taken in \texttt{quality-gen} mode ($N{=}1$, 8
+documents in flight) and are \textbf{not} production-faithful; they are
+descriptive only, comparing systems and languages under identical conditions.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{@{}lccccc@{}}
+    \caption{Median latency (s/document, lower is better) by target language
+    $\times$ system --- \texttt{quality-gen} mode, not production-faithful.
+    Bold = fastest per row.}
+    \label{tab:appendix-latency-full} \\
+    \toprule
+    Language & gemini-2.5 & gemini-3.1 & gpt-4.1 & gpt-5.4 & qwen3.5 \\
+     & flash-lite & flash-lite & nano & nano & flash \\
+    \midrule
+    \endfirsthead
+    \multicolumn{6}{l}{\textit{(continued from previous page)}} \\
+    \toprule
+    Language & gemini-2.5 & gemini-3.1 & gpt-4.1 & gpt-5.4 & qwen3.5 \\
+     & flash-lite & flash-lite & nano & nano & flash \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{6}{r}{\textit{(continued)}} \\
+    \endfoot
+    \bottomrule
+    \endlastfoot
+    Egyptian Arabic (ar\_EG) & 3.68 & \textbf{3.54} & 4.22 & 5.19 & 3.73 \\
+    Arabic (ar\_SA) & 3.74 & \textbf{3.50} & 3.88 & 4.98 & 4.05 \\
+    Bulgarian (bg\_BG) & 2.64 & \textbf{2.60} & 3.46 & 3.89 & 2.99 \\
+    Bengali (bn\_IN) & \textbf{2.52} & 3.12 & 3.24 & 4.30 & 3.99 \\
+    Catalan (ca\_ES) & 2.83 & \textbf{2.72} & 3.32 & 4.93 & 2.76 \\
+    Czech (cs\_CZ) & \textbf{2.80} & 3.04 & 3.90 & 4.43 & 3.32 \\
+    Danish (da\_DK) & 2.53 & 2.48 & 2.86 & 3.94 & \textbf{2.43} \\
+    German (de\_DE) & 2.92 & 2.89 & 3.64 & 4.79 & \textbf{2.56} \\
+    Greek (el\_GR) & 3.01 & \textbf{2.93} & 3.87 & 5.05 & 2.96 \\
+    Mexican Spanish (es\_MX) & \textbf{2.61} & 2.96 & 3.06 & 4.52 & \textbf{2.61} \\
+    Estonian (et\_EE) & \textbf{2.84} & 3.24 & 3.12 & 4.63 & 3.35 \\
+    Persian (fa\_IR) & \textbf{2.82} & 3.05 & 3.25 & 4.17 & 3.50 \\
+    Finnish (fi\_FI) & 2.76 & \textbf{2.42} & 3.72 & 3.93 & 2.75 \\
+    Filipino (fil\_PH) & 3.57 & \textbf{3.10} & 3.41 & 5.23 & 3.66 \\
+    Canadian French (fr\_CA) & 3.20 & \textbf{2.30} & 3.79 & 5.12 & 2.78 \\
+    French (fr\_FR) & 3.17 & 2.66 & 4.01 & 4.94 & \textbf{2.46} \\
+    Gujarati (gu\_IN) & 2.86 & \textbf{2.62} & 2.81 & 3.90 & 4.24 \\
+    Hebrew (he\_IL) & 4.00 & \textbf{3.61} & 4.03 & 5.63 & 4.34 \\
+    Hindi (hi\_IN) & 2.73 & \textbf{2.38} & 2.78 & 3.85 & 3.27 \\
+    Croatian (hr\_HR) & \textbf{2.87} & 3.05 & 2.93 & 3.86 & 3.17 \\
+    Hungarian (hu\_HU) & 3.00 & \textbf{2.46} & 2.91 & 3.76 & 3.54 \\
+    Indonesian (id\_ID) & 2.78 & \textbf{2.27} & 2.95 & 4.26 & 2.81 \\
+    Icelandic (is\_IS) & 3.23 & \textbf{2.83} & 3.05 & 3.79 & 3.01 \\
+    Italian (it\_IT) & 2.70 & \textbf{2.36} & 3.03 & 4.24 & 2.54 \\
+    Japanese (ja\_JP) & 3.90 & \textbf{3.41} & 4.22 & 5.93 & 3.42 \\
+    Kannada (kn\_IN) & 3.12 & \textbf{2.79} & 5.18 & 4.59 & 4.13 \\
+    Korean (ko\_KR) & 3.78 & \textbf{3.43} & 7.62 & 6.04 & 3.49 \\
+    Lithuanian (lt\_LT) & 3.07 & \textbf{2.67} & 6.14 & 4.01 & 3.09 \\
+    Latvian (lv\_LV) & 3.23 & \textbf{3.20} & 3.57 & 3.85 & 3.26 \\
+    Malayalam (ml\_IN) & 4.66 & \textbf{3.88} & 3.94 & 5.58 & 4.17 \\
+    Marathi (mr\_IN) & 4.09 & \textbf{3.29} & 4.05 & 4.21 & 3.76 \\
+    Dutch (nl\_NL) & 3.97 & 2.96 & 2.60 & 3.77 & \textbf{2.50} \\
+    Norwegian (no\_NO) & 4.93 & 3.17 & 2.89 & 3.65 & \textbf{2.64} \\
+    Punjabi (pa\_IN) & 5.68 & 3.47 & \textbf{3.09} & 4.81 & 4.11 \\
+    Polish (pl\_PL) & 3.84 & 3.29 & 2.94 & 3.85 & \textbf{2.89} \\
+    Brazilian Portuguese (pt\_BR) & 3.49 & 2.81 & 2.77 & 3.70 & \textbf{2.63} \\
+    Portuguese (pt\_PT) & 3.32 & 2.90 & 3.42 & 3.49 & \textbf{2.40} \\
+    Romanian (ro\_RO) & 3.90 & 3.06 & 2.90 & 4.19 & \textbf{2.69} \\
+    Russian (ru\_RU) & 4.14 & 3.18 & 3.17 & 3.62 & \textbf{2.88} \\
+    Slovak (sk\_SK) & 4.55 & 3.46 & 3.19 & 3.98 & \textbf{2.91} \\
+    Slovenian (sl\_SI) & 4.21 & 3.54 & \textbf{2.98} & 3.83 & 3.02 \\
+    Serbian (sr\_RS) & 4.29 & 3.26 & 3.21 & 4.27 & \textbf{3.01} \\
+    Swedish (sv\_SE) & 3.87 & 3.53 & 3.17 & 4.45 & \textbf{2.99} \\
+    Swahili (sw\_KE) & 5.12 & 3.66 & 3.76 & 4.77 & \textbf{3.49} \\
+    Swahili (sw\_TZ) & 5.26 & \textbf{3.38} & 3.53 & 4.81 & 3.51 \\
+    Tamil (ta\_IN) & 4.66 & \textbf{3.82} & 5.00 & 7.99 & 3.88 \\
+    Telugu (te\_IN) & 3.83 & 3.84 & \textbf{3.08} & 4.53 & 3.83 \\
+    Thai (th\_TH) & 4.13 & 4.08 & 3.91 & 4.71 & \textbf{3.63} \\
+    Turkish (tr\_TR) & 3.52 & 3.03 & 3.43 & 3.70 & \textbf{2.84} \\
+    Ukrainian (uk\_UA) & 3.62 & 3.62 & 3.36 & 3.70 & \textbf{2.91} \\
+    Urdu (ur\_PK) & 3.31 & \textbf{3.13} & 3.29 & 3.83 & 3.17 \\
+    Vietnamese (vi\_VN) & 3.14 & 3.17 & 4.72 & 4.12 & \textbf{2.50} \\
+    Simplified Chinese (zh\_CN) & 4.18 & 4.10 & 4.85 & 5.43 & \textbf{2.67} \\
+    Traditional Chinese (zh\_TW) & 4.27 & 4.07 & 4.13 & 5.59 & \textbf{2.99} \\
+    Zulu (zu\_ZA) & 6.87 & 3.47 & 4.39 & 5.02 & \textbf{3.29} \\
+    \midrule
+    \textbf{Overall median} & 3.67 & 3.27 & 3.65 & 4.61 & \textbf{3.25} \\
+\end{longtable}
+\endgroup
+
+\subsection{Length-Constraint Compliance per Language}
+\label{app:compliance}
+
+Table~\ref{tab:appendix-compliance-full} measures segment-level compliance with
+the $\pm15\%$ length constraint, pooled over the five systems, per target
+language. The ratio of a segment is
+$\text{len}_{\text{tgt}}/\text{len}_{\text{src}}$ in characters; a segment
+violates when $|\text{ratio}-1| > 0.15$, applied to source segments of at least
+20 characters. The COMET-DA column (mean over the five systems, taken from
+Table~\ref{tab:appendix-comet-full}) is placed alongside so that
+\emph{constraint pressure} can be compared with \emph{quality}. Rows are sorted
+by increasing median ratio: \emph{compressing} languages (CJK) first,
+\emph{expanding} languages last.
+
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{@{}lcccccc@{}}
+    \caption{Segment-level $\pm15\%$ compliance (pooled over five systems)
+    $\times$ target language --- all 55 languages, sorted by median ratio.
+    \emph{Too short} = compression (ratio $<0.85$), \emph{too long} = expansion
+    (ratio $>1.15$).}
+    \label{tab:appendix-compliance-full} \\
+    \toprule
+    Language & Median & IQR & Violation & Too short & Too long & COMET-DA \\
+     & ratio & ratio & \% & \% (compr.) & \% (expan.) & (mean) \\
+    \midrule
+    \endfirsthead
+    \multicolumn{7}{l}{\textit{(continued from previous page)}} \\
+    \toprule
+    Language & Median & IQR & Violation & Too short & Too long & COMET-DA \\
+     & ratio & ratio & \% & \% (compr.) & \% (expan.) & (mean) \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{7}{r}{\textit{(continued)}} \\
+    \endfoot
+    \bottomrule
+    \endlastfoot
+    Traditional Chinese (zh\_TW) & 0.323 & 0.108 & 94.4 & 94.3 & 0.1 & 0.834 \\
+    Simplified Chinese (zh\_CN) & 0.331 & 0.134 & 89.2 & 88.8 & 0.4 & 0.812 \\
+    Japanese (ja\_JP) & 0.435 & 0.138 & 98.7 & 98.7 & 0.0 & 0.862 \\
+    Korean (ko\_KR) & 0.500 & 0.128 & 97.1 & 97.0 & 0.1 & 0.856 \\
+    Hebrew (he\_IL) & 0.758 & 0.163 & 74.9 & 74.4 & 0.5 & 0.815 \\
+    Egyptian Arabic (ar\_EG) & 0.787 & 0.196 & 63.5 & 61.8 & 1.7 & 0.759 \\
+    Arabic (ar\_SA) & 0.847 & 0.198 & 52.7 & 50.3 & 2.5 & 0.776 \\
+    Thai (th\_TH) & 0.878 & 0.212 & 43.5 & 40.2 & 3.3 & 0.833 \\
+    Persian (fa\_IR) & 0.935 & 0.154 & 24.7 & 20.0 & 4.7 & 0.819 \\
+    Czech (cs\_CZ) & 0.952 & 0.140 & 19.0 & 14.9 & 4.2 & 0.843 \\
+    Slovak (sk\_SK) & 0.967 & 0.140 & 18.7 & 13.3 & 5.4 & 0.824 \\
+    Bengali (bn\_IN) & 0.971 & 0.155 & 21.2 & 13.8 & 7.3 & 0.817 \\
+    Gujarati (gu\_IN) & 0.973 & 0.146 & 19.4 & 12.4 & 7.0 & 0.827 \\
+    Serbian (sr\_RS) & 0.974 & 0.130 & 15.2 & 10.6 & 4.6 & 0.734 \\
+    Croatian (hr\_HR) & 0.977 & 0.134 & 15.9 & 10.2 & 5.7 & 0.849 \\
+    Slovenian (sl\_SI) & 0.980 & 0.139 & 17.2 & 11.1 & 6.1 & 0.824 \\
+    Ukrainian (uk\_UA) & 0.981 & 0.148 & 18.5 & 11.6 & 6.9 & 0.833 \\
+    Estonian (et\_EE) & 0.984 & 0.142 & 17.7 & 10.6 & 7.1 & 0.854 \\
+    Marathi (mr\_IN) & 0.984 & 0.153 & 20.4 & 12.7 & 7.6 & 0.693 \\
+    Turkish (tr\_TR) & 0.992 & 0.151 & 17.7 & 10.1 & 7.6 & 0.836 \\
+    Urdu (ur\_PK) & 0.993 & 0.153 & 18.6 & 9.2 & 9.4 & 0.779 \\
+    Lithuanian (lt\_LT) & 0.993 & 0.148 & 19.1 & 10.4 & 8.7 & 0.828 \\
+    Latvian (lv\_LV) & 0.994 & 0.141 & 16.6 & 9.1 & 7.5 & 0.828 \\
+    Hindi (hi\_IN) & 1.000 & 0.151 & 16.9 & 8.0 & 8.9 & 0.725 \\
+    Icelandic (is\_IS) & 1.000 & 0.144 & 16.0 & 6.8 & 9.2 & 0.777 \\
+    Norwegian (no\_NO) & 1.000 & 0.116 & 11.1 & 4.9 & 6.2 & 0.863 \\
+    Punjabi (pa\_IN) & 1.000 & 0.154 & 18.1 & 7.8 & 10.3 & 0.773 \\
+    Russian (ru\_RU) & 1.000 & 0.157 & 20.3 & 10.6 & 9.7 & 0.817 \\
+    Bulgarian (bg\_BG) & 1.004 & 0.145 & 16.2 & 6.9 & 9.3 & 0.847 \\
+    Polish (pl\_PL) & 1.007 & 0.146 & 17.5 & 7.5 & 10.1 & 0.828 \\
+    Telugu (te\_IN) & 1.008 & 0.168 & 23.9 & 9.8 & 14.1 & 0.801 \\
+    Swedish (sv\_SE) & 1.008 & 0.118 & 11.4 & 4.3 & 7.1 & 0.855 \\
+    Hungarian (hu\_HU) & 1.012 & 0.157 & 19.0 & 7.7 & 11.3 & 0.836 \\
+    Vietnamese (vi\_VN) & 1.017 & 0.158 & 21.0 & 8.6 & 12.4 & 0.834 \\
+    Swahili (sw\_KE) & 1.018 & 0.140 & 18.3 & 5.7 & 12.6 & 0.757 \\
+    Swahili (sw\_TZ) & 1.020 & 0.138 & 18.3 & 5.4 & 12.9 & 0.770 \\
+    Danish (da\_DK) & 1.020 & 0.120 & 11.3 & 3.5 & 7.8 & 0.849 \\
+    Finnish (fi\_FI) & 1.030 & 0.139 & 16.7 & 5.3 & 11.4 & 0.876 \\
+    Romanian (ro\_RO) & 1.033 & 0.142 & 17.7 & 4.9 & 12.8 & 0.844 \\
+    Brazilian Portuguese (pt\_BR) & 1.038 & 0.133 & 16.6 & 4.8 & 11.8 & 0.824 \\
+    Portuguese (pt\_PT) & 1.040 & 0.129 & 16.0 & 4.4 & 11.6 & 0.808 \\
+    Kannada (kn\_IN) & 1.043 & 0.170 & 26.1 & 6.8 & 19.3 & 0.806 \\
+    Mexican Spanish (es\_MX) & 1.054 & 0.142 & 19.9 & 4.9 & 15.0 & 0.819 \\
+    Catalan (ca\_ES) & 1.055 & 0.138 & 19.8 & 3.9 & 15.9 & 0.815 \\
+    Indonesian (id\_ID) & 1.057 & 0.132 & 20.1 & 4.2 & 15.9 & 0.855 \\
+    Italian (it\_IT) & 1.062 & 0.133 & 21.4 & 4.1 & 17.3 & 0.837 \\
+    Dutch (nl\_NL) & 1.067 & 0.129 & 20.0 & 2.7 & 17.3 & 0.833 \\
+    Zulu (zu\_ZA) & 1.073 & 0.156 & 29.7 & 3.9 & 25.8 & 0.744 \\
+    Greek (el\_GR) & 1.080 & 0.147 & 27.3 & 3.7 & 23.5 & 0.853 \\
+    Malayalam (ml\_IN) & 1.086 & 0.186 & 36.5 & 5.6 & 30.9 & 0.801 \\
+    French (fr\_FR) & 1.101 & 0.161 & 34.4 & 4.1 & 30.3 & 0.803 \\
+    German (de\_DE) & 1.106 & 0.161 & 35.4 & 3.8 & 31.6 & 0.810 \\
+    Canadian French (fr\_CA) & 1.110 & 0.154 & 35.5 & 3.0 & 32.5 & 0.824 \\
+    Tamil (ta\_IN) & 1.113 & 0.214 & 41.9 & 3.4 & 38.5 & 0.823 \\
+    Filipino (fil\_PH) & 1.122 & 0.175 & 41.2 & 2.2 & 39.0 & 0.806 \\
+    \midrule
+    \textbf{Mean over 55 languages} & 0.962 & 0.149 & 29.3 & 17.4 & 11.8 & 0.815 \\
+\end{longtable}
+\endgroup

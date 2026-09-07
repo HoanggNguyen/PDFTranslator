@@ -135,6 +135,8 @@ def main() -> int:
 
     workdir = Path(tempfile.mkdtemp(prefix="pdfmath-bench-"))
     cfg_path = workdir / "pdf2zh_config.json"
+    cfg_path.write_text("{}", encoding="utf-8")
+    cfg_path.chmod(0o600)
     env = C.child_env({
         "OPENAI_BASE_URL": args.base_url,
         "OPENAI_API_KEY": api_key,
@@ -195,7 +197,7 @@ def main() -> int:
 
     print(f"\n[{SYSTEM}] xong. {done} dịch, {skipped} bỏ qua, {failed} lỗi.", flush=True)
     print(f"  peak RSS (children): {C.peak_rss_children_mb()} MB", flush=True)
-    return 1 if failed and not done else 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

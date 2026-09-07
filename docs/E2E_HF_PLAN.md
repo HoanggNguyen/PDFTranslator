@@ -1,5 +1,11 @@
 # Plan: đưa benchmark E2E lên Hugging Face, cùng phần cứng, đủ metric
 
+> Đây là tài liệu thiết kế ban đầu. Lệnh triển khai, secrets, resume và cấu trúc
+> artifact hiện hành nằm ở [HF_GUIDE.md](HF_GUIDE.md). Không dùng các lệnh cũ bên
+> dưới thay cho runbook mới. Timing chưa chuẩn hoá ranh giới warmup/cache;
+> hai Jobs riêng không mặc nhiên tranh cùng một GPU. Chi phí/quota cũ là ước lượng,
+> cần kiểm billing thực tế trước khi chạy.
+
 Mục tiêu: **một bảng so sánh 4 kiến trúc mà mọi con số đều bảo vệ được** — cùng bài
 kiểm, cùng LLM, cùng phần cứng, cùng thước đo, và mọi bước trung gian đều tải về máy
 được để kiểm lại.
@@ -290,8 +296,8 @@ Kéo riêng `out/report/` thì chỉ vài MB.
 | 1 | `e2e/sync.py` | thư mục local | dataset repo | Làm trước, vì mọi job đều cần |
 | 2 | `e2e/parse/render_pages.py` | mọi `output.pdf` + PDF nguồn | `_render/**.png` 150 DPI | PyMuPDF. Cùng DPI, cùng khổ, memo hoá theo `sha256` |
 | 3 | `e2e/parse/run_detectors.py` | `_render/**.png` | `_layout/docling/**.json` | Dùng lớp thấp `docling_ibm_models` `LayoutPredictor` (kiểm tên hàm sau khi cài), **không** dùng `DocumentConverter` — ta chỉ cần box, không cần convert cả tài liệu. Chuẩn hoá về `{page, class, bbox_norm[4], reading_order}`. Map nhãn về bộ rút gọn 8 lớp |
-| 4 | `e2e/metrics/eval_preserve.py` | `_layout/` + `gt.json` | `_metrics/layout/` | **Trục chính.** Hungarian matching cost `1−IoU`, cùng class. Ra: mIoU, F1@0.5, mF1@[.5:.95], **Anchor-IoU**, text containment, element retention, **collision rate**, **margin violation**, reading-order τ. Tái dùng lõi hình học của `benchmark/parser/evaluation/eval_layout.py`. Sinh luôn **hàng `Source ceiling`** = detector chạy trên PDF nguồn chấm với GT người vẽ |
-| 5 | `e2e/metrics/eval_visual.py` | `_render/` + `gt.json` | `_metrics/visual/` | **Masked-SSIM** (che vùng text theo GT, dilate 2 px, SSIM phần còn lại), ink-profile 1D Wasserstein, và full-page SSIM *chỉ để chứng minh nó là metric tồi ở đây* |
+| 4 | `e2e/metrics/eval_preserve.py` | `_layout/` + `gt.json` | `_metrics/layout/` | Reading-order τ cho bảng chính. mIoU/mF1/Anchor-IoU/collision/margin vẫn được lưu làm chẩn đoán phụ thuộc detector và sinh hàng `Source ceiling` |
+| 5 | `e2e/metrics/eval_visual.py` | `_render/` + output PDF + `gt.json` | `_metrics/visual/` | **Headline không dùng detector:** NT-PPR, IO-PPR (`Picture`/`Formula`), OF-harm từ text span thật + pixel đổi, Page-fail. Masked/full SSIM và ink-profile là chẩn đoán phụ |
 | 6 | `e2e/align/extract_pairs.py` | `output.pdf` 4 hệ + PDF nguồn | `_pairs/*.jsonl` | Trích text theo block + align nguồn↔đích theo bbox và thứ tự đọc. **Bắt buộc dùng chung cho cả 4 hệ** — không được ưu ái PDFTranslator bằng `phase2_translated.json` của chính nó, dù có sẵn |
 | 7 | `e2e/metrics/eval_qe.py` | `_pairs/*.jsonl` | `_metrics/qe/` | CometKiwi QE (`wmt23-cometkiwi-da-xl`, fallback `wmt22`). Thêm nhánh hiệu chuẩn: tương quan QE ↔ COMET-DA trên WMT24++ `vi_VN` để chứng minh dùng QE xếp hạng là hợp lệ |
 | 8 | `e2e/metrics/aggregate.py` | mọi `_metrics/**` | `report/` | **Bootstrap CI 95%** + paired test PDFTranslator vs từng baseline + effect size. Bảng CSV + biểu đồ. Mẫu: `benchmark/translation/aggregate.py` |
@@ -452,9 +458,9 @@ Không bước nào được tính là xong nếu chưa qua cửa của nó:
 | Image | `hf jobs run ... $IMG bash -lc "$BABELDOC_BIN --version && $PDFMATHTRANSLATE_BIN --version && python3 -c 'import docling, fasttext'"` chạy sạch |
 | Cache | Job thứ hai khởi động nhanh hơn job đầu **≥5 phút** (bằng chứng `/data` có tác dụng) |
 | Chạy 4 hệ | `manifest verify` không lỗi: cùng `sha256` corpus, cùng `model`, `key_alias` khác nhau |
-| Identity | mọi metric ra giá trị lý tưởng — `page_inflation=1.000`, `mIoU≈1.0`, `Masked-SSIM≈1.0` |
-| Ceiling | detector trên PDF nguồn chấm với GT người vẽ ra **mIoU ≥ 0.8** — dưới ngưỡng đó thì detector quá yếu, mọi so sánh phía sau vô nghĩa |
-| Layout | bảng có đủ 4 hệ + 2 hàng chuẩn, và **thứ hạng không đổi** khi đổi sang detector thứ hai |
+| Identity | metric headline ra giá trị lý tưởng — `NT-PPR=1`, `IO-PPR=1` khi có object, `OF-harm=0`, `Page-fail=0` |
+| Ceiling | công bố detector trên PDF nguồn vs GT. Ceiling thấp làm vô hiệu τ/box diagnostics, nhưng không làm vô hiệu NT-PPR/IO-PPR/OF-harm/Page-fail |
+| Bảng chính | đủ 4 hệ; có NT-PPR, IO-PPR, OF-harm, Page-fail, τ reading-order, UTB/trang và CometKiwi QE |
 | Đồng bộ | xoá sạch `out/` ở máy rồi `sync pull` dựng lại được toàn bộ bảng mà không chạy lại job nào |
 
 Hai hàng `Identity` và `Source ceiling` chính là chỗ paper BabelDOC bỏ trống — bảng

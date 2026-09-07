@@ -16,7 +16,6 @@ console script trong venv riêng, rồi đọc PDF nó đẻ ra. Trao đổi duy
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import resource
@@ -25,9 +24,11 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 from pathlib import Path
 
 from benchmark.e2e.manifest import now_iso
+from benchmark.e2e.security import clean_env, redact, safe_json, secret_values
 
 # Biến môi trường không được rò từ process cha sang con: PYTHONPATH/PYTHONHOME làm
 # lẫn package (xem docstring), VIRTUAL_ENV làm một số tool đoán sai interpreter.
@@ -35,7 +36,7 @@ _SCRUB = ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PYTHONSTARTUP")
 
 
 def child_env(extra: dict[str, str] | None = None) -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if k not in _SCRUB}
+    env = {k: v for k, v in clean_env().items() if k not in _SCRUB}
     env["PYTHONUNBUFFERED"] = "1"
     if extra:
         env.update({k: v for k, v in extra.items() if v is not None})
@@ -166,10 +167,20 @@ def run_child(cmd: list[str], log_path: Path, timeout_s: int,
     log_path.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
     with log_path.open("w", encoding="utf-8") as log:
-        log.write(f"$ {' '.join(cmd)}\n\n")
+        flags = {"--openai-api-key", "--api-key", "--token", "-k"}
+        explicit = [cmd[i + 1] for i, arg in enumerate(cmd[:-1]) if arg in flags]
+        values = sorted(set(secret_values() + secret_values(env) + explicit), key=len, reverse=True)
+        log.write(redact(f"$ {' '.join(cmd)}\n\n", values))
         log.flush()
-        proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, encoding="utf-8", errors="replace",
                                 env=env, cwd=str(cwd), start_new_session=True)
+        def drain():
+            for line in proc.stdout:
+                log.write(redact(line, values))
+                log.flush()
+        reader = threading.Thread(target=drain, daemon=True)
+        reader.start()
         try:
             rc = proc.wait(timeout=timeout_s)
             err = None
@@ -180,6 +191,11 @@ def run_child(cmd: list[str], log_path: Path, timeout_s: int,
                 pass
             proc.wait()
             rc, err = -9, f"timeout sau {timeout_s}s"
+        reader.join(timeout=10)
+        if reader.is_alive():
+            os.killpg(proc.pid, signal.SIGKILL)
+            reader.join()
+        proc.stdout.close()
     return rc, round(time.perf_counter() - t0, 2), err
 
 
@@ -204,7 +220,7 @@ def pick_mono(raw_dir: Path) -> Path | None:
 
 def write_meta(meta_path: Path, meta: dict) -> None:
     meta_path.parent.mkdir(parents=True, exist_ok=True)
-    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False),
+    meta_path.write_text(safe_json(meta),
                          encoding="utf-8")
 
 

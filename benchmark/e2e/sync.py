@@ -41,6 +41,11 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import re
+import tempfile
+import shutil
+
+from benchmark.e2e.security import publishable, scan_file, redact
 from pathlib import Path
 
 # Thư mục local ↔ tiền tố trên repo. Giữ y hệt tên để đường dẫn trong mọi báo cáo
@@ -64,6 +69,9 @@ def parse_args() -> argparse.Namespace:
                    help="Default: $HF_TOKEN. Cần quyền write để push.")
     p.add_argument("--root", type=Path, default=None,
                    help="Gốc repo PDFTranslator. Default: suy từ vị trí file này.")
+    p.add_argument("--prefix", default=os.environ.get("BENCH_RUN_ID", ""))
+    p.add_argument("--corpus", default=os.environ.get("BENCH_CORPUS", ROOTS["corpus"]))
+    p.add_argument("--out", default=os.environ.get("BENCH_OUT", ROOTS["out"]))
     p.add_argument("--only", action="append", default=None,
                    help="Giới hạn phạm vi, lặp lại được. Nhận cả tên gốc "
                         "('corpus', 'out') lẫn đường dẫn con ('out/report', "
@@ -86,24 +94,26 @@ def repo_root(explicit: Path | None) -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def resolve_scope(only: list[str] | None) -> list[tuple[str, str]]:
+def resolve_scope(only: list[str] | None, roots=None, prefix="") -> list[tuple[str, str]]:
     """``--only`` -> danh sách (đường dẫn local tương đối, tiền tố trên repo).
 
     Nhận cả ``out`` lẫn ``out/babeldoc``: cái sau cho phép một job chỉ đẩy đúng
     phần nó vừa sinh ra, không đụng artifact của hệ khác đang chạy song song.
     """
-    if not only:
-        return [(v, k) for k, v in ROOTS.items()]
+    roots = ROOTS if roots is None else roots
+    if prefix and not re.fullmatch(r"[A-Za-z0-9_-]+", prefix):
+        raise ValueError("Invalid run prefix")
+    only = only or list(roots)
 
     scope: list[tuple[str, str]] = []
     for item in only:
         item = item.strip().strip("/")
         head, _, rest = item.partition("/")
-        if head not in ROOTS:
+        if ".." in item.split("/") or head not in roots:
             raise SystemExit(f"!! --only '{item}': gốc phải là một trong {sorted(ROOTS)}")
-        local = f"{ROOTS[head]}/{rest}" if rest else ROOTS[head]
+        local = f"{roots[head]}/{rest}" if rest else roots[head]
         remote = f"{head}/{rest}" if rest else head
-        scope.append((local, remote))
+        scope.append((local, f"{prefix}/{remote}" if prefix else remote))
     return scope
 
 
@@ -138,21 +148,31 @@ def do_push(api, repo: str, root: Path, scope: list[tuple[str, str]],
         if not local.is_dir():
             print(f"  [bỏ qua] {local_rel} chưa tồn tại")
             continue
-        n = sum(1 for _ in local.rglob("*") if _.is_file())
-        size = sum(f.stat().st_size for f in local.rglob("*") if f.is_file())
-        print(f"  push {local_rel:44} -> {repo}:{remote}  "
-              f"({n} file, {size / 1e6:.1f} MB)", flush=True)
-        if dry:
-            continue
         try:
-            api.upload_folder(
-                repo_id=repo, repo_type="dataset",
-                folder_path=str(local), path_in_repo=remote,
-                ignore_patterns=IGNORE,
-                commit_message=message or f"push {remote}",
-            )
-        except Exception as exc:  # noqa: BLE001 — một nhánh hỏng không giết cả lệnh
-            print(f"  !! lỗi khi push {remote}: {type(exc).__name__}: {exc}")
+            # Stage an allowlisted snapshot. Scan exactly what is uploaded; never
+            # scan a source tree then upload a potentially changed live tree.
+            with tempfile.TemporaryDirectory(prefix="bench-publish-") as tmp:
+                staged = Path(tmp)
+                count = 0
+                for file in sorted(local.rglob("*")):
+                    relative = file.relative_to(local)
+                    if not file.is_file() or not publishable(relative):
+                        continue
+                    if file.is_symlink() or any(p.is_symlink() for p in file.parents if p != local.parent):
+                        raise ValueError("Symlink in upload scope")
+                    target = staged / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(file, target)
+                    scan_file(target)
+                    count += 1
+                print(f"  push {remote}: {count} checked files", flush=True)
+                if count and not dry:
+                    api.upload_folder(
+                        repo_id=repo, repo_type="dataset", folder_path=str(staged),
+                        path_in_repo=remote, commit_message=message or f"push {remote}",
+                    )
+        except Exception as exc:
+            print(redact(f"  upload refused/failed: {type(exc).__name__}: {exc}"))
             rc = 1
     return rc
 
@@ -230,7 +250,7 @@ def main() -> int:
     if args.action == "ls":
         return do_ls(api, args.repo)
 
-    scope = resolve_scope(args.only)
+    scope = resolve_scope(args.only, {"corpus": args.corpus, "out": args.out}, args.prefix)
     if args.action == "push":
         if not token:
             print("!! push cần $HF_TOKEN có quyền write")
