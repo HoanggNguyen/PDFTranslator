@@ -1,0 +1,192 @@
+\section{END-TO-END PDF BENCHMARK}
+\label{app:e2e-benchmark}
+
+This appendix specifies the corpus, metrics and complete results behind
+Section~\ref{subsubsec:eval-e2e}. It is kept separate from the main text so that
+the comparison is auditable without obscuring the three findings.
+
+\subsection{Corpus and Controls}
+
+The corpus is a deterministic, stratified sample from the DocLayNet v1.2 test
+split~\citep{doclaynet}. It contains 204 born-digital English pages from 155
+source documents. Pages without an extractable text layer were excluded to give
+all four pipelines the same task and input contract. The six
+domain strata are balanced by page count (Table~\ref{tab:app-e2e-corpus}); the
+corpus contains 505{,}496 source characters and 3{,}612 human-annotated layout
+elements, including 129 pictures and 15 formulas.
+
+\begin{table}[H]
+\centering
+\caption{Distribution of the end-to-end corpus. ``Immutable'' counts annotated
+Picture and Formula objects.}
+\label{tab:app-e2e-corpus}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Domain & Pages & Source PDFs & Characters & GT elements / immutable \\
+\midrule
+Scientific articles  & 34 & 34 & 113{,}504 & 467 / 14 \\
+Manuals              & 34 &  7 &  75{,}917 & 461 / 21 \\
+Patents              & 34 & 32 &  91{,}293 & 975 / 59 \\
+Financial reports    & 34 & 32 &  80{,}213 & 616 / 31 \\
+Laws and regulations & 34 & 34 &  71{,}761 & 694 /  0 \\
+Government tenders   & 34 & 16 &  72{,}808 & 399 / 19 \\
+\midrule
+Total                & 204 & 155 & 505{,}496 & 3{,}612 / 144 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All systems receive the same six composite PDFs and produce Vietnamese output.
+Our system, BabelDOC 0.6.4 and PDFMathTranslate use the same
+\texttt{gemini-3.1-flash-lite} endpoint with temperature zero; DeepL Document
+uses its managed translation model. Source hashes and run signatures are checked
+before aggregation. An \emph{identity} system copies the input PDF and must give
+NT-PPR/IO-PPR $=1$ and OF-harm/IC-harm $=0$. For the detector-dependent order
+measure, the same detector is run on the source to give a source ceiling.
+
+Our system, BabelDOC and PDFMathTranslate preserve the page count for all six
+documents. DeepL produces 38 pages from the 34-page laws document and 37 from
+the 34-page financial-report document. Page-anchored visual and order measures
+therefore use DeepL's remaining four documents (136 pages); UTB and COMETKiwi
+still evaluate its text, with document-level alignment used when page counts
+differ. This exclusion rule is identical for every system and makes reflow an
+observed outcome rather than forcing an arbitrary page correspondence.
+
+\subsection{Metric Definitions}
+
+Source and output pages are rasterised at 150 dpi; an output raster with a
+different physical page size is resampled to the source dimensions and flagged.
+Let $D(p)$ be one when the
+maximum absolute sRGB-channel difference at pixel $p$ exceeds $8/255$. Text and
+object masks come only from source-side human annotations; no output pipeline can
+alter its own evaluation mask. The metrics are defined as follows.
+
+\begin{table}[H]
+\centering
+\caption{End-to-end metrics and the failure each one measures.}
+\label{tab:app-e2e-metrics}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X@{}}
+\toprule
+Metric & Definition and interpretation \\
+\midrule
+NT-PPR $\uparrow$ & Fraction of unchanged pixels outside all translatable text
+boxes, after dilating the text mask by two pixels. It measures preservation of
+page content that translation should not modify. \\
+IO-PPR $\uparrow$ & The same unchanged-pixel fraction inside source Picture and
+Formula boxes, excluding overlaps with translatable text. Tables are excluded
+because their text may legitimately change. Only the 72 pages containing a
+non-empty immutable mask contribute. This is a targeted conditional view of the
+broader non-text preservation score, rather than an independent pixel total. \\
+OF-harm $\downarrow$ & Fraction of visible output text lines that can be assigned
+to a source owner but extend into another text, table, picture or formula region.
+The overlap must exceed 5\% of the line and more than 5\% of eligible pixels in
+the overlap must change. This captures geometric encroachment that reaches real
+content. \\
+IC-harm $\downarrow$ & Excess fraction of text-region ink contained in connected
+components taller than $1.8\times$ the source page's median component height,
+relative to the source page. Ink is luminance $<0.5$; it is dilated by two pixels
+before components are formed, and components smaller than six pixels are
+discarded. The measure detects line-on-line and text-on-text collision that
+merges into a visibly tall ink blob, including overlap inside one owner. \\
+Reading-order $\tau\uparrow$ & Kendall's $\tau$ between source annotation order
+and output order after class-constrained Hungarian matching of boxes detected by
+the same Docling model. The detector run on the source supplies the attainable
+ceiling, so this measure is interpreted relative to $0.985$. \\
+UTB/page $\downarrow$ & Number of output text blocks of at least 30 characters
+classified as English by fastText with probability at least 0.5, divided by the
+number of output pages. It detects substantial untranslated blocks while
+excluding short labels, numbers and names for which language identification is
+unstable. \\
+COMETKiwi QE $\uparrow$ & Reference-free quality estimate from
+\texttt{Unbabel/wmt22-cometkiwi-da}. Source and output blocks are extracted from
+every PDF through the same black-box path and monotonically aligned by digits and
+relative length; blocks shorter than 30 characters and pairs below alignment
+score 0.15 are discarded. Scores are averaged within each composite document and then
+macro-averaged over six documents. It is a relative diagnostic because no human
+Vietnamese reference is available. \\
+Runner s/page $\downarrow$ & Runner-recorded wall time divided by the number of
+input pages, then macro-averaged over successful documents. It includes the work
+inside each pipeline runner but is only an operational diagnostic because local
+and managed services have different network, warm-up and cache boundaries. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+We report document-macro means and 95\% intervals from 1{,}000 cluster-bootstrap
+resamples of the six composite PDFs (seed 42). Pairwise claims in the main text
+use paired bootstrap differences on the same pages or documents. Overlapping
+marginal intervals are not treated as a significance test.
+
+\subsection{Complete Scores}
+
+Table~\ref{tab:app-e2e-full} reports every metric selected before aggregation.
+Identity has the required exact pixel/ink values, and its order score matches the
+source ceiling, providing an end-to-end sanity check of masking, rendering and
+detection.
+
+\begin{table}[H]
+\centering
+\caption{Complete end-to-end results. Quality metrics report mean [95\%
+cluster-bootstrap interval]; runner time is a point estimate. Bold marks the
+best translated-PDF system by point estimate.}
+\label{tab:app-e2e-full}
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Metric & BabelDOC & DeepL Doc. & PDFMathTranslate & \textbf{OURS} & Identity / ceiling \\
+\midrule
+NT-PPR $\uparrow$
+ & 0.984 [0.975, 0.992] & 0.951 [0.926, 0.979]
+ & \textbf{0.988} [0.983, 0.992] & 0.983 [0.975, 0.990]
+ & 1.000 [1.000, 1.000] \\
+IO-PPR $\uparrow$
+ & 0.966 [0.955, 0.985] & 0.754 [0.739, 0.804]
+ & 0.963 [0.940, 0.994] & \textbf{0.990} [0.988, 0.993]
+ & 1.000 [1.000, 1.000] \\
+OF-harm $\downarrow$
+ & \textbf{0.018} [0.013, 0.025] & 0.029 [0.018, 0.046]
+ & 0.020 [0.011, 0.032] & 0.032 [0.020, 0.045]
+ & 0.000 [0.000, 0.000] \\
+IC-harm $\downarrow$
+ & 0.074 [0.012, 0.190] & 0.058 [0.035, 0.086]
+ & 0.157 [0.082, 0.267] & \textbf{0.005} [0.003, 0.007]
+ & 0.000 [0.000, 0.000] \\
+Reading-order $\tau\uparrow$
+ & 0.975 [0.958, 0.988] & 0.953 [0.941, 0.964]
+ & 0.980 [0.974, 0.987] & \textbf{0.981} [0.977, 0.985]
+ & 0.985 [0.977, 0.993] / 0.985 [0.977, 0.992] \\
+UTB/page $\downarrow$
+ & 0.240 [0.078, 0.515] & \textbf{0.104}$^{\dagger}$ [0.063, 0.147]
+ & 2.333 [1.770, 3.039] & 0.387 [0.211, 0.578]
+ & 9.137 [7.167, 11.353] \\
+COMETKiwi QE $\uparrow$
+ & \textbf{0.697} [0.663, 0.725] & 0.673 [0.618, 0.720]
+ & 0.604 [0.564, 0.645] & 0.695 [0.665, 0.726]
+ & 0.452 [0.397, 0.507] \\
+Runner s/page $\downarrow$
+ & 4.11 & 2.17 & 3.22 & 3.57 & --- \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+${}^{\dagger}$DeepL's lower UTB point estimate should not be read in isolation: two documents
+are reflowed, and the metric counts English blocks per output page. Among the
+remaining comparisons, paired bootstrap tests find our system's IO-PPR gain
+over BabelDOC ($+0.0238$) and IC-harm reductions against BabelDOC ($-0.0699$),
+PDFMathTranslate ($-0.1534$) and DeepL ($-0.0536$) significant at $p<0.05$.
+Its COMETKiwi difference from BabelDOC is $-0.0020$ with a 95\% interval
+$[-0.0238,0.0198]$, while the gain over PDFMathTranslate is $+0.0907$
+[$0.0631,0.1248$].
+
+\subsection{Pilot Runtime Diagnostic}
+
+For completeness, an earlier seven-PDF pilot (207 pages) took 500.19 seconds in
+total: 326.79 seconds for parsing, 137.08 for translation and 36.32 for rendering
+(2.42 seconds per page). It is retained only as an implementation diagnostic;
+warm-up and cache boundaries differ and the sample is not an SLA benchmark.

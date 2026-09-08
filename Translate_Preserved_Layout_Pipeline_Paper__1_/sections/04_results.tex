@@ -1,11 +1,12 @@
 \section{RESULTS}
 \label{sec:results}
 
-This section reports the three measurements set up in
+This section reports the three stage-level measurements set up in
 Section~\ref{subsec:method-eval}. Parser accuracy on OmniDocBench tests M1;
-translation quality and length-compliance on WMT24++ test M2 and M3. Full
-per-slice tables are kept in Appendices~\ref{app:parser-slices}
-and~\ref{app:translation-full}.
+translation quality and length-compliance on WMT24++ test M2 and M3. It then
+compares complete outputs on a shared PDF benchmark. Full tables are kept in
+Appendices~\ref{app:parser-slices}, \ref{app:translation-full}
+and~\ref{app:e2e-benchmark}.
 
 \subsection{Finding 1: The Parser Loses Little, but What It Loses Is
 Unrecoverable}
@@ -200,52 +201,71 @@ German, French and Filipino violate mostly by expansion. Vietnamese expands only
 mildly in characters despite being grouped a priori with German. The correlation
 between per-language violation rate and COMET-DA is $r=0.066$, effectively zero.
 
+\paragraph{End-to-end artifact quality.}
+Table~\ref{tab:res-e2e-compact} reports five quality measures that most directly
+separate the systems together with observed runner time;
+Appendix~\ref{app:e2e-benchmark} gives all seven quality measures with 95\%
+confidence intervals. Our system has the highest immutable-object
+pixel preservation (IO-PPR $0.990$) and the lowest excess visible ink collision
+(IC-harm $0.005$). Its reading order is within $0.004$ of the source ceiling
+($\tau=0.981$ versus $0.985$), and its COMETKiwi estimate is statistically tied
+with BabelDOC ($0.695$ versus $0.697$). Its observed runner time is $3.6$ seconds
+per input page, compared with $4.1$ for BabelDOC, $3.2$ for PDFMathTranslate and
+$2.2$ for DeepL Document.
+
+\begin{table}[H]
+\centering
+\caption{Selected end-to-end results on 204 English-to-Vietnamese pages. Full
+scores and intervals are in Table~\ref{tab:app-e2e-full}.}
+\label{tab:res-e2e-compact}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+System & NT-PPR $\uparrow$ & IO-PPR $\uparrow$ & IC-harm $\downarrow$ & Order $\tau\uparrow$ & COMETKiwi $\uparrow$ & s/page$^{\dagger}\downarrow$ \\
+\midrule
+BabelDOC         & 0.984 & 0.966 & 0.074 & 0.975 & \textbf{0.697} & 4.1 \\
+DeepL Document   & 0.951 & 0.754 & 0.058 & 0.953 & 0.673 & \textbf{2.2} \\
+PDFMathTranslate & \textbf{0.988} & 0.963 & 0.157 & 0.980 & 0.604 & 3.2 \\
+\textbf{OURS}    & 0.983 & \textbf{0.990} & \textbf{0.005} & \textbf{0.981} & 0.695 & 3.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent${}^{\dagger}$The timing is the document-macro mean of runner wall time
+per input page over successful runs. Runner boundaries, remote-service latency,
+warm-up and caching differ, so these values diagnose this run rather than rank
+controlled throughput.
+
+The result is not uniformly favourable. Non-text preservation is comparable to
+BabelDOC and PDFMathTranslate (NT-PPR $0.983$, $0.984$ and $0.988$,
+respectively), but our system has more lines that geometrically enter another
+annotated element (OF-harm $0.032$ versus $0.018$ and $0.020$). The much lower
+IC-harm indicates that this overflow seldom becomes merged visible ink, which
+is consistent with expanding into available whitespace, but OF-harm remains a
+reconstruction limitation. Our system leaves $0.387$ untranslated English
+blocks per page, statistically indistinguishable from BabelDOC's $0.240$ and
+substantially below PDFMathTranslate's $2.333$. DeepL changes the page count in
+two of six documents, so its page-anchored visual scores cover the remaining
+four; this reflow is reported rather than silently aligned.
+
+The benchmark uses born-digital pages to place all four systems on the same
+layout-preserving task and input contract. Our system additionally accepts
+image-only and searchable scans through its visual parser, OCR and common
+intermediate representation; that broader input coverage is separate from the
+comparison made by this table.
+
 \subsection{Where the Bottleneck Is}
 \label{subsec:res-bottleneck}
 
-The three findings are not on a single numeric scale, but they differ in kind.
+The four measurements are not on a single numeric scale, but they differ in kind.
 Changing among the five translation systems moves adequacy within a bounded band
 on content that exists. In contrast, an undetected formula, table or page region
 never reaches the translator, and an OCR error becomes fluent wrong input. In
 this implementation, the most plausible controllable headroom is therefore
-parser coverage on hard layouts, script-specific OCR and reconstruction metrics
-that are computed from the page itself rather than requested from the language
-model.
-
-\subsection{Pilot Runtime on Seven PDFs}
-\label{subsec:res-pilot-runtime}
-
-Table~\ref{tab:pipeline-pilot-runtime} profiles the complete pipeline on seven
-held-out PDFs (207 pages). The set is small and unannotated, so it is an
-implementation diagnostic rather than a benchmark or SLA.
-
-Structure analysis accounts for 65.3\% of elapsed time, translation for 27.4\%
-and rendering for 7.3\%. This matches the quality-side result: the visual parser
-is both the largest local cost and the stage whose failures are least
-recoverable.
-
-\begin{table}[H]
-\centering
-\caption{Pilot full-pipeline runtime. Times are wall-clock seconds.}
-\label{tab:pipeline-pilot-runtime}
-\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}l r r r r r r@{}}
-\toprule
-Document & Pages & Parse & Translate & Render & Total & s/page \\
-\midrule
-Book --- EN      & 27 & 50.17 & 21.41 & 4.28 & 75.87 & 2.81 \\
-Book --- VI      & 36 & 36.06 & 18.41 & 3.52 & 57.98 & 1.61 \\
-Mix Type --- EN  & 25 & 61.36 & 21.31 & 8.08 & 90.75 & 3.63 \\
-Mix Type --- VI  & 18 & 28.20 & 20.90 & 3.11 & 52.21 & 2.90 \\
-Paper --- EN     & 11 & 23.88 & 23.71 & 2.92 & 50.51 & 4.59 \\
-Slide --- EN     & 32 & 68.19 & 12.79 & 8.48 & 89.46 & 2.80 \\
-Slide --- VI     & 58 & 58.93 & 18.55 & 5.93 & 83.41 & 1.44 \\
-\midrule
-\textbf{Total / mean} & \textbf{207} & \textbf{326.79} & \textbf{137.08} & \textbf{36.32} & \textbf{500.19} & \textbf{2.42} \\
-\bottomrule
-\end{tabular}
-\end{table}
+parser coverage on hard layouts, script-specific OCR and the geometric overflow
+exposed by the final-artifact benchmark, rather than the choice among already
+competitive translation models.
 
 \subsection{End-to-End Qualitative Behaviour}
 

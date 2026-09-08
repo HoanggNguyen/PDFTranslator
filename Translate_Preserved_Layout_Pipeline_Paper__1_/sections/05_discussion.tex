@@ -1,10 +1,9 @@
 \section{DISCUSSION}
 \label{sec:discussion}
 
-The results support the two-part hypothesis, but only as stage-level evidence.
-They identify where this implementation is likely constrained and what kind of
-future end-to-end benchmark is needed; they do not yet prove superiority over
-other PDF translation systems.
+The stage-level results identify the mechanisms that constrain this
+implementation. The final-artifact benchmark separately compares the systems on
+a common born-digital English-to-Vietnamese task.
 
 \subsection{H1: What Kind of Error Bounds the Pipeline}
 \label{subsec:disc-structure}
@@ -68,14 +67,10 @@ pipeline rather than compressing incompatible failures into one score.
 \subsection{Limitations and Next Steps}
 \label{subsec:disc-limitations}
 
-Several limits remain. First, the study is not an end-to-end decomposition of
-final PDF quality. It measures the parser and translator separately, then uses
-the pipeline mechanism to argue which errors are recoverable. Second, final
-layout fidelity is shown qualitatively but not scored with an output metric such
-as overflow rate, font-shrink rate, colour error, visual similarity or
-page-count preservation. Third, no direct baseline is run against systems such
-as PDFMathTranslate, docutranslate or RetainPDF under one shared input and output
-contract. Fourth, the cell stage is now scored, but only for geometry and only on cropped
+Several limits remain. First, the end-to-end comparison is restricted to
+born-digital English-to-Vietnamese pages and uses reference-free translation
+quality estimation; matched scanned pages and human target references remain
+future work. Second, the cell stage is scored only for geometry and only on cropped
 scientific tables: no public corpus provides full pages, cell boxes that cover blank
 cells, and annotations free of the over-segmentation that affects earlier datasets. Cell
 geometry and table detection are therefore measured on different corpora, and logical
@@ -83,10 +78,5 @@ structure is not measured at all, because the parser does not produce it. Finall
 the experiments focus on \texttt{en}$\rightarrow$\texttt{xx}; other source
 languages and document genres remain open.
 
-The next benchmark should therefore be an annotated set of real PDFs containing
-flowing text, tables, formulas, scanned pages and born-digital pages. It should
-score both adequacy and final artifact quality, compare direct PDF-translation
-systems and conversion-based pipelines under the same reconstruction contract,
-and test whether improving parser coverage changes the final PDF more than
-changing the translation model. That is the measurement needed to turn the
-stage-level ordering argued here into an end-to-end claim.
+The next benchmark should add matched scanned and mixed-PDF strata, human
+translation references and visual quality ratings.

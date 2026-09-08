@@ -401,14 +401,11 @@ is compressed and cleaned before being returned.
 \subsection{Experimental Design}
 \label{subsec:method-eval}
 
-The experiments test H1 and H2 as stage-level hypotheses, not as a claim of
-end-to-end superiority. Translation is measured on WMT24++ (M2, M3), while
-structure analysis is measured on OmniDocBench (M1). We do not run a direct
-system-level baseline in this version because the closest tools expose different
-contracts: some target born-digital PDFs, some export Markdown/JSON rather than
-a translated PDF overlay, and some are documented mainly as source repositories.
-A fair comparison requires a shared PDF corpus, target-language setting and
-metrics for both adequacy and final visual fidelity.
+The experiments test H1 and H2 at two levels. Translation is measured on
+WMT24++ (M2, M3), structure analysis on OmniDocBench and PubTables-1M (M1), and
+complete translated PDFs on a shared DocLayNet-derived corpus. The latter
+uses the same source pages, target language and output-level metrics for every
+system, treating each pipeline as a black box.
 
 \subsubsection{Translation Quality}
 \label{subsubsec:eval-mt}
@@ -519,18 +516,39 @@ thresholds and AP averaged over $0.50,0.55,\dots,0.95$. As the tables are
 provided as crops, this evaluation measures cell localisation conditioned on a
 correct table region; table detection is evaluated separately on OmniDocBench.
 
+\subsubsection{End-to-End PDF Comparison}
+\label{subsubsec:eval-e2e}
+
+The final-artifact benchmark contains 204 born-digital English pages sampled
+from the DocLayNet v1.2 test split: 34 pages each from scientific articles,
+manuals, patents, financial reports, laws and regulations, and government
+tenders. These pages come from 155 source documents and contain 3{,}612
+annotated elements. Each system translates the same six composite PDFs into
+Vietnamese. Our system, BabelDOC~\citep{babeldoc} and
+PDFMathTranslate~\citep{pdf2zh} use the same
+\texttt{gemini-3.1-flash-lite} endpoint at temperature zero; DeepL Document uses
+its managed document-translation model.
+
+The metric set separates three questions. Pixel preservation measures unchanged
+non-text content and, more specifically, annotated pictures and formulas.
+Harmful-overflow and ink-collision measures detect translated text that invades
+another region or visibly merges with neighbouring ink. Reading-order
+$\tau$, untranslated blocks per page and COMETKiwi quality estimation measure
+structural order and textual outcome. Runner wall time divided by input pages is
+also recorded as an operational diagnostic. All systems are evaluated from
+their output PDF rather than private intermediate files; identity output and a
+source ceiling validate the harness. Definitions, thresholds, corpus
+composition, coverage and complete confidence intervals are reported in
+Appendix~\ref{app:e2e-benchmark}.
+
 \subsubsection{Experimental Environment}
 
 Translation generation ran on a MacBook Air M4, COMET scoring on an NVIDIA A10G
 (24~GB VRAM), parser inference on an A100-SXM4 80~GB, and metric
 computation on a local CPU with \texttt{python-Levenshtein}, \texttt{lxml} and
-\texttt{numpy}. CDM was trusted only after a ground-truth-against-itself sanity
+\texttt{numpy}. The end-to-end benchmark ran in a digest-pinned container on one
+NVIDIA L40S, with all output artifacts scored by the same harness. CDM was
+trusted only after a ground-truth-against-itself sanity
 check, because missing TeX/ImageMagick dependencies can silently produce
 plausible but wrong formula scores. Batch sizes and fixed parameters are listed
 in Appendix~\ref{app:implementation}.
-
-\paragraph{Pilot end-to-end profiling.} To expose the operational profile of
-the implementation, we also ran the complete
-\texttt{parse}\,$\to$\,\texttt{translate}\,$\to$\,\texttt{render} pipeline on
-seven held-out PDFs (207 pages). This set is unannotated and not used as a
-quality benchmark.
