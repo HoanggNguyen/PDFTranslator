@@ -520,7 +520,7 @@ correct table region; table detection is evaluated separately on OmniDocBench.
 \label{subsubsec:eval-e2e}
 
 The final-artifact benchmark contains 204 born-digital English pages sampled
-from the DocLayNet v1.2 test split: 34 pages each from scientific articles,
+from the DocLayNet v1.2 test split~\citep{doclaynet}: 34 pages each from scientific articles,
 manuals, patents, financial reports, laws and regulations, and government
 tenders. These pages come from 155 source documents and contain 3{,}612
 annotated elements. Each system translates the same six composite PDFs into
@@ -529,16 +529,16 @@ PDFMathTranslate~\citep{pdf2zh} use the same
 \texttt{gemini-3.1-flash-lite} endpoint at temperature zero; DeepL Document uses
 its managed document-translation model.
 
-The metric set separates three questions. Pixel preservation measures unchanged
-non-text content and, more specifically, annotated pictures and formulas.
-Harmful-overflow and ink-collision measures detect translated text that invades
-another region or visibly merges with neighbouring ink. Reading-order
+The metric set separates three questions. We define NT-PPR and IO-PPR to measure
+unchanged non-text content and, more specifically, annotated pictures and
+formulas. We also define OF-harm and IC-harm to detect translated text that
+invades another region or visibly merges with neighbouring ink. Reading-order
 $\tau$, untranslated blocks per page and COMETKiwi quality estimation measure
 structural order and textual outcome. Runner wall time divided by input pages is
 also recorded as an operational diagnostic. All systems are evaluated from
 their output PDF rather than private intermediate files; identity output and a
 source ceiling validate the harness. Definitions, thresholds, corpus
-composition, coverage and complete confidence intervals are reported in
+composition, coverage and complete scores are reported in
 Appendix~\ref{app:e2e-benchmark}.
 
 \subsubsection{Experimental Environment}

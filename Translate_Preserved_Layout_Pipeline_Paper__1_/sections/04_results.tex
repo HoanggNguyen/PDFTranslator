@@ -204,19 +204,19 @@ between per-language violation rate and COMET-DA is $r=0.066$, effectively zero.
 \paragraph{End-to-end artifact quality.}
 Table~\ref{tab:res-e2e-compact} reports five quality measures that most directly
 separate the systems together with observed runner time;
-Appendix~\ref{app:e2e-benchmark} gives all seven quality measures with 95\%
-confidence intervals. Our system has the highest immutable-object
+Appendix~\ref{app:e2e-benchmark} gives all seven quality measures and controls.
+Our system has the highest immutable-object
 pixel preservation (IO-PPR $0.990$) and the lowest excess visible ink collision
 (IC-harm $0.005$). Its reading order is within $0.004$ of the source ceiling
-($\tau=0.981$ versus $0.985$), and its COMETKiwi estimate is statistically tied
-with BabelDOC ($0.695$ versus $0.697$). Its observed runner time is $3.6$ seconds
+($\tau=0.981$ versus $0.985$), and its COMETKiwi point estimate is nearly
+identical to BabelDOC's ($0.695$ versus $0.697$). Its observed runner time is $3.6$ seconds
 per input page, compared with $4.1$ for BabelDOC, $3.2$ for PDFMathTranslate and
 $2.2$ for DeepL Document.
 
 \begin{table}[H]
 \centering
-\caption{Selected end-to-end results on 204 English-to-Vietnamese pages. Full
-scores and intervals are in Table~\ref{tab:app-e2e-full}.}
+\caption{Selected end-to-end results on 204 English-to-Vietnamese pages. Complete
+scores are in Table~\ref{tab:app-e2e-full}.}
 \label{tab:res-e2e-compact}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -240,14 +240,15 @@ controlled throughput.
 The result is not uniformly favourable. Non-text preservation is comparable to
 BabelDOC and PDFMathTranslate (NT-PPR $0.983$, $0.984$ and $0.988$,
 respectively), but our system has more lines that geometrically enter another
-annotated element (OF-harm $0.032$ versus $0.018$ and $0.020$). The much lower
-IC-harm indicates that this overflow seldom becomes merged visible ink, which
-is consistent with expanding into available whitespace, but OF-harm remains a
-reconstruction limitation. Our system leaves $0.387$ untranslated English
-blocks per page, statistically indistinguishable from BabelDOC's $0.240$ and
-substantially below PDFMathTranslate's $2.333$. DeepL changes the page count in
-two of six documents, so its page-anchored visual scores cover the remaining
-four; this reflow is reported rather than silently aligned.
+annotated element (OF-harm $0.032$ versus $0.018$ and $0.020$). Although OF-harm
+indicates that some lines enter neighbouring annotated regions, the much lower
+IC-harm suggests that these incursions usually occupy uninked pixels within
+those regions rather than merging with neighbouring ink. OF-harm nevertheless
+remains a reconstruction limitation. Our system leaves $0.387$ untranslated English
+blocks per page, compared with BabelDOC's $0.240$ and substantially below
+PDFMathTranslate's $2.333$. DeepL reflows all six outputs; two also change page
+count, so its page-anchored visual scores cover the remaining four. The reflow
+is reported rather than silently aligned.
 
 The benchmark uses born-digital pages to place all four systems on the same
 layout-preserving task and input contract. Our system additionally accepts
