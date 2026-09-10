@@ -12,7 +12,7 @@ giữ nguyên **default của BabelDOC**, không tắt bớt tính năng:
   đôi và mọi metric hình học ở §4.1-4.2 mất nghĩa. Đây là thay đổi định dạng đầu ra,
   không phải thay đổi chất lượng dịch.
 * ``--no-watermark``: watermark của BabelDOC là mực đè lên trang, làm nhiễu
-  masked-SSIM và ink-profile ở §4.2. Loại nó ra là điều kiện để so được về thị giác.
+  NT-PPR, IO-PPR và IC-harm. Loại nó ra là điều kiện để so được về thị giác.
 
 Token: BabelDOC tự log ``Total/Prompt/Completion tokens``, runner này bới lại từ
 ``run.log`` — baseline duy nhất cho token miễn phí. Tiền vẫn quy về LiteLLM proxy

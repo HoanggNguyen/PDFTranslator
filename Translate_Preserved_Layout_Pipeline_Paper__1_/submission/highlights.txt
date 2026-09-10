@@ -1,0 +1,6 @@
+Visual structure analysis isolates unrecoverable document-translation errors.
+Identifiers keep translated elements aligned across all pipeline stages.
+Geometry-aware reconstruction preserves layout without limiting text length.
+Public benchmarks cover 1,651 pages, 1,499 tables, and 55 language pairs.
+Length constraints show no meaningful relation to translation adequacy.
+

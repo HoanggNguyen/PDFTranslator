@@ -208,6 +208,7 @@ def score_commands(corpus, out, c):
         c["detector"],
     )
     yield module("metrics.eval_visual", *common, "--systems", systems)
+    yield module("metrics.eval_ink", *common)
     yield module("metrics.eval_text", *common, "--systems", systems)
     yield module("align.extract_pairs", *common, "--systems", systems)
     yield qe_module(
@@ -231,9 +232,6 @@ def score_commands(corpus, out, c):
         systems,
         "--detector",
         c["detector"],
-        "--unit",
-        c["bootstrap_unit"],
-        *(["--smoke"] if c["mode"] == "smoke" else []),
     )
 
 
@@ -293,10 +291,19 @@ def scoring(corpus, out, c, upload, allow_failures=False, executor=execute):
                 page.get("nt_ppr") != 1.0
                 or (page.get("io_ppr") is not None and page["io_ppr"] != 1.0)
                 or page.get("of_harm") not in (None, 0.0)
-                or page.get("page_fail") != 0
                 for page in identity_pages
             ):
                 raise ValueError("Identity pixel/harm metrics are not ideal")
+            ink_identity = json.loads(
+                (out / "_metrics/ink" / f"identity.{lang}.json").read_text()
+            )
+            ink_pages = [
+                page
+                for rec in ink_identity["records"] if not rec.get("skipped")
+                for page in rec["pages"]
+            ]
+            if not ink_pages or any(page.get("ic_harm") != 0.0 for page in ink_pages):
+                raise ValueError("Identity IC-harm is not zero")
         record["source_ceiling"] = ceiling["summary"]
         if ceiling["summary"].get("n_docs_scored", 0) != len(
             P.documents(corpus, c["tiers"])
@@ -327,7 +334,7 @@ def preflight(action, out):
             [
                 sys.executable,
                 "-c",
-                "import pdf2zh, fitz, fasttext, skimage, docling_ibm_models; print('imports OK')",
+                "import pdf2zh, fitz, fasttext, docling_ibm_models; print('imports OK')",
             ],
             # Comet lives in its own venv (numpy<2 vs babeldoc's numpy>=2).
             [

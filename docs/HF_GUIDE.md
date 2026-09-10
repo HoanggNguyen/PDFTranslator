@@ -114,7 +114,7 @@ benchmark/e2e/work/smoke-001/
     T1/mapping.json
 ```
 
-`run.json` chốt model, proxy URL, systems, ngôn ngữ, flavor, QE model, đơn vị bootstrap,
+`run.json` chốt model, proxy URL, systems, ngôn ngữ, flavor và QE model,
 hash code và hash PDF/GT/mapping. Thay những thông số này phải dùng **run ID mới**.
 Không sửa JSON bằng tay. Sửa code sau prepare thì chuẩn bị run mới và build image mới.
 
@@ -288,8 +288,8 @@ kiểm đủ 3 hệ × 1 PDF × vi
   → identity
   → render nguồn/output
   → detector Docling chung
-  → reading-order + chẩn đoán box
-  → NT-PPR / IO-PPR / OF-harm / Page-fail (headline, không dùng detector)
+  → reading-order tau
+  → NT-PPR / IO-PPR / OF-harm / IC-harm (không dùng detector)
   → text integrity (UTB/trang)
   → alignment
   → CometKiwi QE
@@ -334,7 +334,7 @@ Ví dụ 4 hệ, T1 EN→VI:
 python -m benchmark.e2e.hf_driver prepare-eval \
   --run-id eval-t1-vi-001 --source benchmark/e2e/datasets/corpus \
   --tiers T1 --langs vi \
-  --systems pdftranslator,babeldoc,pdfmathtranslate,deepl-document --unit doc
+  --systems pdftranslator,babeldoc,pdfmathtranslate,deepl-document
 python -m benchmark.e2e.hf_driver push-corpus --run-id eval-t1-vi-001
 python -m benchmark.e2e.hf_driver check --run-id eval-t1-vi-001
 python -m benchmark.e2e.hf_driver warm --run-id eval-t1-vi-001
@@ -345,10 +345,8 @@ python -m benchmark.e2e.hf_driver run --run-id eval-t1-vi-001
 Đổi alias/budget của ba virtual key cho run mới trước `probe/run`. Chỉ muốn 3 hệ thì
 bỏ `deepl-document` khỏi `--systems`, bỏ các lệnh DeepL bên dưới.
 
-`--langs vi,zh` được hỗ trợ. `--unit doc` lấy lại mẫu theo PDF được đưa vào runner;
-T1 gộp nhiều trang từ tài liệu gốc khác nhau nên cần xem mapping trước khi chọn đơn
-vị suy luận. `--unit page` chỉ hợp lý nếu đã chứng minh các trang là đơn vị độc lập.
-Đơn vị thống kê là một phần contract, không đổi giữa chừng.
+`--langs vi,zh` được hỗ trợ. Bảng kết quả lấy trung bình trong từng tài liệu trước,
+rồi lấy trung bình giữa các tài liệu; corpus sáu tài liệu chỉ được diễn giải mô tả.
 
 ### DeepL local và upload checkpoint
 

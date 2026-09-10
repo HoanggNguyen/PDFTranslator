@@ -102,7 +102,7 @@ ENV BABELDOC_BIN=/opt/venv-babeldoc/bin/babeldoc \
 RUN UV_LINK_MODE=copy UV_CONCURRENT_DOWNLOADS=4 \
     uv venv /opt/venv-qe --python 3.12 && \
     UV_LINK_MODE=copy uv pip install --python /opt/venv-qe \
-        "unbabel-comet==2.2.7" "python-dotenv>=1.0,<2" "setuptools<81"
+    "unbabel-comet==2.2.7" "python-dotenv>=1.0,<2" "setuptools<81"
 ENV QE_PYTHON=/opt/venv-qe/bin/python
 
 # ── Code harness ──────────────────────────────────────────────────────────────

@@ -174,12 +174,17 @@ def evaluate(system: str, lang: str | None, gt_docs: dict, render_root: Path,
 def summarize(records: list[dict]) -> dict:
     scored = [r for r in records if not r["skipped"]]
     pages = [p for r in scored for p in r["pages"]]
+    doc_values = []
+    for record in scored:
+        values = [p["ic_harm"] for p in record["pages"]]
+        if values:
+            doc_values.append(sum(values) / len(values))
     return {
         "n_docs": len(records), "n_docs_scored": len(scored),
         "n_docs_skipped": len(records) - len(scored),
         "n_pages": len(pages),
-        "ic_harm_mean": (round(sum(p["ic_harm"] for p in pages) / len(pages), 6)
-                         if pages else None),
+        "ic_harm_mean": (round(sum(doc_values) / len(doc_values), 6)
+                         if doc_values else None),
     }
 
 

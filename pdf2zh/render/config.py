@@ -16,6 +16,8 @@ class StyleSpec:
 class SizingConfig:
     detect: bool = True
     cluster_eps_pt: float = 2.0
+    # Fixed readability floor for every reconstructed text element.
+    min_font_size_pt: float = 7.0
     # Maps group name → list of labels belonging to that group
     cluster_groups: dict[str, list[str]] = field(
         default_factory=lambda: {
@@ -106,7 +108,6 @@ class RenderConfig:
     background: BackgroundConfig = field(default_factory=BackgroundConfig)
     text_color: TextColorConfig = field(default_factory=TextColorConfig)
     compress: CompressConfig = field(default_factory=CompressConfig)
-    min_font_size_pt: float = 7.0
     expand_downward: bool = True
     max_expand_pt: float = 80.0
     # Remove native text layer in translatable regions (needed for non-scanned PDFs)
@@ -134,7 +135,7 @@ class RenderConfig:
         if "font_path" in data:
             cfg.font_path = data["font_path"]
         if "min_font_size_pt" in data:
-            cfg.min_font_size_pt = float(data["min_font_size_pt"])
+            cfg.sizing.min_font_size_pt = float(data["min_font_size_pt"])
         if "pages" in data:
             cfg.pages = data["pages"]
         _load_nested(cfg.sizing, data.get("sizing", {}))

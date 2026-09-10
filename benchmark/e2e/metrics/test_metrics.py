@@ -1,37 +1,16 @@
-"""Test cho khối metric không cần detector.
+"""Test cho khối metric: eval_text + eval_preserve (reading-order).
 
 Chỉ test hàm thuần — phần đọc PDF cần PyMuPDF nên để cho smoke test của driver.
 Chạy: ``python -m pytest benchmark/e2e/metrics/test_metrics.py -q``
 """
 
 from benchmark.e2e.metrics import eval_text as E
-from benchmark.e2e.metrics import numbers as N
+from benchmark.e2e.metrics.eval_preserve import kendall_tau, hungarian, score_page
+from benchmark.e2e.parse.run_detectors import reading_order
 from benchmark.e2e.metrics.langid import LangID
 
 
-class TestNumbers:
-    def test_quy_uoc_en_va_vi_cho_cung_ket_qua(self):
-        """Lý do metric so theo dãy chữ số chứ không theo giá trị."""
-        assert N.canon("1,234.56") == N.canon("1.234,56") == "123456"
-        assert N.canon("1,5") == N.canon("1.5") == "15"
-
-    def test_giu_dau_am(self):
-        assert N.canon("-3.14") == "-314"
-        assert N.canon("+42") == "42"
-
-    def test_khong_dan_hai_so_cach_nhau_boi_khoang_trang(self):
-        assert N.extract("1 234") == ["1", "234"]
-
-    def test_trung_lap_la_thong_tin(self):
-        """Nguồn có '12' ba lần mà đích còn một là mất nội dung thật."""
-        assert N.recall("12 12 12", "12") == (3, 1)
-
-    def test_so_moc_them_o_dich_khong_lam_tang_recall(self):
-        assert N.recall("12", "12 12 12") == (1, 1)
-
-    def test_nguon_khong_co_so(self):
-        assert N.recall("khong co so nao", "cung vay") == (0, 0)
-
+# ── eval_text ──────────────────────────────────────────────────────────────── #
 
 class TestLangID:
     lid = LangID(allow_download=False)
@@ -45,26 +24,6 @@ class TestLangID:
         """'un' quan trọng: nó KHÔNG bị tính là chưa dịch."""
         assert self.lid.predict("Fig. 3")[0] == "un"
         assert self.lid.predict("")[0] == "un"
-
-
-class TestScoreNumbers:
-    def test_so_trang_khop_thi_xuat_them_so_theo_trang(self):
-        r = E.score_numbers(["1 2", "3"], ["1 2", "3"])
-        assert r["page_aligned"] is True
-        assert r["per_page"] == [[2, 2], [1, 1]]
-        assert r["recall"] == 1.0
-
-    def test_so_trang_lech_thi_khong_co_so_theo_trang(self):
-        r = E.score_numbers(["1 2", "3"], ["1 2 3"])
-        assert r["page_aligned"] is False
-        assert r["per_page"] is None
-        assert (r["n_src"], r["n_found"]) == (3, 3)
-
-    def test_so_di_chuyen_sang_trang_khac_khong_bi_tinh_la_mat(self):
-        """Lý do headline number là mức tài liệu: reflow đẩy số sang trang sau."""
-        r = E.score_numbers(["1 2 3", "4"], ["1 2", "3 4"])
-        assert r["recall"] == 1.0                    # mức doc: không mất gì
-        assert r["per_page"] == [[3, 2], [1, 1]]     # mức trang: tưởng mất 1
 
 
 class TestScoreUTB:
@@ -84,33 +43,112 @@ class TestScoreUTB:
 
 
 class TestSummarize:
-    def _rec(self, n_src, n_found, pages, untrans, ok=True, infl=1.0):
+    def _rec(self, pages, untrans, ok=True, infl=1.0):
         return {"ok": ok, "n_pages_out": pages, "page_inflation": infl,
                 "sec_per_page": 10.0,
-                "numbers": {"n_src": n_src, "n_found": n_found},
                 "utb": {"n_untranslated": untrans}}
 
-    def test_dung_ti_le_cua_tong_khong_phai_trung_binh_cac_ti_le(self):
-        """Doc 1: 1/100. Doc 2: 1/1. Trung bình các tỉ lệ = 0.505 (sai),
-        tỉ lệ của các tổng = 2/101 = 0.0198 (đúng)."""
-        s = E.summarize([self._rec(100, 1, 1, 0), self._rec(1, 1, 1, 0)])
-        assert s["number_recall"] == 0.0198
-
     def test_dem_doc_reflow(self):
-        s = E.summarize([self._rec(1, 1, 1, 0, infl=1.0),
-                         self._rec(1, 1, 1, 0, infl=1.15)])
+        s = E.summarize([self._rec(1, 0, infl=1.0),
+                         self._rec(1, 0, infl=1.15)])
         assert s["n_docs_reflowed"] == 1
 
     def test_sec_per_page_bo_qua_doc_chet(self):
         """Doc crash sớm có wall nhỏ; gộp vào là hệ chết sớm trông như hệ nhanh."""
-        chet = self._rec(1, 1, 1, 0, ok=False)
+        chet = self._rec(1, 0, ok=False)
         chet["sec_per_page"] = 1.0
-        s = E.summarize([self._rec(1, 1, 1, 0), chet])
+        s = E.summarize([self._rec(1, 0), chet])
         assert s["sec_per_page_mean"] == 10.0
 
-    def test_success_rate_tinh_ca_doc_chet(self):
-        dead = {"ok": False, "n_pages_out": None, "page_inflation": None,
-                "sec_per_page": None, "numbers": None, "utb": None}
-        s = E.summarize([self._rec(1, 1, 1, 0), dead])
-        assert s["success_rate"] == 0.5
-        assert s["n_docs"] == 2
+
+# ── eval_preserve (reading-order) ──────────────────────────────────────────── #
+
+class TestKendallTau:
+    def test_hoan_hao_dong_thu_tu(self):
+        assert kendall_tau([0, 1, 2], [0, 1, 2]) == 1.0
+
+    def test_nguoc_hoan_toan(self):
+        assert kendall_tau([0, 1, 2], [2, 1, 0]) == -1.0
+
+    def test_khong_phan_quyet(self):
+        """Trùng rank ở cả hai phía ⇒ concordant + discordant = 0 ⇒ None."""
+        assert kendall_tau([1, 1], [2, 2]) is None
+
+    def test_mot_phan_tu(self):
+        """3 cặp: (0,1)=+1, (0,2)=+1, (1,2)=−1 → tau = (2−1)/3."""
+        assert abs(kendall_tau([0, 1, 2], [0, 2, 1]) - 1 / 3) < 1e-9
+
+    def test_rieng_le(self):
+        assert kendall_tau([0], [0]) is None
+
+    def test_rong(self):
+        assert kendall_tau([], []) is None
+
+
+class TestReadingOrder:
+    def test_tren_xuong_duoi(self):
+        elems = [
+            {"bbox_norm": [0.1, 0.5, 0.9, 0.6]},
+            {"bbox_norm": [0.1, 0.1, 0.9, 0.2]},
+            {"bbox_norm": [0.1, 0.3, 0.9, 0.4]},
+        ]
+        reading_order(elems)
+        orders = [e["reading_order"] for e in elems]
+        assert orders == [2, 0, 1]
+
+    def test_cung_dong_trai_phai(self):
+        elems = [
+            {"bbox_norm": [0.5, 0.1, 0.9, 0.2]},
+            {"bbox_norm": [0.1, 0.1, 0.4, 0.2]},
+        ]
+        reading_order(elems)
+        orders = [e["reading_order"] for e in elems]
+        assert orders == [1, 0]
+
+    def test_1_phan_tram_cao_do(self):
+        """Hai box lệch 0.5% chiều cao → phải kể là khác dòng."""
+        elems = [
+            {"bbox_norm": [0.1, 0.100, 0.5, 0.200]},
+            {"bbox_norm": [0.5, 0.106, 0.9, 0.206]},   # 0.6% lệch
+        ]
+        reading_order(elems)
+        orders = [e["reading_order"] for e in elems]
+        assert orders == [0, 1]
+
+    def test_rong(self):
+        elems = []
+        reading_order(elems)
+        assert elems == []
+
+
+class TestHungarian:
+    def test_ghep_cung_nhom(self):
+        gts  = [{"group": "text", "bbox_norm": [0.0, 0.0, 0.5, 0.5]},
+                {"group": "text", "bbox_norm": [0.5, 0.5, 1.0, 1.0]}]
+        preds = [{"group": "text", "bbox_norm": [0.0, 0.0, 0.5, 0.5]},
+                 {"group": "text", "bbox_norm": [0.5, 0.5, 1.0, 1.0]}]
+        matched = hungarian(gts, preds)
+        assert len(matched) == 2
+        ious = [iou for _, _, iou in matched]
+        assert all(i > 0.99 for i in ious)
+
+    def test_khong_ghep_khac_nhom(self):
+        gts  = [{"group": "text", "bbox_norm": [0.0, 0.0, 0.5, 0.5]}]
+        preds = [{"group": "table", "bbox_norm": [0.0, 0.0, 0.5, 0.5]}]
+        matched = hungarian(gts, preds)
+        assert len(matched) == 0
+
+    def test_rong(self):
+        assert hungarian([], [{"group": "text", "bbox_norm": [0, 0, 1, 1]}]) == []
+        assert hungarian([{"group": "text", "bbox_norm": [0, 0, 1, 1]}], []) == []
+
+
+class TestScorePage:
+    def test_identity_tau_1(self):
+        page = {"page": 1, "elements": [
+            {"group": "text", "bbox_norm": [0.1, 0.1, 0.5, 0.5], "reading_order": 0},
+            {"group": "text", "bbox_norm": [0.1, 0.6, 0.5, 0.9], "reading_order": 1},
+        ]}
+        r = score_page(page, page)
+        assert r["tau"] == 1.0
+        assert r["n_matched"] == 2

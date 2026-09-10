@@ -1,8 +1,8 @@
-"""Khối metric KHÔNG cần detector — bảng so sánh 4 hệ đầu tiên.
+"""Các phép đo văn bản/vận hành được báo cáo mà không cần detector.
 
-Năm con số, tất cả chỉ cần ``meta.json`` + text rút từ PDF:
+Ba đầu ra dùng ``meta.json`` và text rút từ PDF:
 
-    page inflation · UTB/trang · number-digit recall · sec/page · success rate
+    reflow/page-count control · UTB/trang · runner seconds/trang
 
 Giá trị của việc gom đúng năm cái này vào một bước: chúng **chạy được cho cả 4 hệ,
 kể cả DeepL**. Mọi metric hình học (§4.1) và visual (§4.2) đều neo vào ground-truth
@@ -10,19 +10,7 @@ theo *từng trang nguồn*, nên hệ nào reflow làm đổi số trang là me
 — không phải "điểm thấp", mà là không có phép ghép trang nào đúng. Năm metric ở đây
 không neo vào trang nguồn nên không vướng chuyện đó.
 
-**Number recall luôn tính ở mức tài liệu**, không phải mức trang. Dồn hết số của cả
-doc thành một multiset rồi so. Lý do: đếm theo trang thì một con số bị đẩy từ trang 3
-sang trang 4 bị tính là *mất*, trong khi nó chỉ *di chuyển* — và đó đúng là chuyện
-xảy ra với hệ nào reflow. Mức tài liệu phân biệt được "mất" với "dịch chuyển", nên
-con số so được cho **cả 4 hệ** mà không cần ngoại lệ nào cho DeepL.
-
-Số đếm theo từng trang vẫn được xuất ra, nhưng **chỉ khi số trang vào bằng số trang
-ra**, và chỉ để ``aggregate`` bootstrap theo trang. Nó chặt hơn (nhạy vị trí) nên
-đừng đọc nó như một metric độc lập.
-
-Đầu ra: ``<out>/_metrics/text/<system>.<lang>.json`` + ``summary.json``. Số đếm thô
-được giữ nguyên (``n_src``/``n_found``), không tính sẵn tỉ lệ — trung bình của các
-tỉ lệ khác tỉ lệ của các tổng, và cái sau mới là con số muốn báo.
+Đầu ra: ``<out>/_metrics/text/<system>.<lang>.json`` + ``summary.json``.
 
 Ví dụ
 -----
@@ -39,7 +27,6 @@ import sys
 from pathlib import Path
 
 from benchmark.e2e import manifest
-from benchmark.e2e.metrics import numbers as N
 from benchmark.e2e.metrics.langid import LangID
 
 # Tên thư mục artifact của từng hệ = hằng SYSTEM trong runner tương ứng.
@@ -94,34 +81,6 @@ def page_blocks(path: Path) -> list[list[str]]:
     return out
 
 
-def load_src_text(pdf: Path, cache_dir: Path) -> list[str]:
-    """Text trang nguồn, memo hoá — 4 hệ × nhiều ngôn ngữ đều đọc cùng file này."""
-    cache = cache_dir / f"{pdf.stem}.json"
-    if cache.exists():
-        return json.loads(cache.read_text(encoding="utf-8"))
-    pages = ["\n".join(b) for b in page_blocks(pdf)]
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    cache.write_text(json.dumps(pages, ensure_ascii=False), encoding="utf-8")
-    return pages
-
-
-def score_numbers(src_pages: list[str], out_pages: list[str]) -> dict:
-    """Multiset recall của dãy chữ số. Xem docstring module về mức tài liệu."""
-    n_src, n_found = N.recall("\n".join(src_pages), "\n".join(out_pages))
-
-    # Chỉ ghép theo trang khi số trang khớp — và ngay cả lúc đó, đây là số phụ để
-    # bootstrap, không phải metric để đọc: nó tính "di chuyển sang trang khác" thành
-    # "mất".
-    per_page = None
-    if len(src_pages) == len(out_pages):
-        per_page = [list(N.recall(s, o)) for s, o in zip(src_pages, out_pages)]
-
-    return {"n_src": n_src, "n_found": n_found,
-            "recall": round(n_found / n_src, 4) if n_src else None,
-            "page_aligned": per_page is not None,
-            "per_page": per_page}
-
-
 def score_utb(out_blocks: list[list[str]], lid: LangID, src_lang: str,
               min_chars: int, min_prob: float) -> dict:
     per_page, scored, untrans = [], 0, 0
@@ -153,7 +112,7 @@ def discover(corpus: Path, tiers: list[str]) -> list[tuple[str, Path]]:
 
 
 def evaluate(system: str, lang: str, jobs: list[tuple[str, Path]], out_root: Path,
-             src_cache: Path, lid: LangID, args: argparse.Namespace) -> list[dict]:
+             lid: LangID, args: argparse.Namespace) -> list[dict]:
     records = []
     for tier, pdf in jobs:
         dest = out_root / system / lang / pdf.stem
@@ -162,7 +121,7 @@ def evaluate(system: str, lang: str, jobs: list[tuple[str, Path]], out_root: Pat
         rec = {"system": system, "lang": lang, "tier": tier, "doc_id": pdf.stem,
                "ok": False, "error": None, "n_pages_in": None, "n_pages_out": None,
                "page_inflation": None, "wall_seconds": None, "sec_per_page": None,
-               "numbers": None, "utb": None}
+               "utb": None}
 
         if not meta_path.exists():
             # Không có meta = runner chưa chạy hoặc chết trước khi ghi được gì. Vẫn
@@ -185,13 +144,11 @@ def evaluate(system: str, lang: str, jobs: list[tuple[str, Path]], out_root: Pat
 
         try:
             out_blocks = page_blocks(out_pdf)
-            src_pages = load_src_text(pdf, src_cache)
         except Exception as exc:  # noqa: BLE001 — một doc hỏng không được giết cả lượt
             rec["error"] = f"đọc PDF: {type(exc).__name__}: {exc}"
             records.append(rec)
             continue
 
-        rec["numbers"] = score_numbers(src_pages, ["\n".join(b) for b in out_blocks])
         rec["utb"] = score_utb(out_blocks, lid, args.src_lang,
                                args.min_block_chars, args.lid_prob)
         rec["ok"] = meta.get("error") is None
@@ -200,15 +157,11 @@ def evaluate(system: str, lang: str, jobs: list[tuple[str, Path]], out_root: Pat
 
 
 def summarize(records: list[dict]) -> dict:
-    """Dồn số đếm thô rồi mới chia. Xem docstring module."""
     n = len(records)
     ok = [r for r in records if r["ok"]]
-    scored = [r for r in records if r["numbers"]]
-
-    n_src = sum(r["numbers"]["n_src"] for r in scored)
-    n_found = sum(r["numbers"]["n_found"] for r in scored)
-    pages_out = sum(r["n_pages_out"] or 0 for r in scored)
-    untrans = sum(r["utb"]["n_untranslated"] for r in scored)
+    scored = [r for r in records if r["utb"]]
+    utb = [r["utb"]["utb_per_page"] for r in scored
+           if r["utb"].get("utb_per_page") is not None]
     infl = [r["page_inflation"] for r in scored if r["page_inflation"]]
     # sec/page CHỈ lấy từ doc chạy xong. Doc crash giữa đường có wall_seconds nhỏ
     # nên nếu gộp vào, hệ nào chết sớm lại trông như hệ nhanh nhất.
@@ -216,15 +169,12 @@ def summarize(records: list[dict]) -> dict:
 
     return {
         "n_docs": n, "n_ok": len(ok), "n_docs_scored": len(scored),
-        "success_rate": round(len(ok) / n, 4) if n else None,
         "page_inflation_mean": round(sum(infl) / len(infl), 4) if infl else None,
         "page_inflation_max": max(infl) if infl else None,
         "n_docs_reflowed": sum(1 for x in infl if abs(x - 1.0) > 1e-9),
         "sec_per_page_mean": round(sum(spp) / len(spp), 2) if spp else None,
-        "number_recall": round(n_found / n_src, 4) if n_src else None,
-        "n_numbers_src": n_src,
-        "utb_per_page": round(untrans / pages_out, 4) if pages_out else None,
-        "n_untranslated": untrans,
+        "utb_per_page": round(sum(utb) / len(utb), 4) if utb else None,
+        "n_untranslated": sum(r["utb"]["n_untranslated"] for r in scored),
     }
 
 
@@ -256,14 +206,12 @@ def main() -> int:
 
     metrics_dir = args.out / "_metrics" / "text"
     metrics_dir.mkdir(parents=True, exist_ok=True)
-    src_cache = args.out / "_metrics" / "_srctext"
-
     rows, summaries = [], {}
     for system in systems:
         for lang in langs:
             if not (args.out / system / lang).is_dir():
                 continue
-            records = evaluate(system, lang, jobs, args.out, src_cache, lid, args)
+            records = evaluate(system, lang, jobs, args.out, lid, args)
             summary = summarize(records)
             summary["lid_backend"] = lid.backend
             (metrics_dir / f"{system}.{lang}.json").write_text(
@@ -281,7 +229,7 @@ def main() -> int:
         json.dumps(summaries, indent=2, ensure_ascii=False), encoding="utf-8")
 
     hdr = (f"{'system':22} {'lang':4} {'ok':>7} {'inflation':>10} {'reflow':>7} "
-           f"{'sec/page':>9} {'UTB/trang':>10} {'num-recall':>11}")
+           f"{'sec/page':>9} {'UTB/trang':>10}")
     print("\n" + hdr)
     print("-" * len(hdr))
     for system, lang, s in rows:
@@ -290,10 +238,10 @@ def main() -> int:
         print(f"{system:22} {lang:4} {s['n_ok']:>3}/{s['n_docs']:<3} "
               f"{f(s['page_inflation_mean']):>10} {s['n_docs_reflowed']:>7} "
               f"{f(s['sec_per_page_mean'], '.1f'):>9} "
-              f"{f(s['utb_per_page']):>10} {f(s['number_recall']):>11}")
+              f"{f(s['utb_per_page']):>10}")
     print(f"\nlid_backend = {lid.backend}   |   chi tiết: {metrics_dir}/")
-    print("Cột 'reflow' = số doc có page_inflation != 1 ⇒ doc đó BỊ LOẠI khỏi mIoU / "
-          "Anchor-IoU / Masked-SSIM (áp cho mọi hệ như nhau).")
+    print("Cột 'reflow' = số tài liệu có page_inflation != 1; các tài liệu này bị "
+          "loại khỏi metric neo theo từng trang nguồn, áp dụng giống nhau cho mọi hệ.")
     return 0
 
 

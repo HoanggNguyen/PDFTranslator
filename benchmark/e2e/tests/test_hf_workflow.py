@@ -2,7 +2,6 @@
 
 import importlib
 import json
-import random
 import shutil
 import sys
 from pathlib import Path
@@ -377,19 +376,12 @@ def test_real_scoring_io_with_mocked_models(prepared, monkeypatch):
     for system in P.SYSTEMS[:3]:
         assert system in report
         assert (root / f"out/_metrics/qe/{system}.vi.json").exists()
-    assert "CometKiwi" in report and "SMOKE TEST" in report
-    assert len(executed) == 9
+    assert "COMETKiwi" in report and "document-macro" in report
+    assert len(executed) == 10
     assert json.loads((root / "out/_run/score-status.json").read_text())["completed"]
 
 
-def test_one_document_has_no_inference():
-    values = {("one", i): float(i) for i in range(4)}
-    assert A.ci(values, "doc", 100, random.Random(1))["lo"] is None
-    assert A.paired(values, values, "doc", 100, random.Random(1))["p"] is None
-
-
-def test_layout_series_mf1_penalizes_extra_boxes(tmp_path):
-    """mIoU có thể cao trên matched boxes, nhưng mF1 phải phạt 191 box thừa."""
+def test_layout_aggregation_is_document_macro(tmp_path):
     path = tmp_path / "layout.json"
     path.write_text(
         json.dumps(
@@ -399,36 +391,19 @@ def test_layout_series_mf1_penalizes_extra_boxes(tmp_path):
                         "doc_id": "patent",
                         "skipped": None,
                         "pages": [
-                            {
-                                "page": 14,
-                                "n_gt": 31,
-                                "n_pred": 215,
-                                "n_matched": 24,
-                                "sum_iou": 16.08,
-                                "tp": {"0.5": 18, "0.75": 12, "0.95": 2},
-                                "n_gt_anchor": 4,
-                                "n_pred_anchor": 2,
-                                "n_matched_anchor": 2,
-                                "sum_iou_anchor": 1.9,
-                                "n_contain": 0,
-                                "sum_contain": 0,
-                                "n_collisions": 107,
-                                "n_margin_out": 0,
-                                "tau": 0.97,
-                            }
+                            {"page": 0, "n_matched": 2, "tau": 1.0},
+                            {"page": 1, "n_matched": 2, "tau": 0.0},
                         ],
-                    }
+                    },
+                    {"doc_id": "short", "skipped": None,
+                     "pages": [{"page": 0, "n_matched": 2, "tau": 1.0}]},
                 ]
             }
         )
     )
-    series = A.series_layout(path)
-    key = ("patent", 14)
-    assert series["iou"][key] == pytest.approx(0.67)
-    assert series["box_ratio"][key] == pytest.approx(215 / 31)
-    assert series["mf1"][key] == pytest.approx(
-        sum(2 * tp / (31 + 215) for tp in (18, 12, 2)) / 3
-    )
+    values = A.layout_values(path)["tau"]
+    assert values == {"patent": 0.5, "short": 1.0}
+    assert A.mean(values)["mean"] == 0.75
 
 
 def test_pixel_preservation_and_harm_are_detector_free(tmp_path):
@@ -448,13 +423,11 @@ def test_pixel_preservation_and_harm_are_detector_free(tmp_path):
         {"class": "Picture", "bbox_norm": [0.5, 0.5, 0.8, 0.8]},
     ]
     args = SimpleNamespace(
-        dilate_px=2, ssim_win=7, pixel_tolerance=8,
+        dilate_px=2, pixel_tolerance=8,
         harm_overlap=0.05, harm_change=0.05,
-        page_fail_ppr=0.95, page_fail_harm=0.05,
     )
     clean = V.score_page(src_path, dst_path, elements, [], args)
     assert clean["nt_ppr"] == 1.0 and clean["io_ppr"] == 1.0
-    assert clean["page_fail"] == 0
 
     changed = np.zeros((100, 100), dtype=bool)
     changed[10:20, 40:50] = True

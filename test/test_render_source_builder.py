@@ -7,10 +7,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pdf2zh.render.config import RenderConfig
 from pdf2zh.render.source_builder import (
+    _FIT_HELPERS,
     _downward_avail_height,
     _rightward_avail_width,
     build_typst_source,
 )
+
+
+def test_typst_fit_helpers_never_bypass_configured_font_floor():
+    assert "5.4pt" not in _FIT_HELPERS
+    assert "4.8pt" not in _FIT_HELPERS
+    assert "fallback_min_size" not in _FIT_HELPERS
 
 
 class TestDownwardAvailHeight:

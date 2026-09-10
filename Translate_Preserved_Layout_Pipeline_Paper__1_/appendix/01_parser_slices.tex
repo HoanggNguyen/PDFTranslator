@@ -20,7 +20,8 @@ both matchers.
 \caption{Class-agnostic localisation by slice: precision, recall and $F_1$ at
 IoU $0.5$, plus mF1 averaged over thresholds $[.5{:}.95]$, for both matchers.}
 \label{tab:app-res-loc}
-\small
+\scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l rrrr rrrr@{}}
 \toprule
  & \multicolumn{4}{c}{$N$--$M$} & \multicolumn{4}{c}{COCO 1-1} \\
@@ -55,7 +56,8 @@ Slice & P@.5 & R@.5 & F1@.5 & mF1 & P@.5 & R@.5 & F1@.5 & mF1 \\
     \texttt{data\_source=note} & 0.818 & 0.927 & 0.869 & 0.595 & 0.438 & 0.369 & 0.401 & 0.242 \\
     \texttt{data\_source=research\_report} & 0.970 & 0.969 & 0.969 & 0.707 & 0.740 & 0.834 & 0.784 & 0.538 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Classification}
@@ -219,6 +221,7 @@ and CDM per slice.
 \texttt{render\_fail}: lower is better.}
 \label{tab:app-res-formula}
 \scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l r r r r r r r@{}}
 \toprule
 Slice & GT & cov & edit\_m ($\downarrow$) & CDM $F_1$ & CDM P & CDM R & render\_fail \\
@@ -243,7 +246,8 @@ Slice & GT & cov & edit\_m ($\downarrow$) & CDM $F_1$ & CDM P & CDM R & render\_
     \texttt{data\_source=colorful\_textbook} & 75 & \underline{0.867} & 0.368 & 0.906 & \textbf{0.926} & 0.887 & \textbf{0.015} \\
     \texttt{data\_source=exam\_paper} & 549 & 0.938 & \textbf{0.260} & \textbf{0.908} & 0.910 & \textbf{0.907} & 0.019 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Tables}
@@ -256,7 +260,8 @@ slice.
 \caption{Tables by slice: coverage and content accuracy. Cell geometry is
 reported separately in Table~\ref{tab:app-res-cells}.}
 \label{tab:app-res-table}
-\small
+\scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l c c c c c@{}}
 \toprule
 Slice & GT & cov & edit\_m ($\downarrow$) & CER\_m ($\downarrow$) & edit\_all ($\downarrow$) \\
@@ -286,7 +291,8 @@ Slice & GT & cov & edit\_m ($\downarrow$) & CER\_m ($\downarrow$) & edit\_all ($
     \texttt{data\_source=note} & 37 & 0.811 & \underline{0.372} & \underline{0.388} & 0.474 \\
     \texttt{data\_source=research\_report} & 200 & 0.795 & 0.128 & 0.133 & 0.343 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Cell Geometry: Sampling and Sensitivity}

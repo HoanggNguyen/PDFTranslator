@@ -284,7 +284,50 @@ class TestAssignRenderSizes:
         )
         cfg = self._cfg()
         sizes = assign_render_sizes(doc, cfg)
-        # The colliding block stays uniform with its cluster (9pt), and is never
-        # inflated up to fallback (11pt) by the readability floor.
-        assert sizes["p0:e0"] == sizes["p0:e2"]
+        # The colliding block may shrink away from its 9pt cluster, but it is
+        # never inflated to the unrelated 11pt fallback and never crosses the
+        # declared 7pt readability floor.
+        assert cfg.min_font_size_pt <= sizes["p0:e0"] <= sizes["p0:e2"]
         assert sizes["p0:e0"] < cfg.fallback_size
+
+    def test_colliding_text_respects_seven_point_floor(self):
+        doc = _make_doc(
+            [
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "source_text": "Short source",
+                    "translated_text": "x" * 500,
+                    "bbox_pdf": [0, 0, 160, 24],
+                    "cells": [],
+                },
+                {
+                    "label": "Text",
+                    "category": "FLOWING_TEXT",
+                    "source_text": "Neighbour",
+                    "translated_text": "Neighbour",
+                    "bbox_pdf": [0, 26, 160, 50],
+                    "cells": [],
+                },
+            ]
+        )
+        cfg = self._cfg(min_font_size_pt=7.0)
+        sizes = assign_render_sizes(doc, cfg)
+        assert sizes["p0:e0"] >= 7.0
+
+    def test_source_text_below_floor_is_raised_to_seven_points(self):
+        doc = _make_doc(
+            [
+                {
+                    "label": "Footnote",
+                    "category": "FLOWING_TEXT",
+                    "font_size": 5.5,
+                    "source_text": "Small source note",
+                    "translated_text": "Ghi chú nguồn nhỏ",
+                    "bbox_pdf": [0, 0, 200, 6],
+                    "cells": [],
+                }
+            ]
+        )
+        sizes = assign_render_sizes(doc, self._cfg(min_font_size_pt=7.0))
+        assert sizes["p0:e0"] == 7.0

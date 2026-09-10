@@ -3,7 +3,7 @@
 Hai bước, cố ý tách rời:
 
 * ``render_pages`` — PDF -> PNG 150 DPI. Cùng DPI, cùng khổ cho nguồn lẫn mọi
-  output. Ảnh này dùng ở HAI chỗ: đầu vào của detector, và Masked-SSIM (§4.2).
+  output. Ảnh này dùng cho detector và các metric bảo toàn pixel (§4.2).
   Render một lần, dùng hai lần.
 * ``run_detectors`` — PNG -> box đã chuẩn hoá ``{page, class, bbox_norm, reading_order}``.
 

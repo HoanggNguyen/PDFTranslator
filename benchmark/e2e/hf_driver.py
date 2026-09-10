@@ -118,7 +118,6 @@ def prepare(args):
         "image": os.environ.get("HF_BENCH_IMAGE", "").strip(),
         "qe_model": args.qe_model,
         "detector": "docling",
-        "bootstrap_unit": args.unit,
         "temperature_policy": "proxy override temperature=0 (operator verified)",
         "timing_policy": "runner wall time; warmup/cache boundaries differ; diagnostic only",
         "files": P.validate_corpus(dest, tiers),
@@ -242,7 +241,6 @@ def parser():
     p.add_argument("--system", choices=P.SYSTEMS[:3])
     p.add_argument("--flavor", default=os.environ.get("FLAVOR", "t4-medium"))
     p.add_argument("--qe-model", default="Unbabel/wmt22-cometkiwi-da")
-    p.add_argument("--unit", choices=("doc", "page"), default="doc")
     p.add_argument("--dest", type=Path, default=ROOT / "benchmark/e2e/space-build")
     p.add_argument("--allow-failures", action="store_true")
     p.add_argument(

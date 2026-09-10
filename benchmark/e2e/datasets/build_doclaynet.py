@@ -238,7 +238,7 @@ def sample(rows: list[dict], domains: list[str], per_domain: int, seed: int,
 
     ``min_chars`` drops pages with too little text to be informative. It is a
     deliberately *low* floor, not a bias toward prose: figure- and table-heavy
-    pages are what Anchor-IoU (§4.1) is designed to measure, so we keep them —
+    pages are essential to stress layout preservation, so we keep them —
     we only drop pages that have essentially nothing to translate.
 
     ``over`` extra candidates per domain are picked because ``n_chars_cells`` is

@@ -1,10 +1,10 @@
-"""Nhóm B — bảo toàn pixel và overflow gây hại, **không cần detector**.
+"""Bảo toàn pixel và overflow gây hại, **không cần detector**.
 
 Vì sao đáng làm dù đã có nhóm A: nhóm A phụ thuộc một mô hình học máy (detector),
 nên ai cũng có quyền hỏi "kết quả có phải do detector không". Nhóm B không có mô
 hình nào cả — chỉ có pixel. **Hai trục độc lập mà đồng thuận thì kết luận rất mạnh.**
 
-Bốn metric headline, đều đo trên PDF đầu ra thật:
+Ba metric được báo cáo trong paper, đều đo trên PDF đầu ra thật:
 
 * **NT-PPR** (non-text pixel preservation): tỷ lệ pixel không đổi bên ngoài các
   vùng chữ GT được phép dịch.
@@ -13,16 +13,10 @@ Bốn metric headline, đều đo trên PDF đầu ra thật:
   thể được dịch hợp lệ.
 * **OF-harm**: tỷ lệ dòng chữ thật trích từ PDF đầu ra vừa tràn khỏi GT owner, vừa
   đi vào element khác, và vùng giao có pixel thật sự thay đổi.
-* **Page-fail rate**: tỷ lệ trang vi phạm ít nhất một ngưỡng PPR/OF-harm. Đây là
-  metric đuôi phân phối để vài trang hỏng nặng không biến mất trong trung bình.
-
-Masked-SSIM, ink-profile và full-page SSIM vẫn được lưu làm chẩn đoán, nhưng không
-làm headline. Full-page SSIM bị nhiễu bởi việc glyph bắt buộc thay đổi khi dịch.
-
 Hai chi tiết kỹ thuật dễ làm sai:
 
 1. **Trang đầu ra khác khổ trang nguồn thì phải scale, và phải ghi lại là đã scale.**
-   Không scale thì SSIM báo lỗi shape; scale mà im lặng thì một hệ đổi khổ giấy sẽ
+   Không scale thì hai raster không so được; scale mà im lặng thì một hệ đổi khổ giấy sẽ
    trông như không có chuyện gì.
 2. **Mặt nạ lấy từ GT của trang NGUỒN**, không phải từ box detector trên trang đích.
    Nếu lấy theo đích thì hệ nào làm chữ tràn ra ngoài sẽ tự che luôn phần nó làm
@@ -66,8 +60,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dilate-px", type=int, default=2,
                    help="Nới mặt nạ text ra ngần này pixel. Box GT bám sát chữ nên "
                         "không nới thì viền glyph vẫn lọt vào phần được chấm.")
-    p.add_argument("--ssim-win", type=int, default=7,
-                   help="Cửa sổ SSIM (lẻ).")
     p.add_argument("--pixel-tolerance", type=int, default=8,
                    help="Pixel được coi là giữ nguyên khi lệch grayscale không "
                         "quá giá trị này trên thang 0..255.")
@@ -75,15 +67,11 @@ def parse_args() -> argparse.Namespace:
                    help="Phần bbox dòng chữ phải tràn vào element khác để xét harm.")
     p.add_argument("--harm-change", type=float, default=0.05,
                    help="Phần pixel trong vùng giao phải thật sự đổi để xét harm.")
-    p.add_argument("--page-fail-ppr", type=float, default=0.95,
-                   help="Trang fail nếu NT-PPR hoặc IO-PPR thấp hơn ngưỡng này.")
-    p.add_argument("--page-fail-harm", type=float, default=0.05,
-                   help="Trang fail nếu OF-harm cao hơn ngưỡng này.")
     return p.parse_args()
 
 
 def text_mask(shape: tuple[int, int], elements: list[dict], dilate: int):
-    """True = pixel THUỘC vùng chữ (sẽ bị loại khỏi Masked-SSIM)."""
+    """True = pixel thuộc vùng chữ được phép thay đổi."""
     import numpy as np
 
     h, w = shape
@@ -210,18 +198,6 @@ def harmful_overflow(lines, elements, changed, min_overlap: float,
     return harmful, assigned
 
 
-def load_gray(path: Path, size: tuple[int, int] | None = None):
-    """Ảnh xám float [0,1]. `size` = (w, h) để ép về khổ trang nguồn."""
-    import numpy as np
-    from PIL import Image
-
-    with Image.open(path) as im:
-        im = im.convert("L")
-        if size is not None and im.size != size:
-            im = im.resize(size, Image.LANCZOS)
-        return np.asarray(im, dtype=np.float64) / 255.0
-
-
 def load_rgb(path: Path, size: tuple[int, int] | None = None):
     """Ảnh RGB float [0,1] cho PPR; giữ màu thay vì chỉ so luminance."""
     import numpy as np
@@ -234,92 +210,38 @@ def load_rgb(path: Path, size: tuple[int, int] | None = None):
         return np.asarray(im, dtype=np.float64) / 255.0
 
 
-def ink_profile_distance(src, dst) -> dict:
-    """Wasserstein-1 giữa hai phân bố mật độ mực chiếu lên từng trục.
-
-    Mực = 1 − độ sáng. Chuẩn hoá thành phân bố xác suất rồi lấy khoảng cách giữa
-    hai hàm phân phối tích luỹ, chia cho chiều dài trục ⇒ số nằm trong [0,1] và so
-    được giữa các trang khác khổ.
-    """
-    import numpy as np
-
-    def one_axis(a, b, axis):
-        pa = (1.0 - a).sum(axis=axis)
-        pb = (1.0 - b).sum(axis=axis)
-        sa, sb = pa.sum(), pb.sum()
-        if sa <= 0 or sb <= 0:
-            return None
-        ca = np.cumsum(pa / sa)
-        cb = np.cumsum(pb / sb)
-        return float(np.abs(ca - cb).sum() / len(ca))
-
-    dx = one_axis(src, dst, 0)      # chiếu lên trục ngang
-    dy = one_axis(src, dst, 1)      # chiếu lên trục dọc
-    vals = [v for v in (dx, dy) if v is not None]
-    return {"ink_x": round(dx, 6) if dx is not None else None,
-            "ink_y": round(dy, 6) if dy is not None else None,
-            "ink_mean": round(sum(vals) / len(vals), 6) if vals else None}
-
-
 def score_page(src_png: Path, dst_png: Path, elements: list[dict], lines,
                args: argparse.Namespace) -> dict:
     import numpy as np
     from PIL import Image
-    from skimage.metrics import structural_similarity as ssim
 
     with Image.open(src_png) as im:
         src_size = im.size                      # (w, h)
-    src = load_gray(src_png)
-    dst = load_gray(dst_png, size=src_size)     # ép về khổ nguồn nếu lệch
     src_rgb = load_rgb(src_png)
     dst_rgb = load_rgb(dst_png, size=src_size)
     with Image.open(dst_png) as im:
         resized = im.size != src_size
 
-    full = float(ssim(src, dst, data_range=1.0, win_size=args.ssim_win))
-
-    # Masked-SSIM: SSIM cục bộ theo từng pixel, rồi chỉ lấy trung bình ở NGOÀI vùng
-    # chữ. Không thể xoá pixel rồi mới tính — SSIM cần lân cận liên tục; xoá tạo ra
-    # cạnh giả và điểm sẽ sai.
-    _, ssim_map = ssim(src, dst, data_range=1.0, win_size=args.ssim_win, full=True)
-    mask = text_mask(src.shape, elements, args.dilate_px)
+    mask = text_mask(src_rgb.shape[:2], elements, args.dilate_px)
     keep = ~mask
-    # Bỏ viền: SSIM không xác định trong nửa cửa sổ ở rìa ảnh.
-    pad = args.ssim_win // 2
-    border = np.zeros_like(keep)
-    border[pad:-pad or None, pad:-pad or None] = True
-    keep = keep & border
-
     n_keep = int(keep.sum())
-    masked = float(ssim_map[keep].mean()) if n_keep else None
 
     changed = np.max(np.abs(src_rgb - dst_rgb), axis=2) > args.pixel_tolerance / 255.0
     nt_ppr = float((~changed)[keep].mean()) if n_keep else None
-    immutable = immutable_mask(src.shape, elements, mask) & border
+    immutable = immutable_mask(src_rgb.shape[:2], elements, mask)
     n_immutable = int(immutable.sum())
     io_ppr = float((~changed)[immutable].mean()) if n_immutable else None
     n_harm, n_lines = harmful_overflow(
         lines, elements, changed, args.harm_overlap, args.harm_change)
     of_harm = n_harm / n_lines if n_lines else None
-    page_fail = bool(
-        (nt_ppr is not None and nt_ppr < args.page_fail_ppr)
-        or (io_ppr is not None and io_ppr < args.page_fail_ppr)
-        or (of_harm is not None and of_harm > args.page_fail_harm)
-    )
-
-    return {"ssim_full": round(full, 6),
-            "ssim_masked": round(masked, 6) if masked is not None else None,
-            "nt_ppr": round(nt_ppr, 6) if nt_ppr is not None else None,
+    return {"nt_ppr": round(nt_ppr, 6) if nt_ppr is not None else None,
             "io_ppr": round(io_ppr, 6) if io_ppr is not None else None,
             "of_harm": round(of_harm, 6) if of_harm is not None else None,
-            "page_fail": int(page_fail),
             "n_harmful_lines": n_harm,
             "n_assigned_lines": n_lines,
             "n_pixels_kept": n_keep,
             "n_immutable_pixels": n_immutable,
-            "frac_pixels_kept": round(n_keep / keep.size, 4),
-            "resized": resized,
-            **ink_profile_distance(src, dst)}
+            "resized": resized}
 
 
 def load_gt_pages(corpus: Path, tiers: list[str]) -> dict[str, dict[int, list[dict]]]:
@@ -380,25 +302,25 @@ def summarize(records: list[dict]) -> dict:
     scored = [r for r in records if not r["skipped"]]
     pages = [p for r in scored for p in r["pages"] if "error" not in p]
 
-    def mean(key):
-        vals = [p[key] for p in pages if p.get(key) is not None]
-        return round(sum(vals) / len(vals), 4) if vals else None
+    def document_macro_mean(key):
+        doc_values = []
+        for record in scored:
+            values = [
+                page[key]
+                for page in record["pages"]
+                if "error" not in page and page.get(key) is not None
+            ]
+            if values:
+                doc_values.append(sum(values) / len(values))
+        return round(sum(doc_values) / len(doc_values), 4) if doc_values else None
 
     return {
         "n_docs": len(records), "n_docs_scored": len(scored),
         "n_docs_skipped": len(records) - len(scored), "n_pages": len(pages),
         "n_pages_error": sum(1 for r in scored for p in r["pages"] if "error" in p),
-        # Tín hiệu headline, độc lập detector.
-        "nt_ppr": mean("nt_ppr"),
-        "io_ppr": mean("io_ppr"),
-        "of_harm": mean("of_harm"),
-        "page_fail_rate": mean("page_fail"),
-        # Chẩn đoán phụ.
-        "masked_ssim": mean("ssim_masked"),
-        "ink_distance": mean("ink_mean"),
-        # Chỉ để chỉ ra nó vô dụng ở đây — đừng xếp hạng bằng cột này.
-        "full_ssim": mean("ssim_full"),
-        "frac_pixels_kept": mean("frac_pixels_kept"),
+        "nt_ppr": document_macro_mean("nt_ppr"),
+        "io_ppr": document_macro_mean("io_ppr"),
+        "of_harm": document_macro_mean("of_harm"),
         "n_pages_resized": sum(1 for p in pages if p.get("resized")),
     }
 
@@ -427,13 +349,10 @@ def main() -> int:
     dest.mkdir(parents=True, exist_ok=True)
     config = {
         "dilate_px": args.dilate_px,
-        "ssim_win": args.ssim_win,
         "pixel_tolerance_255": args.pixel_tolerance,
         "ppr_color_rule": "max absolute sRGB channel difference <= tolerance",
         "harm_overlap": args.harm_overlap,
         "harm_change": args.harm_change,
-        "page_fail_ppr": args.page_fail_ppr,
-        "page_fail_harm": args.page_fail_harm,
         "immutable_classes": sorted(IMMUTABLE_CLASSES),
     }
     rows = []
@@ -454,7 +373,7 @@ def main() -> int:
         return 1
 
     hdr = (f"{'system':22} {'lang':4} {'docs':>7} {'NT-PPR':>8} "
-           f"{'IO-PPR':>8} {'OF-harm':>8} {'page-fail':>10}")
+           f"{'IO-PPR':>8} {'OF-harm':>8}")
     print("\n" + hdr)
     print("-" * len(hdr))
     for system, lang, s in rows:
@@ -462,10 +381,9 @@ def main() -> int:
             return format(v, spec) if isinstance(v, (int, float)) else "—"
         print(f"{system:22} {lang:4} {s['n_docs_scored']:>3}/{s['n_docs']:<3} "
               f"{f(s['nt_ppr']):>8} {f(s['io_ppr']):>8} "
-              f"{f(s['of_harm']):>8} {f(s['page_fail_rate'], '.1%'):>10}")
+              f"{f(s['of_harm']):>8}")
     print(f"\nchi tiết: {dest}/")
-    print("NT-PPR/IO-PPR/OF-harm/Page-fail là headline không cần detector; "
-          "Masked/full SSIM và ink-profile chỉ là chẩn đoán phụ trong JSON.")
+    print("NT-PPR/IO-PPR/OF-harm là ba metric pixel/overflow trong paper.")
     return 0
 
 

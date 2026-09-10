@@ -1,277 +1,53 @@
-\documentclass[twoside]{article}
+% Anonymous manuscript for double-anonymized review at
+% Engineering Applications of Artificial Intelligence.
+\documentclass[preprint,12pt,authoryear]{elsarticle}
 
-%\usepackage{aistats2022}
-% If your paper is accepted, change the options for the package
-% aistats2022 as follows:
-%
-\usepackage[accepted]{aistats2022}
-%
-% This option will print headings for the title of your paper and
-% headings for the authors names.
-
-% =============================================================================
-% ONE-COLUMN LAYOUT
-% -----------------------------------------------------------------------------
-% aistats2022.sty is a two-column style: it sets a 6.75in text block meant to be
-% split into two 3.25in columns, and a tight 11pt leading chosen for that narrow
-% measure ("Less leading in most fonts (due to the narrow columns)"). Used as a
-% single column, 6.75in at 10pt gives ~110 characters per line, far past the
-% comfortable maximum, and the tight leading makes it worse.
-%
-% Everything in this block retargets the page for one column and nothing else:
-% a 6in measure (~95 characters), centred on letter paper, with the leading
-% relaxed by 5%. Text height is trimmed to 9in so the top and bottom margins are
-% both exactly 1in. To go back to the venue geometry, delete this block.
-\setlength\textwidth{6.0in}
-\setlength\textheight{9.0in}
-\setlength\oddsidemargin{0.25in}   % (8.5in - 6.0in)/2 - 1in
-\setlength\evensidemargin{0.25in}
-\linespread{1.05}
-
-% fancyhdr freezes \headwidth at the value \textwidth had when \pagestyle{fancy}
-% first ran -- which aistats2022.sty does at load time, before the line above.
-% Left alone, the running head and its rule stay 6.75in wide over a 6.0in text
-% block, and fancyhdr pushes the 0.75in surplus into the *outer* margin: flush
-% left on odd pages, flush right on even ones. Since the style puts the title in
-% [CE] and the authors in [CO], the two head notes then look like they use
-% different alignments. Re-syncing the width removes both effects.
-\setlength\headwidth{\textwidth}
-
-% Displayed equations: the style file's 7pt display skips are sized for a 3.25in
-% column, where a display fills the measure. At 6in a display is an island in a
-% wide block of text and needs more air around it to read as one.
-\setlength\abovedisplayskip{10pt plus 3pt minus 4pt}
-\setlength\belowdisplayskip{10pt plus 3pt minus 4pt}
-\setlength\abovedisplayshortskip{0pt plus 3pt}
-\setlength\belowdisplayshortskip{7pt plus 3pt minus 3pt}
-
-% The style file sets \sloppy, which is the right trade in a 3.25in column
-% (overfull lines are frequent there and loose interword space is the lesser
-% evil). At 6in the frequency reverses, and \sloppy shows up as visibly loose
-% lines; these are the same knobs at a moderate setting.
-\tolerance=2000
-\emergencystretch=2em
-
-% No single line stranded alone at the top or bottom of a page. Safe here
-% because \raggedbottom (below) lets a page end short instead.
-\widowpenalty=10000
-\clubpenalty=10000
-\displaywidowpenalty=10000
-
-% Float placement. Every figure and table in this paper is [H] (the float
-% package's "exactly here"), so nothing floats and these fractions are inert --
-% they only govern floats that are allowed to move. They are kept as a sane
-% fallback for any float switched back to [t]/[tb]: LaTeX's defaults reserve 20%
-% of a page for text and cap a top float at 70% of the page, which a full-width
-% page image exceeds, so the float would be deferred and leave the page it came
-% from ending early.
-\renewcommand{\topfraction}{0.9}
-\renewcommand{\bottomfraction}{0.8}
-\renewcommand{\textfraction}{0.07}
-\renewcommand{\floatpagefraction}{0.75}
-
-% --- Abstract format ---------------------------------------------------------
-% The abstract environment is owned here rather than inherited from the style
-% file, so that retargeting the paper to another conference or journal means
-% deleting this one block and letting that venue's class supply its own.
-%
-% aistats2022.sty opens the environment with \@copyrightspace, a bottom float
-% carrying a hard-coded AISTATS notice ("Proceedings of the 25th ... PMLR:
-% Volume 151. Copyright ..."), sized 20pc for a two-column page. Dropping that
-% hook removes the venue notice and its overfull box together.
-%
-% The style file's own body wraps the abstract in a \quote, which indents it by
-% only 2em: readable in a 3.25in column, but at 6in the abstract then has the
-% same measure as the body text and stops reading as an abstract. It is set here
-% in a list with symmetric 6% margins instead, so it is visibly narrower than
-% the body without becoming a different font size.
-\renewenvironment{abstract}
-  {\centerline{\large\bfseries Abstract}\vspace{0.6ex}%
-   \begin{list}{}{%
-     \setlength{\leftmargin}{0.06\textwidth}%
-     \setlength{\rightmargin}{\leftmargin}%
-     \setlength{\listparindent}{0pt}%
-     \setlength{\itemindent}{0pt}}%
-   \item\relax}
-  {\end{list}\vskip 1ex}
-
-% If you set papersize explicitly, activate the following three lines:
-\special{papersize = 8.5in, 11in}
-\setlength{\pdfpageheight}{11in}
-\setlength{\pdfpagewidth}{8.5in}
-
-% Bibliography handled by BibTeX (references.bib) through natbib:
-\usepackage[round]{natbib}
-\renewcommand{\bibname}{References}
-\renewcommand{\bibsection}{\subsubsection*{\bibname}}
-\bibliographystyle{apalike}
-
-% --- Maths, algorithms -------------------------------------------------------
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage[ruled,vlined]{algorithm2e}
-% Algorithm layout for one column. A ruled algorithm2e box always spans the full
-% measure, so at 6in its short code lines would leave most of the box empty. The
-% three algorithms are therefore set in a centred minipage of \algoblockwidth with
-% [H] (typeset in place, not floated), which keeps the rules tight around the
-% code and lets the body font stay readable at \footnotesize.
-% NB: algorithm2e already owns \algowidth, so this uses its own name rather than
-% colliding with the package.
-\newlength{\algoblockwidth}
-\setlength{\algoblockwidth}{0.82\textwidth}
-
-% --- Figures -----------------------------------------------------------------
-\usepackage{graphicx}
-\graphicspath{{figures/}}
-\usepackage{subcaption}
-\usepackage{float}
-\usepackage{tikz}
-\usetikzlibrary{calc, arrows.meta, positioning}
-
-% --- Tables ------------------------------------------------------------------
-\usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{array}
-\usepackage{tabularx}
-\usepackage{longtable}
-
-% --- Misc --------------------------------------------------------------------
-\usepackage{url}
-\usepackage{enumitem}
-\usepackage{microtype}
-\usepackage{seqsplit}
-
-% Unnumbered footnote, used for the equal-contribution note. The marker itself
-% is written by hand in the title block, because footnotes cannot escape from a
-% minipage; the note is emitted from sections/00_abstract.tex, which is ordinary
-% page body.
-\newcommand\blfootnote[1]{%
-  \begingroup
-  \renewcommand\thefootnote{}%
-  \footnote{#1}%
-  \addtocounter{footnote}{-1}%
-  \endgroup
-}
+\input{paper_preamble}
 
 \begin{document}
 
-% The style file sets \flushbottom, which forces every page to exactly
-% \textheight by stretching whatever flexible glue it can find. In two columns
-% that is invisible, but in one column the slack is absorbed by the rubber skips
-% around section headings and between paragraphs, so a page that ends a few
-% lines short is padded with visible gaps. Let pages end short instead.
-\raggedbottom
+\begin{frontmatter}
 
-% If your paper is accepted and the title of your paper is very long,
-% the style will print as headings an error message. Use the following
-% command to supply a shorter title of your paper so that it can be
-% used as headings.
-%
-\runningtitle{Layout-Preserving Multilingual PDF Translation with Large Language Models}
+\title{Layout-Preserving Multilingual Translation of Documents in Portable
+Document Format with Large Language Models}
 
-% If your paper is accepted and the number of authors is large, the
-% style will print as headings an error message. Use the following
-% command to supply a shorter version of the authors names so that
-% they can be used as headings (for example, use only the surnames)
-%
-\runningauthor{Dang et al.}
-
-% \aistatsauthor is what normally installs the odd-page running head; the author
-% block below is set by hand, so this does it instead. (\aistatstitle still
-% installs the even-page one.)
-\makeatletter
-\fancyhead[CO]{\small\bfseries\@runningauthor}
-\makeatother
-
-% Title block. \aistatstitle ends with infinite vertical glue (\vskip 0.2in plus
-% 1fil minus 0.1in) because it is designed to be typeset inside \twocolumn[...],
-% where that glue sits in a box of its own and stays at its natural size. Called
-% directly on the page, the same glue lands in the main vertical list, and
-% \flushbottom stretches it to swallow all the slack on page 1 -- which is the
-% large blank band that opens up between the rule and the author names. Setting
-% the block inside a full-width minipage restores the boxed context, so the skip
-% keeps its natural 0.2in.
-\noindent\begin{minipage}{\textwidth}
-\aistatstitle{Layout-Preserving Multilingual Translation of PDF Documents\\
-with Large Language Models}
-
-% Author block, set by hand instead of through \aistatsauthor/\aistatsaddress,
-% for two reasons.
-%
-% (1) Spacing. Those macros separate names with \hskip 1in plus 2fil inside an
-% \hbox to \linewidth, so the gap is at least an inch and grows with the measure
-% -- at 6in the three names of a row land ~2in apart -- and rows are separated by
-% a fixed \vskip 0.25in. None of it is reachable from outside, because \And and
-% \AND are \def'd inside the macro body. Set by hand, the three gaps are the
-% three numbers below: \authorsep between names, and the two \vspace values.
-%
-% (2) Affiliations. The macros pair one address block per \And positionally under
-% the matching name, which five authors across two institutions cannot use: it
-% would print the same address four times. Numbered markers instead, with each
-% affiliation listed once. \textsuperscript rather than $^{...}$ so the markers
-% inherit the bold of the names; the shared * is explained by the \blfootnote at
-% the top of the abstract.
-%
-% Affiliations name institutions or academic units rather than positions, so the
-% head-of-program role is not included in the byline.
-\newcommand{\authorsep}{\hspace{2.5em}}
-{\centering\bfseries
-  Minh-Hoang Dang\textsuperscript{*,1}\authorsep
-  Ngoc-Hoang Nguyen\textsuperscript{*,1}\par
-  \vspace{0.45em}
-  Hoai-Bac Le\textsuperscript{1}\authorsep
-  Thanh-Hien Nguyen\textsuperscript{2}\authorsep
-  Tien-Len Bui\textsuperscript{1}\par}
-\vspace{0.9em}
-{\centering
-  \textsuperscript{1}Faculty of Information Technology, University of Science,
-  VNU-HCM, Ho Chi Minh City, Vietnam\par
-  \textsuperscript{2}Artificial Intelligence Program, Ho Chi Minh University of
-  Banking, Ho Chi Minh City, Vietnam\par}
-\end{minipage}
-
-% Gap between the title block and the abstract. The style file put it inside
-% \aistatsaddress (\vskip 0.3in plus 2fil minus 0.1in), where it was lost twice
-% over: \end{minipage} runs \par\unskip, which discards trailing glue, and the
-% address block is now set by hand anyway. This is the single number to change if
-% the abstract should sit closer to or further from the author block.
-\vspace{0.25in}
+% Engineering Applications of Artificial Intelligence uses double-anonymized
+% review. Author names, affiliations, acknowledgements and contribution roles
+% are therefore supplied only in title_page.tex.
 
 \input{sections/00_abstract}
+
+\begin{keyword}
+document translation \sep document analysis \sep machine translation \sep
+layout reconstruction \sep multilingual documents \sep optical character recognition
+\end{keyword}
+
+\end{frontmatter}
+
 \input{sections/01_introduction}
 \input{sections/02_literature_review}
 \input{sections/03_methodology}
 \input{sections/04_results}
 \input{sections/05_discussion}
 \input{sections/06_conclusion}
-\input{sections/07_acknowledgements}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%% REFERENCES %%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Data availability}
+The evaluation data are drawn from the public datasets cited in the manuscript.
+The derived evaluation splits, annotations, and analysis code will be deposited
+in a public repository. The permanent repository identifier must be inserted
+before submission.
 
-% References follow the acknowledgements.  Use an unnumbered third level
-% heading for the references section.  Please use the same font
-% size for references as for the body of the paper---remember that
-% references do not count against your page length total.
+\section*{Declaration of generative AI and AI-assisted technologies in the
+manuscript preparation process}
+During the preparation of this work, the authors used OpenAI Codex to assist
+with language editing, manuscript formatting, and consistency checks. The
+authors reviewed and edited the resulting material and take full responsibility
+for the content of the article.
 
+\bibliographystyle{elsarticle-harv}
+% These works are cited in the separately submitted Supplementary Material.
+\nocite{fasttext,comet22,exponential-backoff,aws-backoff-jitter,
+api-rate-limit-design}
 \bibliography{references}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%% SUPPLEMENT (OPTIONAL) %%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\clearpage
-\appendix
-
-\thispagestyle{empty}
-
-\makesupplementtitle
-
-\input{appendix/01_parser_slices}
-\input{appendix/02_translation_full}
-\input{appendix/05_e2e_benchmark}
-\input{appendix/03_additional_examples}
-\input{appendix/04_implementation}
 
 \end{document}

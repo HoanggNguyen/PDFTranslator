@@ -2,10 +2,10 @@
 
 Chia theo thứ hạng phụ thuộc, không theo nhóm A–E của plan:
 
-* ``eval_text``  — không cần detector, không cần GT, không cần render ảnh. Chạy được
-  ngay khi runner xong, và chạy cho **cả 4 hệ** kể cả DeepL: page inflation, UTB,
-  number-digit recall, sec/page, success rate.
-* ``eval_preserve`` — detector chung ⇒ reading-order τ và chẩn đoán box phụ.
-* ``eval_visual``  — GT + ảnh/PDF ⇒ NT-PPR, IO-PPR, OF-harm, Page-fail.
+* ``eval_text``  — page inflation, UTB/page và runner seconds/page.
+* ``eval_preserve`` — detector chung ⇒ reading-order tau.
+* ``eval_visual``  — GT + ảnh/PDF ⇒ NT-PPR, IO-PPR và OF-harm.
+* ``eval_ink``     — GT + ảnh ⇒ IC-harm.
 * ``eval_qe``      — cặp segment đã align ⇒ CometKiwi QE.
+* ``aggregate``    — trung bình document-macro đúng như bảng trong paper.
 """

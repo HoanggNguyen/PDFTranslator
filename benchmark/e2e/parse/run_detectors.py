@@ -38,15 +38,6 @@ from pathlib import Path
 
 SOURCE_KEY = "_source"
 
-# Bộ nhãn rút gọn của §4.1. Mọi detector và cả GT đều quy về đây trước khi ghép,
-# để "Picture" của detector này và "Figure" của detector kia không thành hai lớp.
-GROUPS = ("text", "title", "list", "table", "figure", "formula", "caption",
-          "furniture")
-
-# Nhóm ANCHOR: những thứ PHẢI đứng yên tuyệt đối khi dịch. Anchor-IoU chỉ tính trên
-# đây nên nó là tín hiệu sạch nhất — không nhiễu bởi text nở ra hay co lại.
-ANCHOR_GROUPS = ("figure", "table", "formula", "furniture")
-
 # DocLayNet 11 lớp — dùng chung cho GT người vẽ và cho Docling RT-DETR (nó train
 # đúng trên taxonomy này).
 DOCLAYNET_GROUP = {

@@ -1,7 +1,7 @@
 """PDF -> PNG 150 DPI cho trang nguồn và output của mọi hệ.
 
 Một bước riêng vì ảnh này có **hai** người dùng: detector (`run_detectors`) và
-Masked-SSIM (`metrics/eval_visual`). Render trong từng module là render hai lần cho
+các metric pixel (`metrics/eval_visual`, `metrics/eval_ink`). Render trong từng module là render hai lần cho
 cùng một trang, và tệ hơn là hai module có thể lỡ dùng DPI khác nhau — lúc đó box
 của detector và pixel của SSIM không còn nằm trong cùng một hệ toạ độ.
 
@@ -9,7 +9,7 @@ Ba lựa chọn cố định, đừng đổi giữa chừng:
 
 * **150 DPI.** Đủ để RT-DETR nhìn rõ chữ nhỏ trong bảng, mà một trang A4 vẫn chỉ
   ~1240×1754 px. 300 DPI làm ảnh nặng gấp 4 và không cải thiện box.
-* **Không alpha, nền trắng.** PDF trang trắng để alpha=0 thì SSIM đọc thành đen và
+* **Không alpha, nền trắng.** PDF trang trắng để alpha=0 thì pixel nền thành đen và
   mọi so sánh sai lệch hệ thống.
 * **Tên file theo chỉ số trang 3 chữ số** (`p000.png`), không theo nhãn trang in
   trên giấy. Ghép trang nguồn với trang đích là ghép theo *chỉ số*.

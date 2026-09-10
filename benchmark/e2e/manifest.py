@@ -39,7 +39,7 @@ NO_LLM = {"deepl-document", "identity"}
 
 # Thư viện mà phiên bản của nó ảnh hưởng trực tiếp đến CON SỐ, không chỉ đến việc
 # code chạy được hay không.
-TRACKED_LIBS = ("pymupdf", "numpy", "scipy", "scikit-image", "fasttext",
+TRACKED_LIBS = ("pymupdf", "numpy", "scipy", "fasttext",
                 "docling", "unbabel-comet", "surya-ocr", "babeldoc")
 
 

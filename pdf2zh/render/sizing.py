@@ -211,14 +211,17 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
             # of translated ceilings: a single text-heavy cell no longer shrinks
             # the whole table. cell_font_scale keeps text clear of cell borders.
             canonical = source_canonical * cfg.cell_font_scale
-            canonical = max(max(2.0, fallback * 0.5), canonical)
+            # Apply the same fixed readability rule as ordinary text.
+            canonical = max(cfg.min_font_size_pt, canonical)
             for uid, _ in items:
                 result[uid] = canonical
         else:
             # Non-table: use cluster's canonical size for each element.
             # Only reduce for elements whose overflow would collide with another element.
             for uid, _ in items:
-                elem_canonical = uid_to_canonical.get(uid, fallback)
+                elem_canonical = max(
+                    cfg.min_font_size_pt, uid_to_canonical.get(uid, fallback)
+                )
                 t_ceiling = translated_ceiling.get(uid, fallback)
                 if t_ceiling >= elem_canonical:
                     # Translated text fits at elem_canonical — no overflow.
@@ -237,11 +240,8 @@ def assign_render_sizes(parsed: dict, cfg: SizingConfig) -> dict[str, float]:
                         bbox, translated, elem_canonical, cfg, others
                     ):
                         # Shrink toward the fit ceiling, but keep a readability
-                        # floor. The floor must never exceed the size we shrink
-                        # from — otherwise a page whose canonical is below
-                        # ``fallback`` would inflate colliding blocks above the
-                        # cluster instead of reducing them.
-                        floor = min(fallback, elem_canonical)
+                        # floor.
+                        floor = cfg.min_font_size_pt
                         result[uid] = max(floor, min(elem_canonical, t_ceiling))
                     else:
                         result[uid] = elem_canonical

@@ -115,7 +115,7 @@ ENV BABELDOC_BIN=/opt/venv-babeldoc/bin/babeldoc \
 
 ```dockerfile
 RUN python3 -m pip install docling docling-ibm-models fasttext-wheel \
-        scikit-image opencv-python-headless unbabel-comet
+        opencv-python-headless unbabel-comet
 ```
 
 `docling` kéo theo model RT-DETR khi chạy lần đầu → nằm trong `HF_HOME` ⇒ đã được
@@ -218,7 +218,7 @@ out/report/report.md  tables/*.csv  figures/*.png        ← MỚI
 
 | Thiếu | Vì sao cần | Chi phí |
 |---|---|---|
-| **Ảnh render 150 DPI** từng trang, nguồn + mọi output | Masked-SSIM cần; detector cũng chạy trên ảnh này ⇒ render một lần dùng hai chỗ | ~250 MB cho 120 trang × 5 (nguồn + 4 hệ) |
+| **Ảnh render 150 DPI** từng trang, nguồn + mọi output | Detector và metric pixel dùng chung ⇒ render một lần dùng hai chỗ | ~250 MB cho 120 trang × 5 (nguồn + 4 hệ) |
 | **`phase1_parsed.json` copy vào từng thư mục doc** | Hiện chỉ nằm ở cache `_parse/`; ai đọc artifact của một doc không thấy được đầu vào của pha dịch | vài MB |
 | **`debug/` của BabelDOC** | Nó dump sẵn `translate_tracking.json` đã align theo đoạn — đối chiếu chéo với module align dùng chung | **một lượt LLM nữa** ⇒ để cờ `--debug-pass`, mặc định tắt |
 
@@ -276,11 +276,10 @@ Kéo riêng `out/report/` thì chỉ vài MB.
 > Trạng thái 2026-09-05: cả 8 file đã có trong repo và đã chạy được đầu-cuối ở máy
 > trên hàng chuẩn `identity`. Kiểm chứng đã làm:
 >
-> * đưa chính GT trở lại làm "đầu ra detector" ⇒ `mIoU = 1.000`, `Anchor-IoU = 1.000`
->   (351/351 box anchor), `F1@[.5:.95] = 1.000`, `containment = 1.000`, `τ = 1.000`
->   — nghĩa là phần hình học không có lỗi dấu, lỗi trục, hay lỗi chuẩn hoá;
-> * `identity` (copy PDF nguồn làm đầu ra) ⇒ `Masked-SSIM = 1.0000`,
->   `ink-distance = 0.0000`, 70.6% pixel được chấm (29.4% là chữ, bị che);
+> * đưa chính GT trở lại làm "đầu ra detector" ⇒ `τ = 1.000`, xác nhận phần
+>   reading-order không có lỗi dấu, lỗi trục hay lỗi chuẩn hoá;
+> * `identity` (copy PDF nguồn làm đầu ra) ⇒ NT-PPR/IO-PPR bằng 1 và
+>   OF-harm/IC-harm bằng 0;
 > * `extract_pairs` trên `identity` ⇒ **1703/1703 cặp trùng khít** — bộ ghép không
 >   lệch hàng;
 > * `aggregate` ⇒ hàng `identity` trùng khít hàng `source_ceiling`.
@@ -296,11 +295,11 @@ Kéo riêng `out/report/` thì chỉ vài MB.
 | 1 | `e2e/sync.py` | thư mục local | dataset repo | Làm trước, vì mọi job đều cần |
 | 2 | `e2e/parse/render_pages.py` | mọi `output.pdf` + PDF nguồn | `_render/**.png` 150 DPI | PyMuPDF. Cùng DPI, cùng khổ, memo hoá theo `sha256` |
 | 3 | `e2e/parse/run_detectors.py` | `_render/**.png` | `_layout/docling/**.json` | Dùng lớp thấp `docling_ibm_models` `LayoutPredictor` (kiểm tên hàm sau khi cài), **không** dùng `DocumentConverter` — ta chỉ cần box, không cần convert cả tài liệu. Chuẩn hoá về `{page, class, bbox_norm[4], reading_order}`. Map nhãn về bộ rút gọn 8 lớp |
-| 4 | `e2e/metrics/eval_preserve.py` | `_layout/` + `gt.json` | `_metrics/layout/` | Reading-order τ cho bảng chính. mIoU/mF1/Anchor-IoU/collision/margin vẫn được lưu làm chẩn đoán phụ thuộc detector và sinh hàng `Source ceiling` |
-| 5 | `e2e/metrics/eval_visual.py` | `_render/` + output PDF + `gt.json` | `_metrics/visual/` | **Headline không dùng detector:** NT-PPR, IO-PPR (`Picture`/`Formula`), OF-harm từ text span thật + pixel đổi, Page-fail. Masked/full SSIM và ink-profile là chẩn đoán phụ |
+| 4 | `e2e/metrics/eval_preserve.py` | `_layout/` + `gt.json` | `_metrics/layout/` | Reading-order τ và hàng `Source ceiling` |
+| 5 | `e2e/metrics/eval_visual.py` + `eval_ink.py` | `_render/` + output PDF + `gt.json` | `_metrics/visual/`, `_metrics/ink/` | NT-PPR, IO-PPR, OF-harm và IC-harm không dùng detector |
 | 6 | `e2e/align/extract_pairs.py` | `output.pdf` 4 hệ + PDF nguồn | `_pairs/*.jsonl` | Trích text theo block + align nguồn↔đích theo bbox và thứ tự đọc. **Bắt buộc dùng chung cho cả 4 hệ** — không được ưu ái PDFTranslator bằng `phase2_translated.json` của chính nó, dù có sẵn |
 | 7 | `e2e/metrics/eval_qe.py` | `_pairs/*.jsonl` | `_metrics/qe/` | CometKiwi QE (`wmt23-cometkiwi-da-xl`, fallback `wmt22`). Thêm nhánh hiệu chuẩn: tương quan QE ↔ COMET-DA trên WMT24++ `vi_VN` để chứng minh dùng QE xếp hạng là hợp lệ |
-| 8 | `e2e/metrics/aggregate.py` | mọi `_metrics/**` | `report/` | **Bootstrap CI 95%** + paired test PDFTranslator vs từng baseline + effect size. Bảng CSV + biểu đồ. Mẫu: `benchmark/translation/aggregate.py` |
+| 8 | `e2e/metrics/aggregate.py` | mọi `_metrics/**` | `report/` | Observed document-macro means; bảng CSV + report |
 
 Mở rộng thêm cho `metrics/eval_text.py` đã có: content loss rate, terminology
 consistency, và đọc `render_stats` (`elements_fallback`, `elements_skipped`) thành
@@ -458,9 +457,9 @@ Không bước nào được tính là xong nếu chưa qua cửa của nó:
 | Image | `hf jobs run ... $IMG bash -lc "$BABELDOC_BIN --version && $PDFMATHTRANSLATE_BIN --version && python3 -c 'import docling, fasttext'"` chạy sạch |
 | Cache | Job thứ hai khởi động nhanh hơn job đầu **≥5 phút** (bằng chứng `/data` có tác dụng) |
 | Chạy 4 hệ | `manifest verify` không lỗi: cùng `sha256` corpus, cùng `model`, `key_alias` khác nhau |
-| Identity | metric headline ra giá trị lý tưởng — `NT-PPR=1`, `IO-PPR=1` khi có object, `OF-harm=0`, `Page-fail=0` |
-| Ceiling | công bố detector trên PDF nguồn vs GT. Ceiling thấp làm vô hiệu τ/box diagnostics, nhưng không làm vô hiệu NT-PPR/IO-PPR/OF-harm/Page-fail |
-| Bảng chính | đủ 4 hệ; có NT-PPR, IO-PPR, OF-harm, Page-fail, τ reading-order, UTB/trang và CometKiwi QE |
+| Identity | metric headline ra giá trị lý tưởng — `NT-PPR=1`, `IO-PPR=1` khi có object, `OF-harm=0`, `IC-harm=0` |
+| Ceiling | công bố detector trên PDF nguồn vs GT. Ceiling thấp làm vô hiệu τ, nhưng không làm vô hiệu các metric pixel |
+| Bảng chính | đủ 4 hệ; có NT-PPR, IO-PPR, OF-harm, IC-harm, τ reading-order, UTB/trang, CometKiwi QE và runner s/page |
 | Đồng bộ | xoá sạch `out/` ở máy rồi `sync pull` dựng lại được toàn bộ bảng mà không chạy lại job nào |
 
 Hai hàng `Identity` và `Source ceiling` chính là chỗ paper BabelDOC bỏ trống — bảng

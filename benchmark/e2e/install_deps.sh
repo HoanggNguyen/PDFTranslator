@@ -6,7 +6,7 @@
 #     conda activate thesis && bash benchmark/e2e/install_deps.sh
 #
 # Đã có sẵn trong `thesis` (kiểm 2026-09-05): pymupdf 1.25.2 · numpy 1.26.4 ·
-# scipy 1.17.1 · scikit-image 0.26.0 · unbabel-comet 2.2.7 · surya-ocr 0.17.1.
+# scipy 1.17.1 · unbabel-comet 2.2.7 · surya-ocr 0.17.1.
 # Script này chỉ cài phần còn thiếu, và in lại đủ danh sách để manifest ghi được
 # phiên bản (benchmark/e2e/manifest.py: TRACKED_LIBS).
 #

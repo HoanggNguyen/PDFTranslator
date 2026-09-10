@@ -17,7 +17,7 @@ Mọi lệnh chạy từ **gốc repo** `PDFTranslator/`.
 |---|---|
 | Corpus T1 + cửa chặn | `verify_corpus` → `OK — 1 tier(s), 2 warning(s)` |
 | Manifest + cửa chặn drift | `manifest list` → 1 lượt `20260905-083811` |
-| Hàng chuẩn Identity | 6/6 doc, `page_inflation=1.000`, `number_recall=1.000` |
+| Hàng chuẩn Identity | 6/6 doc, `page_inflation=1.000`; pixel metrics đạt giá trị lý tưởng |
 | Khối metric không cần detector | `eval_text` chạy xong, ghi `out/_metrics/summary.json` |
 | 4 runner (code) | `pdftranslator`, `babeldoc`, `pdfmathtranslate`, `deepl_doc` |
 
@@ -39,8 +39,8 @@ Nói gọn: **toàn bộ code đã xong và đã tự kiểm bằng hàng chuẩ
 việc môi trường** — mở mạng, dựng image, chạy thật. Lượt chính thức chạy bằng
 `run_hf.sh` (xem [E2E_HF_PLAN.md](E2E_HF_PLAN.md)), không phải `run_all.sh`.
 
-Sau khi gỡ 1–4, thứ ra được ngay là bảng §4.3/§4.5: success rate, page inflation,
-sec/page, number recall, UTB (UTB cần thêm việc 5).
+Sau khi gỡ 1–4, thứ ra được ngay là page inflation, sec/page và UTB
+(UTB cần thêm việc 5).
 
 ---
 
@@ -60,7 +60,7 @@ conda activate thesis          # Python 3.12.12
 ```
 
 Đã có: `pymupdf 1.25.2` · `deepl 1.28.0` · `surya-ocr 0.17.1` · `unbabel-comet 2.2.7`
-· `numpy` · `scipy` · `scikit-image` · `torch`.
+· `numpy` · `scipy` · `torch`.
 
 Còn thiếu — cài bằng script có sẵn (script tự kiểm mạng trước, không treo):
 
@@ -215,7 +215,7 @@ SYSTEMS="identity" TIERS=T1 LANGS=vi bash benchmark/e2e/run_all.sh
 ```
 
 Copy PDF nguồn làm "output". Mọi metric phải ra lý tưởng: `page_inflation=1.000`,
-`number_recall=1.000`. Nếu không thì lỗi ở harness chứ không ở hệ nào. Rẻ, nhanh,
+NT-PPR/IO-PPR bằng 1 và OF-harm/IC-harm bằng 0. Nếu không thì lỗi ở harness. Rẻ, nhanh,
 và là thứ paper BabelDOC không có.
 
 ### 3.4 Lượt so sánh chính thức
@@ -283,8 +283,8 @@ python -m benchmark.e2e.metrics.eval_text \
 ```
 
 Chỉ đọc artifact, không gọi API, không tốn tiền — chạy lại bao nhiêu lần cũng được,
-xoá cả `out/_metrics/` rồi chấm lại là an toàn. Ra: success rate · page inflation ·
-số doc bị reflow · sec/page · UTB/trang · number recall.
+xoá cả `out/_metrics/` rồi chấm lại là an toàn. Ra: page inflation ·
+số doc bị reflow · sec/page · UTB/trang.
 
 Nó gọi `manifest.verify` trước và **dừng nếu có lỗi**. `--allow-drift` chỉ để debug.
 
@@ -432,22 +432,20 @@ artifact trước đó hết giá trị so sánh.
 
 Theo thứ tự phụ thuộc:
 
-1. **Gỡ 6 việc chặn ở §0** → ra được bảng §4.3/§4.5 (success rate, page inflation,
-   sec/page, number recall, UTB) cho cả 4 hệ.
+1. **Gỡ các việc chặn ở §0** → ra được page inflation, sec/page và UTB cho cả 4 hệ.
 2. **`parse/run_detectors.py`** — chạy Docling RT-DETR lên PDF nguồn và lên output
    của cả 4 hệ, ghi box đã chuẩn hoá về `out/layout/<detector>/<system>/...`. Đây là
    thứ chặn **trục chính**. Chọn Docling vì **không hệ nào dưới bài kiểm dùng nó**, và
    nó train trên DocLayNet train split nên trần đo rất cao — mọi sụt giảm quy được cho
    translator chứ không cho detector. Không rò rỉ vì corpus lấy từ split `test`.
-3. **`metrics/eval_preserve.py`** — reading-order τ cho bảng chính; mIoU, mF1,
-   box ratio, collision và margin chỉ còn là chẩn đoán phụ thuộc detector.
+3. **`metrics/eval_preserve.py`** — reading-order τ cho bảng chính.
 4. **Hàng `Source ceiling`** — chạy detector trên PDF nguồn chưa dịch rồi chấm với GT
    người vẽ. Mọi điểm phải đọc *tương đối* so với hàng này. Cùng với Identity, đây là
    hai hàng chuẩn mà paper BabelDOC không có.
-5. **`metrics/eval_visual.py`** — NT-PPR, IO-PPR, OF-harm và Page-fail không dùng
-   detector. Masked-SSIM/ink-profile được giữ trong JSON làm chẩn đoán.
+5. **`metrics/eval_visual.py` + `metrics/eval_ink.py`** — NT-PPR, IO-PPR,
+   OF-harm và IC-harm không dùng detector.
 6. **`metrics/eval_text.py` + `metrics/eval_qe.py`** — UTB/trang và CometKiwi QE;
    hiệu chuẩn QE bằng WMT24++ `vi_VN`.
-7. **`metrics/aggregate.py`** — bootstrap CI 95% + paired test + `report.md`.
+7. **`metrics/aggregate.py`** — observed document-macro means + `report.md`.
 
 Việc 2–4 là phần lõi. Không có chúng thì chưa có luận điểm nào về layout preservation.

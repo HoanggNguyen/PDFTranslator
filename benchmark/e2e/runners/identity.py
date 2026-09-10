@@ -4,8 +4,9 @@ Plan §3 bắt buộc mọi bảng phải có hàng này, và lý do không ph�
 **kiểm chính harness**. Vì đầu ra bằng đúng đầu vào, mọi metric phải ra giá trị lý
 tưởng đã biết trước:
 
-    page_inflation = 1.000      num-recall = 1.000      reflow = 0
-    mIoU / Anchor-IoU / Masked-SSIM = đúng bằng hàng Source ceiling
+    page_inflation = 1.000      reflow = 0
+    NT-PPR / IO-PPR = 1.000     OF-harm / IC-harm = 0.000
+    reading-order tau = đúng bằng hàng Source ceiling
 
 Lệch một chữ số ở bất kỳ ô nào ⇒ bug trong harness (sai ánh xạ trang, sai chuẩn hoá
 trục toạ độ, chọn nhầm file trong ``raw/``), không phải hệ nào dở. Đây là bài test

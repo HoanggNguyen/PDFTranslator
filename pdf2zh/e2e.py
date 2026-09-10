@@ -106,7 +106,7 @@ def build_render_config(font: str, pages: list[int] | None) -> RenderConfig:
     cfg.typst_binary = os.environ.get("TYPST_BIN", "typst")
     cfg.pages = pages
     cfg.redact_native_text = True
-    cfg.min_font_size_pt = 7.0
+    cfg.sizing.min_font_size_pt = 7.0
     return cfg
 
 

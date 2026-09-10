@@ -44,8 +44,6 @@ _FIT_HELPERS = """\
     }
   }
 }
-#let pdftr_floor_size(value, floor) = if value < floor { floor } else { value }
-#let pdftr_floor_leading(value, floor) = if value < floor { floor } else { value }
 #let pdftr_fit_markdown(markdown, max_size: 10pt, min_size: 9pt, max_leading: 0.66em, min_leading: 0.54em, fit_height: none, weight: "regular", style: "normal", eps: 0.08pt, math: none) = {
   layout(size => {
     let allowed-height = if fit_height == none { size.height } else { calc.min(size.height, fit_height) }
@@ -58,34 +56,13 @@ _FIT_HELPERS = """\
     if fits(max_size, max_leading) {
       render(max_size, max_leading)
     } else {
-      let fallback_min_size = pdftr_floor_size(min_size - 1.6pt, 5.4pt)
-      let fallback_min_leading = pdftr_floor_leading(min_leading - 0.12em, 0.14em)
-      let emergency_min_size = pdftr_floor_size(fallback_min_size - 1.2pt, 4.8pt)
-      let emergency_min_leading = pdftr_floor_leading(fallback_min_leading - 0.08em, 0.10em)
       let chosen_leading = if fits(min_size, max_leading) { max_leading } else { min_leading }
       let chosen_size = if not fits(min_size, chosen_leading) {
-        let fallback_leading = pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-        let emergency_leading = pdftr_floor_leading(fallback_leading - 0.08em, emergency_min_leading)
-        if not fits(fallback_min_size, fallback_leading) {
-          if not fits(emergency_min_size, emergency_leading) {
-            emergency_min_size
-          } else {
-            pdftr_fit_size(emergency_min_size, fallback_min_size, eps, size_pt => fits(size_pt, emergency_leading))
-          }
-        } else {
-          pdftr_fit_size(fallback_min_size, min_size, eps, size_pt => fits(size_pt, fallback_leading))
-        }
+        min_size
       } else {
         pdftr_fit_size(min_size, max_size, eps, size_pt => fits(size_pt, chosen_leading))
       }
-      let final_leading = if fits(min_size, chosen_leading) {
-        chosen_leading
-      } else if fits(fallback_min_size, pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)) {
-        pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-      } else {
-        emergency_min_leading
-      }
-      render(chosen_size, final_leading)
+      render(chosen_size, chosen_leading)
     }
   })
 }
@@ -122,34 +99,13 @@ _FIT_HELPERS = """\
       if fits(max_size, max_leading) {
         render(max_size, max_leading)
       } else {
-        let fallback_min_size = pdftr_floor_size(min_size - 1.6pt, 5.4pt)
-        let fallback_min_leading = pdftr_floor_leading(min_leading - 0.12em, 0.14em)
-        let emergency_min_size = pdftr_floor_size(fallback_min_size - 1.2pt, 4.8pt)
-        let emergency_min_leading = pdftr_floor_leading(fallback_min_leading - 0.08em, 0.10em)
         let chosen_leading = if fits(min_size, max_leading) { max_leading } else { min_leading }
         let chosen_size = if not fits(min_size, chosen_leading) {
-          let fallback_leading = pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-          let emergency_leading = pdftr_floor_leading(fallback_leading - 0.08em, emergency_min_leading)
-          if not fits(fallback_min_size, fallback_leading) {
-            if not fits(emergency_min_size, emergency_leading) {
-              emergency_min_size
-            } else {
-              pdftr_fit_size(emergency_min_size, fallback_min_size, eps, size_pt => fits(size_pt, emergency_leading))
-            }
-          } else {
-            pdftr_fit_size(fallback_min_size, min_size, eps, size_pt => fits(size_pt, fallback_leading))
-          }
+          min_size
         } else {
           pdftr_fit_size(min_size, max_size, eps, size_pt => fits(size_pt, chosen_leading))
         }
-        let final_leading = if fits(min_size, chosen_leading) {
-          chosen_leading
-        } else if fits(fallback_min_size, pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)) {
-          pdftr_floor_leading(chosen_leading - 0.12em, fallback_min_leading)
-        } else {
-          emergency_min_leading
-        }
-        render(chosen_size, final_leading)
+        render(chosen_size, chosen_leading)
       }
     }
   })
@@ -492,7 +448,7 @@ def build_typst_source(
                             y1,
                             typst_markup,
                             eq_max_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
@@ -511,7 +467,7 @@ def build_typst_source(
                             y1,
                             markdown,
                             eq_max_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
@@ -563,7 +519,7 @@ def build_typst_source(
                             ty1 - inset,
                             cell_md,
                             cell_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             cfg.cell_style.weight,
                             cfg.cell_style.style_,
                             cell_tc,
@@ -606,7 +562,7 @@ def build_typst_source(
                             y1,
                             translated,
                             font_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             tc,
                             cfg.font_family,
                             rendered_pages,
@@ -638,7 +594,7 @@ def build_typst_source(
                             y1,
                             typst_markup,
                             font_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
@@ -671,7 +627,7 @@ def build_typst_source(
                             y1,
                             typst_markup,
                             font_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,
@@ -704,7 +660,7 @@ def build_typst_source(
                             y1,
                             markdown,
                             font_size,
-                            cfg.min_font_size_pt,
+                            cfg.sizing.min_font_size_pt,
                             style.weight,
                             style.style_,
                             tc,

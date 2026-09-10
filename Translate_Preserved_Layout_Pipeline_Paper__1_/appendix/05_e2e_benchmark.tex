@@ -15,12 +15,13 @@ domain strata are balanced by page count (Table~\ref{tab:app-e2e-corpus}); the
 corpus contains 505{,}496 source characters and 3{,}612 human-annotated layout
 elements, including 129 pictures and 15 formulas.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Distribution of the end-to-end corpus. ``Immutable'' counts annotated
 Picture and Formula objects.}
 \label{tab:app-e2e-corpus}
-\small
+\scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
 Domain & Pages & Source PDFs & Characters & GT elements / immutable \\
@@ -34,7 +35,8 @@ Government tenders   & 34 & 16 &  72{,}808 & 399 / 19 \\
 \midrule
 Total                & 204 & 155 & 505{,}496 & 3{,}612 / 144 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 All systems receive the same six composite PDFs and produce Vietnamese output.
@@ -56,23 +58,34 @@ correspondence.
 
 \subsection{Metric Definitions}
 
-Source and output pages are rasterised at 150 dpi; an output raster with a
+Source and output pages are rasterised at 150 dpi (approximately 59 pixels per
+centimetre); an output raster with a
 different physical page size is resampled to the source dimensions and flagged.
 Let $D(p)$ be one when the
 maximum absolute sRGB-channel difference at pixel $p$ exceeds $8/255$. Text and
 object masks come only from source-side human annotations; no output pipeline can
 alter its own evaluation mask. The metrics are defined as follows.
 
-\begin{table}[H]
-\centering
-\caption{End-to-end metrics and the failure each one measures.}
-\label{tab:app-e2e-metrics}
+\begingroup
 \small
 \setlength{\tabcolsep}{5pt}
-\begin{tabularx}{\textwidth}{@{}l >{\raggedright\arraybackslash}X@{}}
+\begin{longtable}{@{}l >{\raggedright\arraybackslash}p{0.70\textwidth}@{}}
+\caption{End-to-end metrics and the failure each one measures.}
+\label{tab:app-e2e-metrics} \\
 \toprule
 Metric & Definition and interpretation \\
 \midrule
+\endfirsthead
+\multicolumn{2}{l}{\textit{(continued from previous page)}} \\
+\toprule
+Metric & Definition and interpretation \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\textit{(continued)}} \\
+\endfoot
+\bottomrule
+\endlastfoot
 NT-PPR $\uparrow$ & Fraction of unchanged pixels outside all translatable text
 boxes, after dilating the text mask by two pixels. It measures preservation of
 page content that translation should not modify. \\
@@ -113,9 +126,8 @@ Runner s/page $\downarrow$ & Runner-recorded wall time divided by the number of
 input pages, then macro-averaged over successful documents. It includes the work
 inside each pipeline runner but is only an operational diagnostic because local
 and managed services have different network, warm-up and cache boundaries. \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{longtable}
+\endgroup
 
 We report observed document-macro means on this benchmark. Comparisons describe
 these 204 pages and are not presented as inferential claims beyond the test set.
@@ -127,13 +139,14 @@ Identity has the required exact pixel/ink values, and its order score matches th
 source ceiling, providing an end-to-end sanity check of masking, rendering and
 detection.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Complete end-to-end point estimates. Bold marks the best
 translated-PDF system for each metric.}
 \label{tab:app-e2e-full}
 \scriptsize
 \setlength{\tabcolsep}{2.8pt}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
 Metric & BabelDOC & DeepL Doc. & PDFMathTranslate & \textbf{OURS} & Identity & Source ceiling \\
@@ -155,7 +168,8 @@ COMETKiwi QE $\uparrow$
 Runner s/page $\downarrow$
  & 4.11 & 2.17 & 3.22 & 3.57 & --- & --- \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 ${}^{\dagger}$DeepL's lower UTB point estimate should not be read in isolation:

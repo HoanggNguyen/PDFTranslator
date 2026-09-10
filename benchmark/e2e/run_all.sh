@@ -222,13 +222,12 @@ for S in $SYSTEMS; do
 done
 # --- Metric không cần detector: chạy luôn, chỉ đọc artifact ------------------
 echo ""
-echo ">>> [metric] khối không cần detector (page inflation, UTB, number recall,"
-echo "             sec/page, success rate) — chạy cho CẢ 4 hệ kể cả DeepL"
+echo ">>> [metric] khối không cần detector (page inflation, UTB, sec/page)"
+echo "             — chạy cho CẢ 4 hệ kể cả DeepL"
 $PY -m benchmark.e2e.metrics.eval_text \
     --corpus "$CORPUS" --out "$OUT" --tiers "$TIERS" --langs "$LANGS_CSV" \
   || echo "!! eval_text lỗi — artifact vẫn còn nguyên, chạy lại riêng nó được"
 
 echo ""
-echo "Bước tiếp: detector chung rồi tính metric layout/visual —"
-echo "  benchmark/e2e/parse/          (chưa dựng)  -> mIoU, Anchor-IoU, Masked-SSIM"
-echo "  benchmark/e2e/metrics/eval_preserve.py, eval_visual.py, eval_qe.py (chưa dựng)"
+echo "Bước tiếp: render/detector chung rồi tính reading-order tau, NT/IO-PPR,"
+echo "  OF-harm, IC-harm và COMETKiwi; sau đó chạy metrics/aggregate.py."

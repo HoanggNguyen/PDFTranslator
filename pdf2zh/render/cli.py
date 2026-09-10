@@ -83,7 +83,7 @@ def main() -> None:
     if args.font_paths:
         cfg.typst_font_paths = args.font_paths
     cfg.typst_binary = args.typst_bin
-    cfg.min_font_size_pt = args.min_font_size_pt
+    cfg.sizing.min_font_size_pt = args.min_font_size_pt
     cfg.keep_typst_source = args.keep_typst_source
     cfg.compress.pikepdf_image_recompress = args.aggressive_compress
     if args.no_bg_sampling:

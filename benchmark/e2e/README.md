@@ -36,14 +36,14 @@ Bất biến: harness **chỉ đọc và gọi**, không sửa `pdf2zh/`. Sau m�
 | ✅ Image benchmark (3 hệ, 1 phần cứng) | `Dockerfile.bench` + `script/entrypoint-bench.sh` |
 | ✅ Đồng bộ HF ↔ máy | `sync.py` — dataset repo là nguồn sự thật duy nhất |
 | ✅ Driver HF Jobs | `run_hf.sh` — warm / check / run / score / pull |
-| ✅ Render trang 150 DPI | `parse/render_pages.py` — dùng chung cho detector và SSIM |
+| ✅ Render trang 150 DPI | `parse/render_pages.py` — dùng chung cho detector và metric pixel |
 | ✅ Detector chấm điểm | `parse/run_detectors.py` — Docling RT-DETR (+ surya cho §P6) |
-| ✅ Metric layout phụ (nhóm A) | `metrics/eval_preserve.py` — reading-order τ; box-IoU/collision chỉ để chẩn đoán detector |
-| ✅ Metric bảo toàn chính (nhóm B) | `metrics/eval_visual.py` — NT-PPR, IO-PPR, OF-harm, Page-fail; không dùng detector |
-| ✅ Metric không cần detector (nhóm C/E) | `metrics/eval_text.py` — page inflation, UTB, number recall, sec/page, success rate |
+| ✅ Metric layout (nhóm A) | `metrics/eval_preserve.py` — reading-order τ |
+| ✅ Metric bảo toàn (nhóm B) | `metrics/eval_visual.py` + `eval_ink.py` — NT-PPR, IO-PPR, OF-harm, IC-harm |
+| ✅ Metric văn bản/vận hành | `metrics/eval_text.py` — page inflation, UTB/page, sec/page |
 | ✅ Ghép cặp câu dùng chung 4 hệ | `align/extract_pairs.py` |
 | ✅ Metric chất lượng dịch (nhóm D) | `metrics/eval_text.py` + `eval_qe.py` — UTB/trang, CometKiwi QE + hiệu chuẩn |
-| ✅ Bootstrap CI + paired test + report | `metrics/aggregate.py` |
+| ✅ Document-macro table + report | `metrics/aggregate.py` |
 | ⬜ Venv baseline / image chưa dựng trên máy này | mạng đang chặn pypi + huggingface |
 | ⬜ T2 (multi-page), T3 (scanned) | §2 |
 
@@ -75,6 +75,7 @@ python -m benchmark.e2e.parse.render_pages    --corpus ... --out ... --tiers T1 
 python -m benchmark.e2e.parse.run_detectors   --out ... --detectors docling
 python -m benchmark.e2e.metrics.eval_preserve --corpus ... --out ... --detector docling
 python -m benchmark.e2e.metrics.eval_visual   --corpus ... --out ...
+python -m benchmark.e2e.metrics.eval_ink      --corpus ... --out ...
 python -m benchmark.e2e.align.extract_pairs   --corpus ... --out ...
 python -m benchmark.e2e.metrics.eval_qe       --out ... --langs vi
 python -m benchmark.e2e.metrics.aggregate     --out ... --langs vi

@@ -165,7 +165,7 @@ only attach existing OCR lines to geometric elements before translation.
     flow/.style={-{Latex}, line width=0.7pt},
   }
   \begin{subfigure}[t]{0.32\textwidth}\centering
-  \begin{tikzpicture}[scale=0.85, transform shape]
+  \begin{tikzpicture}[scale=0.74, transform shape]
     \draw[blk] (0,0) rectangle (2.2,1.4);
     \fill[tline] (0.2,1.02) rectangle (2.0,1.22);
     \fill[tline] (0.2,0.60) rectangle (2.0,0.80);
@@ -183,7 +183,7 @@ only attach existing OCR lines to geometric elements before translation.
   \caption{Boundary expansion}
   \end{subfigure}\hfill
   \begin{subfigure}[t]{0.32\textwidth}\centering
-  \begin{tikzpicture}[scale=0.85, transform shape]
+  \begin{tikzpicture}[scale=0.74, transform shape]
     \draw[blk] (0,0.15) rectangle (2.2,1.4);
     \draw[hot] (0.28,0.42) rectangle (1.5,1.15);
     \draw[blk] (0,-0.95) rectangle (2.2,-0.15);
@@ -202,7 +202,7 @@ only attach existing OCR lines to geometric elements before translation.
   \caption{Containment pruning}
   \end{subfigure}\hfill
   \begin{subfigure}[t]{0.32\textwidth}\centering
-  \begin{tikzpicture}[scale=0.85, transform shape]
+  \begin{tikzpicture}[scale=0.74, transform shape]
     \draw[blk] (0,0.75) rectangle (2.2,1.45);
     \node[num] at (0.32,1.10) {1};
     \draw[hot] (0.2,0.28) rectangle (2.0,0.56);
@@ -318,8 +318,9 @@ If it overflows into local free space, the canonical size is still kept and only
 the typesetting frame is extended. A block is shrunk toward its translated
 \texttt{autofit} only when the overflow intersects a neighbouring retained
 element. The experiments use fixed parameters for clustering, the 7~pt
-readability floor, the 80~pt expansion cap and the table-cell scale factor
-(Appendix~\ref{app:implementation}).
+(2.47~mm) readability floor, the 80~pt (28.22~mm) expansion cap and the
+table-cell scale factor
+(Supplementary Material, Implementation Notes).
 
 \begin{figure}[H]
     \centering
@@ -353,7 +354,8 @@ Two colours must be inferred for each translated element: the background used to
 mask the source text and the colour used to draw the target text. Neither is
 available uniformly from the PDF content stream, so both are sampled from the
 rendered page (Figure~\ref{fig:colour-sampling}). Background colour comes from a
-6~pt ring around the element at $2\times$ raster scale; contaminated light rings
+6~pt (2.12~mm) ring around the element at $2\times$ raster scale; contaminated
+light rings
 are trimmed before taking a per-channel median. Text colour comes from the
 central $60\%$ of the box: pixels whose RGB distance from the background exceeds
 80 are glyph candidates, and the foreground is the median of the furthest half.
@@ -539,7 +541,7 @@ also recorded as an operational diagnostic. All systems are evaluated from
 their output PDF rather than private intermediate files; identity output and a
 source ceiling validate the harness. Definitions, thresholds, corpus
 composition, coverage and complete scores are reported in
-Appendix~\ref{app:e2e-benchmark}.
+the Supplementary Material, End-to-End Document Benchmark.
 
 \subsubsection{Experimental Environment}
 
@@ -551,4 +553,4 @@ NVIDIA L40S, with all output artifacts scored by the same harness. CDM was
 trusted only after a ground-truth-against-itself sanity
 check, because missing TeX/ImageMagick dependencies can silently produce
 plausible but wrong formula scores. Batch sizes and fixed parameters are listed
-in Appendix~\ref{app:implementation}.
+in the Implementation Notes in the Supplementary Material.
