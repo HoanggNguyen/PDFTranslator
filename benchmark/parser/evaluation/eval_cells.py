@@ -46,6 +46,7 @@ Ví dụ
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 from collections import defaultdict
@@ -174,7 +175,17 @@ class Acc:
         return out
 
 
-def evaluate(pred_doc: dict, ann_dir: Path, sample: dict, variant: str) -> dict:
+PER_TABLE_COLS = ["variant", "table_id", "xml", "has_span", "size_band",
+                  "gt_cells", "pred_cells", "tp@0.50", "tp@0.75",
+                  "iou_sum_matched@0.50", "n_matched@0.50",
+                  "gt_spanning", "gt_plain", "tp_spanning", "tp_plain"]
+
+PER_PRED_COLS = (["variant", "table_id", "pred_idx", "score"]
+                 + [f"tp@{t:.2f}" for t in IOU_SWEEP])
+
+
+def evaluate(pred_doc: dict, ann_dir: Path, sample: dict, variant: str,
+             per_table_rows=None, per_pred_rows=None) -> dict:
     by_name = {it["name"]: it for it in sample["items"]}
     slices: dict[str, Acc] = defaultdict(Acc)
 
@@ -202,6 +213,38 @@ def evaluate(pred_doc: dict, ann_dir: Path, sample: dict, variant: str) -> dict:
         # trùng nhau trên cùng một GT đều tính là TP và AP bị thổi lên (đã kiểm: nhân
         # đôi mọi box -> precision thật 0,5 nhưng AP ra 1,0).
         tp_flags = coco_tp_flags(pboxes, pscores, gboxes, IOU_SWEEP)
+
+        if per_table_rows is not None:
+            n_span = sum(1 for c in gcells if c.get("is_spanning"))
+            tp_span = sum(1 for _, gi, _ in pairs_main[0.5]
+                          if gcells[gi].get("is_spanning"))
+            n_matched = len(pairs_main[0.5])
+            per_table_rows.append({
+                "variant": variant, "table_id": name, "xml": pr["xml"],
+                "has_span": it["has_span"], "size_band": it.get("size_band", ""),
+                "gt_cells": len(gboxes), "pred_cells": len(pboxes),
+                "tp@0.50": len(pairs_main[0.5]), "tp@0.75": len(pairs_main[0.75]),
+                # Tổng IoU + số cặp, chứ không phải trung bình: mean_IoU_matched là
+                # micro trên toàn lát cắt, chỉ cộng được từ hai bộ đếm này.
+                "iou_sum_matched@0.50": round(sum(v for _, _, v in pairs_main[0.5]), 6),
+                "n_matched@0.50": n_matched,
+                # Chỉ biến thể merged mới định nghĩa ô spanning; unmerged để trống.
+                "gt_spanning": n_span if variant == "merged" else "",
+                "gt_plain": (len(gcells) - n_span) if variant == "merged" else "",
+                "tp_spanning": tp_span if variant == "merged" else "",
+                "tp_plain": (n_matched - tp_span) if variant == "merged" else "",
+            })
+
+        if per_pred_rows is not None:
+            # AP@[.5:.95] là độ đo mức TẬP HỢP: nó xếp mọi prediction của cả 1.499 bảng
+            # theo score rồi mới tính. Không có AP "của một bảng". Xuất từng prediction
+            # kèm cờ TP để người đọc dựng lại đúng bể xếp hạng đó.
+            for i in range(len(pboxes)):
+                row = {"variant": variant, "table_id": name, "pred_idx": i,
+                       "score": round(pscores[i], 6)}
+                for t in IOU_SWEEP:
+                    row[f"tp@{t:.2f}"] = int(tp_flags[t][i])
+                per_pred_rows.append(row)
 
         for key in keys:
             a = slices[key]
@@ -236,6 +279,11 @@ def main() -> int:
     ap.add_argument("--ann", type=Path, required=True)
     ap.add_argument("--sample", type=Path, required=True)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--per-table", type=Path, default=None,
+                    help="CSV một dòng / một bảng / một biến thể GT (bộ đếm thô).")
+    ap.add_argument("--per-pred", type=Path, default=None,
+                    help="CSV một dòng / một cell box dự đoán, kèm cờ TP theo 10 ngưỡng "
+                         "IoU — đủ để dựng lại AP@[.5:.95].")
     args = ap.parse_args()
 
     pred_doc = json.loads(args.pred.read_text(encoding="utf-8"))
@@ -244,8 +292,22 @@ def main() -> int:
     report = {"pred_config": pred_doc.get("config", {}),
               "sample_meta": sample.get("meta", {}),
               "variants": {}}
+    per_table_rows = [] if args.per_table else None
+    per_pred_rows = [] if args.per_pred else None
     for variant in ("merged", "unmerged"):
-        report["variants"][variant] = evaluate(pred_doc, args.ann, sample, variant)
+        report["variants"][variant] = evaluate(pred_doc, args.ann, sample, variant,
+                                               per_table_rows, per_pred_rows)
+
+    for path, rows, cols, what in ((args.per_table, per_table_rows, PER_TABLE_COLS, "bảng"),
+                                   (args.per_pred, per_pred_rows, PER_PRED_COLS, "box")):
+        if path is None:
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols)
+            w.writeheader()
+            w.writerows(rows)
+        print(f"[cells] {path} ({len(rows)} dòng / {what})")
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
