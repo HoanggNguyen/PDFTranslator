@@ -6,3 +6,7 @@ myenv/
 .venv/
 __pycache__/
 cdm_work/
+
+# Per-prediction cell records: ~13 MB each, regenerable by eval_cells.py --per-pred,
+# and deposited with the article. The rest of per_item_results/ is small and tracked.
+per_item_results/pubtables_per_pred_*.csv

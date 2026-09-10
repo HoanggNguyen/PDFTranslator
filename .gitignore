@@ -52,3 +52,6 @@ pdf2zh/scanned/model_path/*
 test_local/
 
 .env
+
+# Deposit bundle built from benchmark/parser/per_item_results/ (regenerable)
+parser-per-item-records.tar.gz

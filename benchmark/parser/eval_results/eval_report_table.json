@@ -1,0 +1,238 @@
+{
+  "config": {
+    "member_thr": 0.5,
+    "note": "OCR-only, no structure"
+  },
+  "slices": {
+    "all": {
+      "gt_tables": 665,
+      "coverage": 0.8015,
+      "pred_tables": 613,
+      "pred_unmatched": 75,
+      "edit_all_micro": 0.3108,
+      "edit_matched_micro": 0.2071,
+      "score_matched": 0.7929,
+      "CER_matched": 0.2158
+    },
+    "language=english": {
+      "gt_tables": 243,
+      "coverage": 0.749,
+      "pred_tables": 215,
+      "pred_unmatched": 31,
+      "edit_all_micro": 0.3125,
+      "edit_matched_micro": 0.2302,
+      "score_matched": 0.7698,
+      "CER_matched": 0.2402
+    },
+    "layout=single_column": {
+      "gt_tables": 402,
+      "coverage": 0.8632,
+      "pred_tables": 396,
+      "pred_unmatched": 46,
+      "edit_all_micro": 0.3186,
+      "edit_matched_micro": 0.2276,
+      "score_matched": 0.7724,
+      "CER_matched": 0.2396
+    },
+    "subset=v1.5": {
+      "gt_tables": 517,
+      "coverage": 0.7698,
+      "pred_tables": 471,
+      "pred_unmatched": 69,
+      "edit_all_micro": 0.3372,
+      "edit_matched_micro": 0.1902,
+      "score_matched": 0.8098,
+      "CER_matched": 0.1964
+    },
+    "data_source=PPT2PDF": {
+      "gt_tables": 25,
+      "coverage": 0.8,
+      "pred_tables": 24,
+      "pred_unmatched": 4,
+      "edit_all_micro": 0.2625,
+      "edit_matched_micro": 0.1854,
+      "score_matched": 0.8146,
+      "CER_matched": 0.1893
+    },
+    "data_source=book": {
+      "gt_tables": 87,
+      "coverage": 0.9885,
+      "pred_tables": 92,
+      "pred_unmatched": 6,
+      "edit_all_micro": 0.2061,
+      "edit_matched_micro": 0.2029,
+      "score_matched": 0.7971,
+      "CER_matched": 0.212
+    },
+    "language=simplified_chinese": {
+      "gt_tables": 382,
+      "coverage": 0.8351,
+      "pred_tables": 339,
+      "pred_unmatched": 17,
+      "edit_all_micro": 0.3172,
+      "edit_matched_micro": 0.1753,
+      "score_matched": 0.8247,
+      "CER_matched": 0.1827
+    },
+    "layout=other_layout": {
+      "gt_tables": 131,
+      "coverage": 0.5802,
+      "pred_tables": 99,
+      "pred_unmatched": 23,
+      "edit_all_micro": 0.3728,
+      "edit_matched_micro": 0.1765,
+      "score_matched": 0.8235,
+      "CER_matched": 0.1811
+    },
+    "data_source=colorful_textbook": {
+      "gt_tables": 38,
+      "coverage": 0.9211,
+      "pred_tables": 40,
+      "pred_unmatched": 5,
+      "edit_all_micro": 0.2189,
+      "edit_matched_micro": 0.2073,
+      "score_matched": 0.7927,
+      "CER_matched": 0.2153
+    },
+    "language=en_ch_mixed": {
+      "gt_tables": 30,
+      "coverage": 0.7333,
+      "pred_tables": 48,
+      "pred_unmatched": 26,
+      "edit_all_micro": 0.2743,
+      "edit_matched_micro": 0.2041,
+      "score_matched": 0.7959,
+      "CER_matched": 0.2123
+    },
+    "layout=1andmore_column": {
+      "gt_tables": 77,
+      "coverage": 0.8961,
+      "pred_tables": 74,
+      "pred_unmatched": 3,
+      "edit_all_micro": 0.1497,
+      "edit_matched_micro": 0.1252,
+      "score_matched": 0.8748,
+      "CER_matched": 0.1269
+    },
+    "data_source=magazine": {
+      "gt_tables": 13,
+      "coverage": 1.0,
+      "pred_tables": 14,
+      "pred_unmatched": 1,
+      "edit_all_micro": 0.1627,
+      "edit_matched_micro": 0.1627,
+      "score_matched": 0.8373,
+      "CER_matched": 0.1661
+    },
+    "layout=three_column": {
+      "gt_tables": 3,
+      "coverage": 1.0,
+      "pred_tables": 4,
+      "pred_unmatched": 1,
+      "edit_all_micro": 0.1477,
+      "edit_matched_micro": 0.1477,
+      "score_matched": 0.8523,
+      "CER_matched": 0.1496
+    },
+    "data_source=academic_literature": {
+      "gt_tables": 123,
+      "coverage": 0.9756,
+      "pred_tables": 123,
+      "pred_unmatched": 1,
+      "edit_all_micro": 0.2635,
+      "edit_matched_micro": 0.249,
+      "score_matched": 0.751,
+      "CER_matched": 0.261
+    },
+    "layout=double_column": {
+      "gt_tables": 52,
+      "coverage": 0.7308,
+      "pred_tables": 40,
+      "pred_unmatched": 2,
+      "edit_all_micro": 0.3276,
+      "edit_matched_micro": 0.2901,
+      "score_matched": 0.7099,
+      "CER_matched": 0.301
+    },
+    "data_source=exam_paper": {
+      "gt_tables": 73,
+      "coverage": 0.6849,
+      "pred_tables": 57,
+      "pred_unmatched": 7,
+      "edit_all_micro": 0.2909,
+      "edit_matched_micro": 0.1728,
+      "score_matched": 0.8272,
+      "CER_matched": 0.182
+    },
+    "data_source=research_report": {
+      "gt_tables": 200,
+      "coverage": 0.795,
+      "pred_tables": 172,
+      "pred_unmatched": 10,
+      "edit_all_micro": 0.3428,
+      "edit_matched_micro": 0.1283,
+      "score_matched": 0.8717,
+      "CER_matched": 0.1328
+    },
+    "data_source=newspaper": {
+      "gt_tables": 69,
+      "coverage": 0.2899,
+      "pred_tables": 39,
+      "pred_unmatched": 19,
+      "edit_all_micro": 0.6842,
+      "edit_matched_micro": 0.1203,
+      "score_matched": 0.8797,
+      "CER_matched": 0.1234
+    },
+    "data_source=note": {
+      "gt_tables": 37,
+      "coverage": 0.8108,
+      "pred_tables": 52,
+      "pred_unmatched": 22,
+      "edit_all_micro": 0.4745,
+      "edit_matched_micro": 0.3722,
+      "score_matched": 0.6278,
+      "CER_matched": 0.3878
+    },
+    "subset=table_hard": {
+      "gt_tables": 136,
+      "coverage": 0.9044,
+      "pred_tables": 129,
+      "pred_unmatched": 5,
+      "edit_all_micro": 0.2767,
+      "edit_matched_micro": 0.2306,
+      "score_matched": 0.7694,
+      "CER_matched": 0.2434
+    },
+    "subset=layout_hard": {
+      "gt_tables": 10,
+      "coverage": 1.0,
+      "pred_tables": 10,
+      "pred_unmatched": 0,
+      "edit_all_micro": 0.1194,
+      "edit_matched_micro": 0.1194,
+      "score_matched": 0.8806,
+      "CER_matched": 0.1217
+    },
+    "language=traditional_chinese": {
+      "gt_tables": 10,
+      "coverage": 1.0,
+      "pred_tables": 11,
+      "pred_unmatched": 1,
+      "edit_all_micro": 0.1479,
+      "edit_matched_micro": 0.1479,
+      "score_matched": 0.8521,
+      "CER_matched": 0.1502
+    },
+    "subset=equation_hard": {
+      "gt_tables": 2,
+      "coverage": 1.0,
+      "pred_tables": 3,
+      "pred_unmatched": 1,
+      "edit_all_micro": 0.3073,
+      "edit_matched_micro": 0.3073,
+      "score_matched": 0.6927,
+      "CER_matched": 0.3073
+    }
+  }
+}

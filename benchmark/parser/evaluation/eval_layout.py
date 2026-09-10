@@ -35,6 +35,7 @@ Ví dụ
 from __future__ import annotations
 
 import argparse
+import csv
 import glob
 import json
 from collections import Counter, defaultdict
@@ -512,7 +513,49 @@ def score_page(gts, preds, member_thr, mask_math=False) -> dict:
     return ps
 
 
-def evaluate(gt_pages, pred_index, member_thr, drop_ignore, mask_math=False):
+def per_page_fieldnames() -> list[str]:
+    """Cột của CSV per-page. Xuất TỬ SỐ/MẪU SỐ thô, không phải tỉ lệ đã tính.
+
+    Lý do: mọi số trong báo cáo đều là micro-average trên toàn lát cắt (xem Acc.summary),
+    nên chỉ có bộ đếm thô mới cộng lại ra đúng con số đã công bố. Một cột "CER của trang"
+    thì trung bình lại sẽ ra macro-average, tức một số khác.
+    """
+    cols = ["image_name", *SLICE_KEYS, "gt_boxes", "pred_boxes"]
+    for m in MATCHERS:
+        for t in IOU_THRESHOLDS:
+            cols += [f"{m}_tp_gt@{t:.2f}", f"{m}_tp_pred@{t:.2f}"]
+    cols += ["cls_matched", "cls_correct",
+             "edit_num", "edit_den", "cer_num", "cer_den", "wer_num", "wer_den",
+             "ocr_pairs", "reading_order_ned"]
+    return cols
+
+
+def per_page_row(img_name: str, gt_page: dict, ps: dict) -> dict:
+    attr = gt_page["attr"]
+    row = {"image_name": img_name}
+    for k in SLICE_KEYS:
+        v = attr.get(k)
+        # Một trang có thể mang nhiều giá trị cho cùng một thuộc tính (nó được cộng vào
+        # nhiều lát cắt); giữ nguyên bằng cách nối, để hàng CSV vẫn map 1-1 với trang.
+        row[k] = "|".join(map(str, v)) if isinstance(v, list) else ("" if v is None else v)
+    row["gt_boxes"] = ps["gt_total"]
+    row["pred_boxes"] = ps["pred_total"]
+    for m in MATCHERS:
+        for t in IOU_THRESHOLDS:
+            tp_gt, tp_pred = ps["loc"][m][t]
+            row[f"{m}_tp_gt@{t:.2f}"] = tp_gt
+            row[f"{m}_tp_pred@{t:.2f}"] = tp_pred
+    for k in ("cls_matched", "cls_correct", "edit_num", "edit_den",
+              "cer_num", "cer_den", "wer_num", "wer_den", "ocr_pairs"):
+        row[k] = ps[k]
+    # None = trang không có cặp nào khớp -> không có điểm thứ tự đọc. Để trống, KHÔNG
+    # ghi 0: Acc.ro_scores bỏ qua trang này, ghi 0 sẽ kéo trung bình xuống.
+    row["reading_order_ned"] = "" if ps["ro"] is None else ps["ro"]
+    return row
+
+
+def evaluate(gt_pages, pred_index, member_thr, drop_ignore, mask_math=False,
+             per_page_rows=None):
     slices = defaultdict(Acc)  # key -> Acc ; key "all" luôn có
 
     for img_name, pred_page in pred_index.items():
@@ -522,6 +565,9 @@ def evaluate(gt_pages, pred_index, member_thr, drop_ignore, mask_math=False):
         gts = prep_gt(gt_page, drop_ignore)
         preds = prep_pred(pred_page)
         ps = score_page(gts, preds, member_thr, mask_math)   # <-- tính 1 lần
+
+        if per_page_rows is not None:
+            per_page_rows.append(per_page_row(img_name, gt_page, ps))
 
         keys = ["all"]
         for k in SLICE_KEYS:
@@ -577,6 +623,8 @@ def parse_args():
                     help="Thay công thức inline bằng 1 token khi đo OCR (đo text thuần).")
     ap.add_argument("--min-slice", type=int, default=30,
                     help="Chỉ in lát cắt có >= N trang-box (đỡ nhiễu).")
+    ap.add_argument("--per-page", type=Path, default=None,
+                    help="Xuất CSV một dòng / một trang (bộ đếm thô, để nộp kèm bài báo).")
     return ap.parse_args()
 
 
@@ -588,8 +636,17 @@ def main() -> int:
     print(f"[eval] GT trang={len(gt_pages)}  pred trang map được={len(pred_index)}  "
           f"granularity={args.gt_granularity}  member_thr={args.member_thr}")
 
+    per_page_rows = [] if args.per_page else None
     slices = evaluate(gt_pages, pred_index, args.member_thr,
-                      not args.keep_ignore, args.mask_math)
+                      not args.keep_ignore, args.mask_math, per_page_rows)
+
+    if args.per_page:
+        args.per_page.parent.mkdir(parents=True, exist_ok=True)
+        with args.per_page.open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=per_page_fieldnames())
+            w.writeheader()
+            w.writerows(per_page_rows)
+        print(f"[eval] per-page -> {args.per_page}  ({len(per_page_rows)} trang)")
 
     report = {
         "config": {
