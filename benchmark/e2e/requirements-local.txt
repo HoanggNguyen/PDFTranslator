@@ -3,6 +3,7 @@
 huggingface_hub==1.30.0
 python-dotenv>=1.0,<2
 pymupdf>=1.24,<2
+Pillow>=10,<13
 deepl>=1.22,<2
 pytest>=8,<10
 numpy>=1.24,<3
