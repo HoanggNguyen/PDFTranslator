@@ -1,0 +1,206 @@
+\section{INTRODUCTION}
+\label{sec:introduction}
+
+\subsection{Background}
+
+The Portable Document Format is the dominant container for
+presentation-critical text---textbooks, scientific articles, contracts and
+technical reports---precisely because it fixes the visual result: glyph
+positions, fonts, tables, mathematical expressions and figures are pinned to a
+coordinate system that renders identically on every device~\citep{pdf-spec}.
+Over the past decade, considerable research effort has been directed at the two
+capabilities that a document translation system must combine. On the one hand,
+document layout analysis has matured from heuristic segmentation into a
+learned detection problem, supported by large human-annotated corpora such as
+DocLayNet~\citep{doclaynet} and by detectors designed for the extreme scale
+variation of document pages~\citep{doclayout-yolo}; surveys of the field
+consistently report that the quality of this stage propagates directly into
+every downstream task~\citep{doclayout-survey}. On the other hand, large
+language models (LLMs) have substantially changed machine translation,
+particularly for lower-resource pairs and for text that needs domain context.
+Unlike neural machine translation systems trained for a fixed set of language
+pairs~\citep{nmt-survey}, an LLM is multilingual by construction, can exploit a
+wide context window, follows instructions, and can be steered towards
+consistent terminology through the prompt~\citep{gpt-mt,llm-multilingual-mt}.
+Because most LLMs are consumed through hosted APIs, a document translation
+system can now be assembled without training any model of its own.
+
+\subsection{Problem Statement}
+
+The very property that makes PDF attractive makes it hostile to translation. A
+PDF page is a stream of drawing operators, not a sequence of paragraphs, so
+translating one is simultaneously a machine-translation problem and a
+\emph{layout reconstruction} problem. Target text almost never has the length
+of the source---Vietnamese and German typically expand relative to English,
+while Chinese, Japanese and Korean contract---so writing the translation back
+into the original boxes produces overflow, collisions with neighbouring
+elements, or font shrinkage severe enough to harm readability. Nor is geometry
+the only property that must survive: a translated block inherits the visual
+role of the block it replaces, so its typeface, size and \emph{colour}---on
+whatever background the source page happens to use---are part of the
+reconstruction problem rather than cosmetic detail.
+
+It is tempting to treat the input side as solved. Libraries such as PyMuPDF,
+\texttt{pdfminer.six} and \texttt{pdfplumber} read a PDF content stream and
+return text almost instantly. In practice they only expose the \emph{text
+layer} that happens to be stored in the file, rather than analysing what the
+page actually displays, and that layer is unreliable in three recurrent ways.
+Scanned PDFs are bitmap images and carry no text layer at all, so optical
+character recognition (OCR) is unavoidable. \emph{Searchable} scanned PDFs
+carry a hidden OCR layer that may disagree with the visible image, so an
+extractor silently returns something other than what the reader sees. And even
+in born-digital files, embedded fonts with private encodings, missing
+\texttt{ToUnicode} maps, formulas stored as isolated drawing operators and
+tables stored as scattered text runs all yield extracted strings that are
+corrupted or structurally meaningless.
+
+\subsection{Research Gap}
+
+Which stage of a layout-preserving PDF translation system actually binds its
+quality? The question is not rhetorical: its answer decides where design and
+research effort belong. Existing systems and document-conversion toolkits have
+made substantial progress on different parts of the problem---layout-preserving
+overlay for scientific PDFs~\citep{pdf2zh}, document-level segmentation and
+terminology~\citep{docutranslate}, OCR-and-rebuild workflows for scanned
+input~\citep{retain-pdf}, and PDF-to-structured-output parsers for downstream
+LLM use~\citep{docling,marker,mineru,olmocr}. What remains hard to infer from
+this literature is not whether these components are useful, but how much each
+stage contributes to the failure modes of the final translated document. The
+available evidence is difficult to compare directly: some systems export
+Markdown or JSON rather than a translated PDF, some prioritise born-digital PDFs
+and have limited scanned-document support, and most public evaluations score
+either document parsing or plain-text translation rather than the reconstructed
+artifact.
+
+Three observations motivate measuring the stages apart. First, \textbf{structure
+analysis is lossy in a way translation cannot repair}: a region the parser never
+emits is content no downstream model can restore, and a mis-read glyph becomes
+the translator's input, so errors here are not additive with translation errors
+but place a \emph{ceiling} on the pipeline---yet the stage is almost never scored
+against ground truth \emph{as a stage}, because a segmentation error and a
+translation error arrive together in the final PDF. Second, \textbf{LLM
+translation may be a smaller controllable lever}: a designer chooses
+among hosted models but controls neither their training data nor the per-language
+resource that dominates their quality, so if competitive models occupy a narrow
+band, model selection has little leverage compared with the stages specific to
+the document task. Third, \textbf{layout preservation is commonly delegated to
+the translator}---instructing the model to keep the target within a length budget
+of the source is a widespread device, convenient because it costs nothing at
+reconstruction time---yet whether such a budget is honoured, and whether
+honouring it relates to quality at all, has not been tested.
+
+\subsection{Hypothesis}
+\label{subsec:hypothesis}
+
+This study is organised around a single hypothesis, stated in two parts so that
+each part is separately falsifiable.
+
+\paragraph{H1 (the bottleneck).} In layout-preserving PDF translation the
+largest controllable headroom may lie in \emph{document structure analysis}
+rather than in model choice for translation: the parsing stage can produce
+non-recoverable content loss whose incidence is concentrated in identifiable
+document slices, whereas competitive LLMs may differ only modestly on the
+content that does reach them, and much of the remaining variation may be
+explained by the target language rather than by pipeline design.
+
+\paragraph{H2 (where layout must be enforced).} Prompt-level length constraints
+are an unreliable proxy for layout fidelity. Even when they influence generation,
+they do not tell the system whether rendered text will fit the local geometry of
+the page; geometry and appearance must instead be \emph{computed at
+reconstruction time from the source page}.
+
+\subsection{The Present Study}
+
+We design and implement a layout-preserving multilingual PDF translation
+pipeline whose three stages---document structure analysis, content translation
+and document reconstruction---are connected by a single structured intermediate
+representation carrying element type, bounding box, page index and reading
+order, so that each stage exposes a measurable interface. Two design decisions
+follow from the hypothesis. To avoid depending on an embedded text layer that is
+absent or unreliable for scanned and searchable-scanned documents, every page is
+rendered and analysed visually; the cost of that uniform choice is evaluated at
+the parser stage rather than assumed away. To keep layout control in the stage
+that can see the page, reconstruction decides both the \emph{size} and the
+\emph{colour} of every translated block from the source page itself, rather than
+inheriting them from a global default or delegating them to the translator.
+
+The hypothesis is examined through three independent stage-level measurements,
+defined in Section~\ref{subsec:method-eval}. A separate final-artifact comparison
+is reported in Section~\ref{subsec:res-compliance}.
+
+\begin{description}[leftmargin=0em,labelsep=0.4em,itemsep=0.15em]
+  \item[M1] \emph{How much content the parser loses, and where.} The visual
+  parsing stage is scored against annotated ground truth on localisation,
+  labels, text and reading order, sliced by language, layout and document
+  source, with deviations that are \emph{benign} for translation separated from
+  those that lose the translator's input---only the latter bound the pipeline
+  (H1).
+  \item[M2] \emph{How much translation quality depends on model choice.} Five
+  LLMs are compared on \texttt{en}$\rightarrow$\texttt{xx} translation over many
+  target languages with the pipeline held fixed, contrasting the spread
+  \emph{between systems} with the spread \emph{between languages} (H1).
+  \item[M3] \emph{Whether a prompt-level length constraint is a useful proxy for
+  layout fidelity.} Per-language compliance with the $\pm15\%$ length constraint is
+  measured and related to translation quality, contrasting expanding
+  (Vietnamese, German) with contracting (CJK) targets (H2).
+\end{description}
+
+\subsection{Contributions}
+
+This paper makes three contributions at the intersection of artificial
+intelligence and document engineering. Its artificial-intelligence contribution
+is a visually grounded, identifier-preserving translation pipeline whose stages
+can be evaluated independently; its engineering application is the automatic
+multilingual reconstruction of scientific and technical documents while
+preserving their page layout.
+
+\begin{enumerate}[leftmargin=1.4em]
+  \item \textbf{A layout-preserving architecture in which reconstruction owns
+  geometry and appearance.} Translated text is re-typeset inside the source
+  geometry by two decisions computed from the source page rather than from the
+  translation: a \emph{size} decision, which derives a canonical font size per
+  group of same-role elements from the source text and reduces an individual
+  element only when its overflow would actually collide with a neighbour; and a
+  \emph{colour} decision, which estimates each element's background from a ring
+  of pixels around it and its text colour from the core glyph pixels most
+  distant from that background---so the same overlay mechanism serves scanned
+  and born-digital pages, and coloured text on non-white backgrounds survives
+  translation. Upstream, structurally distinctive content (tables,
+  mathematical formulas) is routed through dedicated multimodal verification
+  instead of being translated as undifferentiated text
+  (Section~\ref{sec:methodology}).
+
+  \item \textbf{A stage-level evaluation protocol that makes parsing
+  measurable.} We score the parsing stage directly on positions, labels, text
+  and reading order against OmniDocBench~\citep{omnidocbench} instead of
+  collapsing its output to Markdown, which would discard exactly the geometric
+  information the task depends on, and we report a strict and a
+  granularity-invariant matcher \emph{as a pair} so that a deliberate design
+  choice is not misread as a detection defect; cell geometry, which OmniDocBench
+  cannot support, is scored on PubTables-1M~\citep{pubtables1m}; translation is
+  scored on all 55
+  language pairs of WMT24++~\citep{wmt24pp} with five LLMs, keeping the
+  document-level translation protocol intact
+  (Sections~\ref{sec:methodology} and~\ref{sec:results}).
+
+  \item \textbf{Stage-level evidence for H1 and H2.} We show that the dominant
+  parser error is benign over-segmentation rather than missed content, but that
+  the residual content loss is concentrated and non-recoverable (over half of
+  the formulas on three-column pages, one table in five); that the quality
+  spread between five LLMs on a fixed language ($\approx 0.05$ COMET-DA) is
+  roughly a third of the spread attributable to per-language resource
+  ($\approx 0.18$), which script family alone does not explain; and that a
+  character-based length constraint is honoured only 69--73\% of the time and is
+  essentially uncorrelated with semantic adequacy ($r = 0.066$), i.e.\ it
+  measures script density rather than quality (Sections~\ref{sec:results}
+  and~\ref{sec:discussion}).
+\end{enumerate}
+
+The remainder of the paper is organised as follows.
+Section~\ref{sec:literature} reviews the PDF layout problem, the model
+families the pipeline builds on, and related translation and document-conversion
+systems.
+Section~\ref{sec:methodology} presents the proposed architecture and the
+experimental design of both evaluations. Section~\ref{sec:results} reports the
+results, Section~\ref{sec:discussion} interprets them against H1 and H2 and
+states the limitations, and Section~\ref{sec:conclusion} concludes.

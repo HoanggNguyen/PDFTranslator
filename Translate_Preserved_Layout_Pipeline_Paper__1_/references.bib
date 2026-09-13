@@ -1,0 +1,373 @@
+% =============================================================================
+% references.bib -- sources cited in the paper.
+%
+% Entries marked "% Verified" were checked against the online source
+% (ACL Anthology, arXiv, ACM DL, IEEE, CVF, ISO, RFC Editor): venue, authors
+% and pages matched at the time of checking.
+% =============================================================================
+
+% --- Machine translation evaluation -----------------------------------------
+
+% Verified: ACL Anthology P02-1040.
+@inproceedings{bleu,
+  author    = {Papineni, Kishore and Roukos, Salim and Ward, Todd and Zhu, Wei-Jing},
+  title     = {{BLEU}: a Method for Automatic Evaluation of Machine Translation},
+  booktitle = {Proceedings of the 40th Annual Meeting of the Association for Computational Linguistics},
+  year      = {2002},
+  pages     = {311--318},
+  address   = {Philadelphia, Pennsylvania, USA},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.3115/1073083.1073135},
+  url       = {https://aclanthology.org/P02-1040/}
+}
+
+@inproceedings{chrf,
+  author    = {Popovi{\'c}, Maja},
+  title     = {chr{F}: Character n-gram {F}-score for Automatic {MT} Evaluation},
+  booktitle = {Proceedings of the Tenth Workshop on Statistical Machine Translation},
+  year      = {2015},
+  pages     = {392--395},
+  address   = {Lisbon, Portugal},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/W15-3049},
+  url       = {https://aclanthology.org/W15-3049/}
+}
+
+@inproceedings{comet,
+  author    = {Rei, Ricardo and Stewart, Craig and Farinha, Ana C. and Lavie, Alon},
+  title     = {{COMET}: A Neural Framework for {MT} Evaluation},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  year      = {2020},
+  pages     = {2685--2702},
+  address   = {Online},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2020.emnlp-main.213},
+  url       = {https://aclanthology.org/2020.emnlp-main.213/}
+}
+
+@inproceedings{comet22,
+  author    = {Rei, Ricardo and C. de Souza, Jos{\'e} G. and Alves, Duarte and Zerva, Chrysoula and Farinha, Ana C. and Glushkova, Taisiya and Lavie, Alon and Coheur, Luisa and Martins, Andr{\'e} F. T.},
+  title     = {{COMET}-22: Unbabel-{IST} 2022 Submission for the Metrics Shared Task},
+  booktitle = {Proceedings of the Seventh Conference on Machine Translation (WMT)},
+  year      = {2022},
+  pages     = {578--585},
+  address   = {Abu Dhabi, United Arab Emirates (Hybrid)},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2022.wmt-1.52},
+  url       = {https://aclanthology.org/2022.wmt-1.52/}
+}
+
+% Verified: Findings of ACL 2025 (aclanthology.org/2025.findings-acl.634),
+% preprint arXiv:2502.12404.
+@inproceedings{wmt24pp,
+  author    = {Deutsch, Daniel and Briakou, Eleftheria and Caswell, Isaac and Finkelstein, Mara and Galor, Rebecca and Juraska, Juraj and Kovacs, Geza and Lui, Alison and Rei, Ricardo and Riesa, Jason and Rijhwani, Shruti and Riley, Parker and Salesky, Elizabeth and Trabelsi, Firas and Winkler, Stephanie and Zhang, Biao and Freitag, Markus},
+  title     = {{WMT24++}: Expanding the Language Coverage of {WMT24} to 55 Languages \& Dialects},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2025},
+  year      = {2025},
+  pages     = {12257--12284},
+  address   = {Vienna, Austria},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2025.findings-acl.634},
+  url       = {https://aclanthology.org/2025.findings-acl.634/},
+  note      = {arXiv:2502.12404}
+}
+
+% Verified: WMT22 Metrics Shared Task (aclanthology.org/2022.wmt-1.2).
+@inproceedings{wmt-metrics-shared-task,
+  author    = {Freitag, Markus and Rei, Ricardo and Mathur, Nitika and Lo, Chi-kiu and Stewart, Craig and Avramidis, Eleftherios and Kocmi, Tom and Foster, George and Lavie, Alon and Martins, Andr{\'e} F. T.},
+  title     = {Results of {WMT22} Metrics Shared Task: Stop Using {BLEU} --- Neural Metrics Are Better and More Robust},
+  booktitle = {Proceedings of the Seventh Conference on Machine Translation (WMT)},
+  year      = {2022},
+  pages     = {46--68},
+  address   = {Abu Dhabi, United Arab Emirates},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2022.wmt-1.2},
+  url       = {https://aclanthology.org/2022.wmt-1.2/}
+}
+
+% Verified: JAIR vol. 69 (2020), pp. 343--418, DOI 10.1613/jair.1.12007.
+@article{nmt-survey,
+  author  = {Stahlberg, Felix},
+  title   = {Neural Machine Translation: A Review},
+  journal = {Journal of Artificial Intelligence Research},
+  year    = {2020},
+  volume  = {69},
+  pages   = {343--418},
+  doi     = {10.1613/jair.1.12007}
+}
+
+% Verified: arXiv:2302.09210 (2023).
+@misc{gpt-mt,
+  author       = {Hendy, Amr and Abdelrehim, Mohamed and Sharaf, Amr and Raunak, Vikas and Gabr, Mohamed and Matsushita, Hitokazu and Kim, Young Jin and Afify, Mohamed and Awadalla, Hany Hassan},
+  title        = {How Good Are {GPT} Models at Machine Translation? A Comprehensive Evaluation},
+  year         = {2023},
+  howpublished = {arXiv preprint arXiv:2302.09210},
+  url          = {https://arxiv.org/abs/2302.09210}
+}
+
+@inproceedings{llm-multilingual-mt,
+  author    = {Zhu, Wenhao and Liu, Hongyi and Dong, Qingxiu and Xu, Jingjing and Huang, Shujian and Kong, Lingpeng and Chen, Jiajun and Li, Lei},
+  title     = {Multilingual Machine Translation with Large Language Models: Empirical Results and Analysis},
+  booktitle = {Findings of the Association for Computational Linguistics: NAACL 2024},
+  year      = {2024},
+  pages     = {2765--2781},
+  address   = {Mexico City, Mexico},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2024.findings-naacl.176},
+  url       = {https://aclanthology.org/2024.findings-naacl.176/}
+}
+
+% Verified: ACL 2019 (aclanthology.org/P19-1294), pp. 3063--3068.
+@inproceedings{terminology-mt,
+  author    = {Dinu, Georgiana and Mathur, Prashant and Federico, Marcello and Al-Onaizan, Yaser},
+  title     = {Training Neural Machine Translation to Apply Terminology Constraints},
+  booktitle = {Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics},
+  year      = {2019},
+  pages     = {3063--3068},
+  address   = {Florence, Italy},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/P19-1294},
+  url       = {https://aclanthology.org/P19-1294/}
+}
+
+@article{doc-mt-multi-knowledge,
+  author  = {Liu, Bin and Lyu, Xinglin and Li, Junhui and Wei, Daimeng and Zhang, Min and Tao, Shimin and Yang, Hao},
+  title   = {Improving {LLM}-based Document-level Machine Translation with Multi-Knowledge Fusion},
+  journal = {arXiv preprint arXiv:2503.12152},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2503.12152}
+}
+
+% --- Document layout analysis and OCR ---------------------------------------
+
+@inproceedings{fasttext,
+  author    = {Joulin, Armand and Grave, Edouard and Bojanowski, Piotr and Mikolov, Tomas},
+  title     = {Bag of Tricks for Efficient Text Classification},
+  booktitle = {Proceedings of the 15th Conference of the European Chapter of the Association for Computational Linguistics: Volume 2, Short Papers},
+  year      = {2017},
+  pages     = {427--431},
+  address   = {Valencia, Spain},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/E17-2068},
+  url       = {https://aclanthology.org/E17-2068/}
+}
+
+% Verified: KDD 2022, DOI 10.1145/3534678.3539043.
+@inproceedings{doclaynet,
+  author    = {Pfitzmann, Birgit and Auer, Christoph and Dolfi, Michele and Nassar, Ahmed S. and Staar, Peter W. J.},
+  title     = {{DocLayNet}: A Large Human-Annotated Dataset for Document-Layout Segmentation},
+  booktitle = {Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining},
+  year      = {2022},
+  pages     = {3743--3751},
+  publisher = {Association for Computing Machinery},
+  doi       = {10.1145/3534678.3539043},
+  url       = {https://doi.org/10.1145/3534678.3539043}
+}
+
+% Verified: ACM Computing Surveys 52(6), article 109 (2019), DOI 10.1145/3355610.
+@article{doclayout-survey,
+  author  = {BinMakhashen, Galal M. and Mahmoud, Sabri A.},
+  title   = {Document Layout Analysis: A Comprehensive Survey},
+  journal = {ACM Computing Surveys},
+  year    = {2019},
+  volume  = {52},
+  number  = {6},
+  pages   = {109:1--109:36},
+  doi     = {10.1145/3355610},
+  url     = {https://doi.org/10.1145/3355610}
+}
+
+% Verified: official repository and arXiv:2410.12628.
+@misc{doclayout-yolo,
+  author       = {Zhao, Zhiyuan and Kang, Hengrui and Wang, Bin and He, Conghui},
+  title        = {{DocLayout-YOLO}: Enhancing Document Layout Analysis through Diverse Synthetic Data and Global-to-Local Adaptive Perception},
+  year         = {2024},
+  howpublished = {arXiv preprint arXiv:2410.12628},
+  url          = {https://arxiv.org/abs/2410.12628}
+}
+
+@misc{surya,
+  author       = {Paruchuri, Vikas and {Datalab Team}},
+  title        = {Surya: A Lightweight Document {OCR} and Analysis Toolkit},
+  year         = {2025},
+  howpublished = {GitHub repository},
+  url          = {https://github.com/VikParuchuri/surya}
+}
+
+@article{paddleocr,
+  author  = {Cui, Cheng and Sun, Ting and Lin, Manhui and Gao, Tingquan and Zhang, Yubo and Liu, Jiaxuan and Wang, Xueqing and Zhang, Zelun and Zhou, Changda and Liu, Hongen and Zhang, Yue and Lv, Wenyu and Huang, Kui and Zhang, Yichao and Zhang, Jing and Zhang, Jun and Liu, Yi and Yu, Dianhai and Ma, Yanjun},
+  title   = {{PaddleOCR} 3.0 Technical Report},
+  journal = {arXiv preprint arXiv:2507.05595},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2507.05595}
+}
+
+% --- Document parsing benchmarks and metrics --------------------------------
+
+% Verified: arXiv:2412.07626; accepted at CVPR 2025.
+@inproceedings{omnidocbench,
+  author    = {Ouyang, Linke and Qu, Yuan and Zhou, Hongbin and Zhu, Jiawei and Zhang, Rui and Lin, Qunshu and Wang, Bin and Zhao, Zhiyuan and Jiang, Man and Zhao, Xiaomeng and Shi, Jin and Wu, Fan and Chu, Pei and Liu, Minghao and Li, Zhenxiang and Xu, Chao and Zhang, Bo and Shi, Botian and Tu, Zhongying and He, Conghui},
+  title     = {{OmniDocBench}: Benchmarking Diverse {PDF} Document Parsing with Comprehensive Annotations},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2025},
+  pages     = {24838--24848},
+  note      = {arXiv:2412.07626},
+  url       = {https://openaccess.thecvf.com/content/CVPR2025/html/Ouyang_OmniDocBench_Benchmarking_Diverse_PDF_Document_Parsing_with_Comprehensive_Annotations_CVPR_2025_paper.html}
+}
+
+@inproceedings{cdm,
+  author    = {Wang, Bin and Wu, Fan and Ouyang, Linke and Gu, Zhuangcheng and Zhang, Rui and Xia, Renqiu and Zhang, Bo and He, Conghui},
+  title     = {Image Over Text: Transforming Formula Recognition Evaluation with Character Detection Matching},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2025},
+  pages     = {19681--19690},
+  note      = {arXiv:2409.03643},
+  url       = {https://openaccess.thecvf.com/content/CVPR2025/html/Wang_Image_Over_Text_Transforming_Formula_Recognition_Evaluation_with_Character_Detection_CVPR_2025_paper.html}
+}
+
+% Verified against the English translation in Soviet Physics Doklady.
+@article{levenshtein,
+  author  = {Levenshtein, Vladimir I.},
+  title   = {Binary Codes Capable of Correcting Deletions, Insertions, and Reversals},
+  journal = {Soviet Physics Doklady},
+  year    = {1966},
+  volume  = {10},
+  number  = {8},
+  pages   = {707--710}
+}
+
+% --- Related document translation systems -----------------------------------
+
+% Verified: ACL Anthology 2025.emnlp-demos.71.
+@inproceedings{pdf2zh,
+  author    = {Ouyang, Rongxin and Chu, Chang and Xin, Zhikuang and Ma, Xiangyao},
+  title     = {{PDFMathTranslate}: Scientific Document Translation Preserving Layouts},
+  booktitle = {Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
+  year      = {2025},
+  pages     = {918--924},
+  address   = {Suzhou, China},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2025.emnlp-demos.71},
+  url       = {https://aclanthology.org/2025.emnlp-demos.71/}
+}
+
+@inproceedings{babeldoc,
+  author    = {Yang, Qi and Ma, Xiangyao and Wang, Xiao and Wang, Hao and Wang, Rui},
+  title     = {{BabelDOC}: Better Layout-Preserving {PDF} Translation via Intermediate Representation},
+  booktitle = {Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations)},
+  year      = {2026},
+  pages     = {253--262},
+  address   = {San Diego, California, United States},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/2026.acl-demo.25},
+  url       = {https://aclanthology.org/2026.acl-demo.25/}
+}
+
+@misc{docutranslate,
+  author       = {{docutranslate contributors}},
+  title        = {docutranslate},
+  year         = {2024},
+  howpublished = {GitHub repository},
+  url          = {https://github.com/xunbu/docutranslate}
+}
+
+@misc{retain-pdf,
+  author       = {{retain-pdf contributors}},
+  title        = {retain-pdf},
+  year         = {2024},
+  howpublished = {GitHub repository},
+  url          = {https://github.com/wxyhgk/retain-pdf}
+}
+
+@misc{docling,
+  author       = {Auer, Christoph and Lysak, Maksym and Nassar, Ahmed and Dolfi, Michele and Livathinos, Nikolaos and Vagenas, Panos and Ramis, Cesar Berrospi and Omenetti, Matteo and Lindlbauer, Fabian and Dinkla, Kasper and Mishra, Lokesh and Kim, Yusik and Gupta, Shubham and Teixeira de Lima, Rafael and Weber, Valery and Morin, Lucas and Meijer, Ingmar and Kuropiatnyk, Viktor and Staar, Peter W. J.},
+  title        = {Docling Technical Report},
+  year         = {2024},
+  howpublished = {arXiv preprint arXiv:2408.09869},
+  url          = {https://arxiv.org/abs/2408.09869}
+}
+
+@misc{marker,
+  author       = {Paruchuri, Vik},
+  title        = {Marker: Convert {PDF} to Markdown and {JSON} Quickly with High Accuracy},
+  year         = {2025},
+  howpublished = {GitHub repository},
+  url          = {https://github.com/datalab-to/marker}
+}
+
+@misc{mineru,
+  author       = {Wang, Bin and Xu, Chao and Zhao, Xiaomeng and Ouyang, Linke and Wu, Fan and Zhao, Zhiyuan and Xu, Rui and Liu, Kaiwen and Qu, Yuan and Shang, Fukai and Zhang, Bo and Wei, Liqun and Sui, Zhihao and Li, Wei and Shi, Botian and Qiao, Yu and Lin, Dahua and He, Conghui},
+  title        = {{MinerU}: An Open-Source Solution for Precise Document Content Extraction},
+  year         = {2024},
+  howpublished = {arXiv preprint arXiv:2409.18839},
+  url          = {https://arxiv.org/abs/2409.18839}
+}
+
+@misc{olmocr,
+  author       = {Poznanski, Jake and Borchardt, Jon and Dunkelberger, Jason and Huff, Regan and Lin, Daniel and Rangapur, Aman and Wilhelm, Christopher and Lo, Kyle and Soldaini, Luca},
+  title        = {{olmOCR}: Unlocking Trillions of Tokens in {PDFs} with Vision Language Models},
+  year         = {2025},
+  howpublished = {arXiv preprint arXiv:2502.18443},
+  url          = {https://arxiv.org/abs/2502.18443}
+}
+
+% --- Operational engineering: rate limits, retry, backoff -------------------
+
+% Verified: RFC 6585 (IETF, 2012) -- defines HTTP 429 Too Many Requests.
+@misc{api-rate-limit-design,
+  author       = {Nottingham, Mark and Fielding, Roy T.},
+  title        = {Additional {HTTP} Status Codes},
+  howpublished = {RFC 6585, Internet Engineering Task Force},
+  year         = {2012},
+  doi          = {10.17487/RFC6585},
+  url          = {https://www.rfc-editor.org/info/rfc6585}
+}
+
+% Verified: origin of binary exponential backoff -- Ethernet, CACM 19(7), 1976,
+% DOI 10.1145/360248.360253.
+@article{exponential-backoff,
+  author  = {Metcalfe, Robert M. and Boggs, David R.},
+  title   = {Ethernet: Distributed Packet Switching for Local Computer Networks},
+  journal = {Communications of the ACM},
+  year    = {1976},
+  volume  = {19},
+  number  = {7},
+  pages   = {395--404},
+  doi     = {10.1145/360248.360253}
+}
+
+@misc{aws-backoff-jitter,
+  author       = {Brooker, Marc},
+  title        = {Exponential Backoff and Jitter},
+  year         = {2015},
+  howpublished = {AWS Architecture Blog},
+  url          = {https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/}
+}
+
+% --- PDF format and typesetting tools ---------------------------------------
+
+% Verified: ISO catalogue, standard 75839; Edition 2, confirmed current in 2026.
+@misc{pdf-spec,
+  author       = {{ISO}},
+  title        = {{ISO 32000-2:2020} --- Document Management --- Portable Document Format --- Part 2: {PDF} 2.0},
+  organization = {International Organization for Standardization},
+  year         = {2020},
+  url          = {https://www.iso.org/standard/75839.html}
+}
+
+@misc{typst,
+  author       = {Haug, Martin and M{\"a}dje, Laurenz and {Typst contributors}},
+  title        = {Typst: A New Markup-Based Typesetting System},
+  year         = {2023},
+  howpublished = {GitHub repository},
+  url          = {https://github.com/typst/typst}
+}
+
+@inproceedings{pubtables1m,
+  title     = {{PubTables-1M}: Towards Comprehensive Table Extraction from Unstructured Documents},
+  author    = {Smock, Brandon and Pesala, Rohith and Abraham, Robin},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {4634--4642},
+  year      = {2022},
+  url       = {https://openaccess.thecvf.com/content/CVPR2022/html/Smock_PubTables-1M_Towards_Comprehensive_Table_Extraction_From_Unstructured_Documents_CVPR_2022_paper.html}
+}

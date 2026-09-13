@@ -1,0 +1,20 @@
+\begin{abstract}
+Translating documents stored in the Portable Document Format while preserving
+their appearance is both a machine translation and document reconstruction
+problem. This study introduces a three-stage system that analyzes visible
+document structure, translates addressable elements, and reconstructs each page
+from its original geometry and visual appearance. The artificial intelligence
+contribution is an identifier-preserving translation contract combined with
+visual structure analysis and a reconstruction strategy that computes font size
+and color from source-page geometry and pixels, rather than asking the language
+model to imitate source-text length. The engineering application is automatic
+multilingual translation of scientific and technical documents while retaining
+tables, formulas, reading order, and page appearance. On 1,651 public benchmark
+pages, structure localization reached 0.940 and label accuracy reached 0.889.
+Table-cell localization reached 0.902 on 1,499 tables. Across 55
+English-to-target-language test pairs, adequacy scores ranged from 0.788 to
+0.841. A character-length instruction was satisfied for only 69--73\% of
+segments and showed no meaningful relationship with adequacy. The results show
+that layout preservation is more reliably handled during reconstruction, while
+structure analysis remains the main source of unrecoverable downstream errors.
+\end{abstract}

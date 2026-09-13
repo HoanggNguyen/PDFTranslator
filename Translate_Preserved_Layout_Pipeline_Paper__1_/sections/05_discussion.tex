@@ -1,0 +1,82 @@
+\section{DISCUSSION}
+\label{sec:discussion}
+
+The stage-level results identify the mechanisms that constrain this
+implementation. The final-artifact benchmark separately compares the systems on
+a common born-digital English-to-Vietnamese task.
+
+\subsection{H1: What Kind of Error Bounds the Pipeline}
+\label{subsec:disc-structure}
+
+The parsing results make a useful distinction between benign structure changes
+and unrecoverable loss. Over-segmentation is visible in the gap between strict
+COCO 1-1 localisation and the granularity-invariant $N$--$M$ matcher, but it is
+mostly compatible with the downstream contract: fragments can be gathered,
+ordered and translated as long as their text and geometry remain present. A
+box-exact metric alone would therefore select against a design choice that is
+helpful for translation, especially around sparse formula blocks.
+
+The errors that matter are different. A missed region supplies no text to the
+translator; a missed formula or table removes structured content; and OCR errors
+turn into fluent but wrong source strings. These failures are concentrated in
+specific slices---degraded historical pages, CJK OCR, three-column formulas and
+table coverage---which makes them actionable. The appropriate response is not a
+uniformly larger translator, but targeted parser/OCR improvements and a review
+checkpoint exactly where loss first occurs.
+
+The translation experiment gives the other half of H1. The five evaluated LLMs
+do differ, but their mean COMET-DA scores occupy a narrow band compared with the
+variation across target languages. That means model choice is still worth doing,
+but it is a smaller controllable lever than the document-specific stages once a
+competitive hosted model is used. The strongest next test of H1 is therefore
+direct: improve the failing parser slices and compare the end-to-end effect
+against switching translation models.
+
+\subsection{H2: Layout Belongs to Reconstruction}
+\label{subsec:disc-constraint}
+
+The length-compliance results show why layout preservation should not be
+delegated to the translator. A character budget is weakly followed and mostly
+tracks target-script density: CJK output is too short by character count even
+when adequacy is high, while some Latin-script targets violate by expansion.
+Because the correlation with COMET-DA is effectively zero, compliance is not a
+useful proxy for semantic quality.
+
+More importantly, a character count is not the quantity the PDF cares about. The
+actual layout question is whether rendered text, in the chosen font, at a local
+position, collides with neighbouring elements or remains readable after
+shrinking. Only the reconstruction stage has the page geometry and pixels needed
+to answer that. The pipeline's size and colour decisions therefore belong in
+reconstruction: size is changed only when rendered overflow would collide, and
+appearance is sampled from the source page instead of assumed to be black text on
+white background.
+
+\subsection{Metric Design}
+\label{subsec:disc-metrics}
+
+The parser evaluation intentionally uses several metrics because each one
+answers a different failure question. Localisation asks whether the region is
+available at all; classification asks whether the right policy is applied; OCR
+asks whether the translator receives the right string; reading order asks
+whether context is preserved; formula CDM separates rendered mathematical
+equivalence from LaTeX spelling; and table-content scoring acknowledges that
+cell structure cannot be judged without cell-level ground truth. Reported
+together, these metrics describe how an error would propagate through the
+pipeline rather than compressing incompatible failures into one score.
+
+\subsection{Limitations and Next Steps}
+\label{subsec:disc-limitations}
+
+Several limits remain. First, the end-to-end comparison is restricted to
+born-digital English-to-Vietnamese pages and uses reference-free translation
+quality estimation; matched scanned pages and human target references remain
+future work. Second, the cell stage is scored only for geometry and only on cropped
+scientific tables: no public corpus provides full pages, cell boxes that cover blank
+cells, and annotations free of the over-segmentation that affects earlier datasets. Cell
+geometry and table detection are therefore measured on different corpora, and logical
+structure is not measured at all, because the parser does not produce it. Finally,
+the experiments focus on \texttt{en}$\rightarrow$\texttt{xx}; other source
+languages and document genres remain open.
+
+The next benchmark should add matched scanned and mixed-PDF strata, human
+translation references and visual quality ratings.

@@ -1,0 +1,53 @@
+% Anonymous manuscript for double-anonymized review at
+% Engineering Applications of Artificial Intelligence.
+\documentclass[preprint,12pt,authoryear]{elsarticle}
+
+\input{paper_preamble}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Layout-Preserving Multilingual Translation of Documents in Portable
+Document Format with Large Language Models}
+
+% Engineering Applications of Artificial Intelligence uses double-anonymized
+% review. Author names, affiliations, acknowledgements and contribution roles
+% are therefore supplied only in title_page.tex.
+
+\input{sections/00_abstract}
+
+\begin{keyword}
+document translation \sep document analysis \sep machine translation \sep
+layout reconstruction \sep multilingual documents \sep optical character recognition
+\end{keyword}
+
+\end{frontmatter}
+
+\input{sections/01_introduction}
+\input{sections/02_literature_review}
+\input{sections/03_methodology}
+\input{sections/04_results}
+\input{sections/05_discussion}
+\input{sections/06_conclusion}
+
+\section*{Data availability}
+The evaluation data are drawn from the public datasets cited in the manuscript.
+The derived evaluation splits, annotations, and analysis code will be deposited
+in a public repository. The permanent repository identifier must be inserted
+before submission.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the
+manuscript preparation process}
+During the preparation of this work, the authors used OpenAI Codex to assist
+with language editing, manuscript formatting, and consistency checks. The
+authors reviewed and edited the resulting material and take full responsibility
+for the content of the article.
+
+\bibliographystyle{elsarticle-harv}
+% These works are cited in the separately submitted Supplementary Material.
+\nocite{fasttext,comet22,exponential-backoff,aws-backoff-jitter,
+api-rate-limit-design}
+\bibliography{references}
+
+\end{document}

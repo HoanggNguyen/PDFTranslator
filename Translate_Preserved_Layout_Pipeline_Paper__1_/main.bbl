@@ -1,0 +1,400 @@
+\begin{thebibliography}{34}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\href}[2]{#2}
+\providecommand{\path}[1]{#1}
+\providecommand{\DOIprefix}{doi:}
+\providecommand{\ArXivprefix}{arXiv:}
+\providecommand{\URLprefix}{URL: }
+\providecommand{\Pubmedprefix}{pmid:}
+\providecommand{\doi}[1]{\href{http://dx.doi.org/#1}{\path{#1}}}
+\providecommand{\Pubmed}[1]{\href{pmid:#1}{\path{#1}}}
+\providecommand{\bibinfo}[2]{#2}
+\ifx\xfnm\relax \def\xfnm[#1]{\unskip,\space#1}\fi
+%Type = Misc
+\bibitem[{Auer et~al.(2024)Auer, Lysak, Nassar, Dolfi, Livathinos, Vagenas,
+  Ramis, Omenetti, Lindlbauer, Dinkla, Mishra, Kim, Gupta, Teixeira~de Lima,
+  Weber, Morin, Meijer, Kuropiatnyk and Staar}]{docling}
+\bibinfo{author}{Auer, C.}, \bibinfo{author}{Lysak, M.},
+  \bibinfo{author}{Nassar, A.}, \bibinfo{author}{Dolfi, M.},
+  \bibinfo{author}{Livathinos, N.}, \bibinfo{author}{Vagenas, P.},
+  \bibinfo{author}{Ramis, C.B.}, \bibinfo{author}{Omenetti, M.},
+  \bibinfo{author}{Lindlbauer, F.}, \bibinfo{author}{Dinkla, K.},
+  \bibinfo{author}{Mishra, L.}, \bibinfo{author}{Kim, Y.},
+  \bibinfo{author}{Gupta, S.}, \bibinfo{author}{Teixeira~de Lima, R.},
+  \bibinfo{author}{Weber, V.}, \bibinfo{author}{Morin, L.},
+  \bibinfo{author}{Meijer, I.}, \bibinfo{author}{Kuropiatnyk, V.},
+  \bibinfo{author}{Staar, P.W.J.}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{Docling technical report}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2408.09869}.
+\newblock \URLprefix \url{https://arxiv.org/abs/2408.09869}.
+%Type = Article
+\bibitem[{BinMakhashen and Mahmoud(2019)}]{doclayout-survey}
+\bibinfo{author}{BinMakhashen, G.M.}, \bibinfo{author}{Mahmoud, S.A.},
+  \bibinfo{year}{2019}.
+\newblock \bibinfo{title}{Document layout analysis: A comprehensive survey}.
+\newblock \bibinfo{journal}{ACM Computing Surveys} \bibinfo{volume}{52},
+  \bibinfo{pages}{109:1--109:36}.
+\newblock \URLprefix \url{https://doi.org/10.1145/3355610},
+  \DOIprefix\doi{10.1145/3355610}.
+%Type = Misc
+\bibitem[{Brooker(2015)}]{aws-backoff-jitter}
+\bibinfo{author}{Brooker, M.}, \bibinfo{year}{2015}.
+\newblock \bibinfo{title}{Exponential backoff and jitter}.
+\newblock \bibinfo{howpublished}{AWS Architecture Blog}.
+\newblock \URLprefix
+  \url{https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/}.
+%Type = Article
+\bibitem[{Cui et~al.(2025)Cui, Sun, Lin, Gao, Zhang, Liu, Wang, Zhang, Zhou,
+  Liu, Zhang, Lv, Huang, Zhang, Zhang, Zhang, Liu, Yu and Ma}]{paddleocr}
+\bibinfo{author}{Cui, C.}, \bibinfo{author}{Sun, T.}, \bibinfo{author}{Lin,
+  M.}, \bibinfo{author}{Gao, T.}, \bibinfo{author}{Zhang, Y.},
+  \bibinfo{author}{Liu, J.}, \bibinfo{author}{Wang, X.},
+  \bibinfo{author}{Zhang, Z.}, \bibinfo{author}{Zhou, C.},
+  \bibinfo{author}{Liu, H.}, \bibinfo{author}{Zhang, Y.}, \bibinfo{author}{Lv,
+  W.}, \bibinfo{author}{Huang, K.}, \bibinfo{author}{Zhang, Y.},
+  \bibinfo{author}{Zhang, J.}, \bibinfo{author}{Zhang, J.},
+  \bibinfo{author}{Liu, Y.}, \bibinfo{author}{Yu, D.}, \bibinfo{author}{Ma,
+  Y.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{{PaddleOCR} 3.0 technical report}.
+\newblock \bibinfo{journal}{arXiv preprint arXiv:2507.05595} \URLprefix
+  \url{https://arxiv.org/abs/2507.05595}.
+%Type = Inproceedings
+\bibitem[{Deutsch et~al.(2025)Deutsch, Briakou, Caswell, Finkelstein, Galor,
+  Juraska, Kovacs, Lui, Rei, Riesa, Rijhwani, Riley, Salesky, Trabelsi,
+  Winkler, Zhang and Freitag}]{wmt24pp}
+\bibinfo{author}{Deutsch, D.}, \bibinfo{author}{Briakou, E.},
+  \bibinfo{author}{Caswell, I.}, \bibinfo{author}{Finkelstein, M.},
+  \bibinfo{author}{Galor, R.}, \bibinfo{author}{Juraska, J.},
+  \bibinfo{author}{Kovacs, G.}, \bibinfo{author}{Lui, A.},
+  \bibinfo{author}{Rei, R.}, \bibinfo{author}{Riesa, J.},
+  \bibinfo{author}{Rijhwani, S.}, \bibinfo{author}{Riley, P.},
+  \bibinfo{author}{Salesky, E.}, \bibinfo{author}{Trabelsi, F.},
+  \bibinfo{author}{Winkler, S.}, \bibinfo{author}{Zhang, B.},
+  \bibinfo{author}{Freitag, M.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{{WMT24++}: Expanding the language coverage of {WMT24}
+  to 55 languages \& dialects}, in: \bibinfo{booktitle}{Findings of the
+  Association for Computational Linguistics: ACL 2025},
+  \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{Vienna, Austria}. pp. \bibinfo{pages}{12257--12284}.
+\newblock \URLprefix \url{https://aclanthology.org/2025.findings-acl.634/},
+  \DOIprefix\doi{10.18653/v1/2025.findings-acl.634}.
+  \bibinfo{note}{arXiv:2502.12404}.
+%Type = Inproceedings
+\bibitem[{Dinu et~al.(2019)Dinu, Mathur, Federico and
+  Al-Onaizan}]{terminology-mt}
+\bibinfo{author}{Dinu, G.}, \bibinfo{author}{Mathur, P.},
+  \bibinfo{author}{Federico, M.}, \bibinfo{author}{Al-Onaizan, Y.},
+  \bibinfo{year}{2019}.
+\newblock \bibinfo{title}{Training neural machine translation to apply
+  terminology constraints}, in: \bibinfo{booktitle}{Proceedings of the 57th
+  Annual Meeting of the Association for Computational Linguistics},
+  \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{Florence, Italy}. pp. \bibinfo{pages}{3063--3068}.
+\newblock \URLprefix \url{https://aclanthology.org/P19-1294/},
+  \DOIprefix\doi{10.18653/v1/P19-1294}.
+%Type = Misc
+\bibitem[{{docutranslate contributors}(2024)}]{docutranslate}
+\bibinfo{author}{{docutranslate contributors}}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{docutranslate}.
+\newblock \bibinfo{howpublished}{GitHub repository}.
+\newblock \URLprefix \url{https://github.com/xunbu/docutranslate}.
+%Type = Inproceedings
+\bibitem[{Freitag et~al.(2022)Freitag, Rei, Mathur, Lo, Stewart, Avramidis,
+  Kocmi, Foster, Lavie and Martins}]{wmt-metrics-shared-task}
+\bibinfo{author}{Freitag, M.}, \bibinfo{author}{Rei, R.},
+  \bibinfo{author}{Mathur, N.}, \bibinfo{author}{Lo, C.k.},
+  \bibinfo{author}{Stewart, C.}, \bibinfo{author}{Avramidis, E.},
+  \bibinfo{author}{Kocmi, T.}, \bibinfo{author}{Foster, G.},
+  \bibinfo{author}{Lavie, A.}, \bibinfo{author}{Martins, A.F.T.},
+  \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{Results of {WMT22} metrics shared task: Stop using
+  {BLEU} --- neural metrics are better and more robust}, in:
+  \bibinfo{booktitle}{Proceedings of the Seventh Conference on Machine
+  Translation (WMT)}, \bibinfo{publisher}{Association for Computational
+  Linguistics}, \bibinfo{address}{Abu Dhabi, United Arab Emirates}. pp.
+  \bibinfo{pages}{46--68}.
+\newblock \URLprefix \url{https://aclanthology.org/2022.wmt-1.2/},
+  \DOIprefix\doi{10.18653/v1/2022.wmt-1.2}.
+%Type = Misc
+\bibitem[{Haug et~al.(2023)Haug, M{\"a}dje and {Typst contributors}}]{typst}
+\bibinfo{author}{Haug, M.}, \bibinfo{author}{M{\"a}dje, L.},
+  \bibinfo{author}{{Typst contributors}}, \bibinfo{year}{2023}.
+\newblock \bibinfo{title}{Typst: A new markup-based typesetting system}.
+\newblock \bibinfo{howpublished}{GitHub repository}.
+\newblock \URLprefix \url{https://github.com/typst/typst}.
+%Type = Misc
+\bibitem[{Hendy et~al.(2023)Hendy, Abdelrehim, Sharaf, Raunak, Gabr,
+  Matsushita, Kim, Afify and Awadalla}]{gpt-mt}
+\bibinfo{author}{Hendy, A.}, \bibinfo{author}{Abdelrehim, M.},
+  \bibinfo{author}{Sharaf, A.}, \bibinfo{author}{Raunak, V.},
+  \bibinfo{author}{Gabr, M.}, \bibinfo{author}{Matsushita, H.},
+  \bibinfo{author}{Kim, Y.J.}, \bibinfo{author}{Afify, M.},
+  \bibinfo{author}{Awadalla, H.H.}, \bibinfo{year}{2023}.
+\newblock \bibinfo{title}{How good are {GPT} models at machine translation? a
+  comprehensive evaluation}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2302.09210}.
+\newblock \URLprefix \url{https://arxiv.org/abs/2302.09210}.
+%Type = Misc
+\bibitem[{{ISO}(2020)}]{pdf-spec}
+\bibinfo{author}{{ISO}}, \bibinfo{year}{2020}.
+\newblock \bibinfo{title}{{ISO 32000-2:2020} --- document management ---
+  portable document format --- part 2: {PDF} 2.0}.
+\newblock \URLprefix \url{https://www.iso.org/standard/75839.html}.
+%Type = Inproceedings
+\bibitem[{Joulin et~al.(2017)Joulin, Grave, Bojanowski and Mikolov}]{fasttext}
+\bibinfo{author}{Joulin, A.}, \bibinfo{author}{Grave, E.},
+  \bibinfo{author}{Bojanowski, P.}, \bibinfo{author}{Mikolov, T.},
+  \bibinfo{year}{2017}.
+\newblock \bibinfo{title}{Bag of tricks for efficient text classification}, in:
+  \bibinfo{booktitle}{Proceedings of the 15th Conference of the European
+  Chapter of the Association for Computational Linguistics: Volume 2, Short
+  Papers}, \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{Valencia, Spain}. pp. \bibinfo{pages}{427--431}.
+\newblock \URLprefix \url{https://aclanthology.org/E17-2068/},
+  \DOIprefix\doi{10.18653/v1/E17-2068}.
+%Type = Article
+\bibitem[{Levenshtein(1966)}]{levenshtein}
+\bibinfo{author}{Levenshtein, V.I.}, \bibinfo{year}{1966}.
+\newblock \bibinfo{title}{Binary codes capable of correcting deletions,
+  insertions, and reversals}.
+\newblock \bibinfo{journal}{Soviet Physics Doklady} \bibinfo{volume}{10},
+  \bibinfo{pages}{707--710}.
+%Type = Article
+\bibitem[{Liu et~al.(2025)Liu, Lyu, Li, Wei, Zhang, Tao and
+  Yang}]{doc-mt-multi-knowledge}
+\bibinfo{author}{Liu, B.}, \bibinfo{author}{Lyu, X.}, \bibinfo{author}{Li, J.},
+  \bibinfo{author}{Wei, D.}, \bibinfo{author}{Zhang, M.}, \bibinfo{author}{Tao,
+  S.}, \bibinfo{author}{Yang, H.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{Improving {LLM}-based document-level machine
+  translation with multi-knowledge fusion}.
+\newblock \bibinfo{journal}{arXiv preprint arXiv:2503.12152} \URLprefix
+  \url{https://arxiv.org/abs/2503.12152}.
+%Type = Article
+\bibitem[{Metcalfe and Boggs(1976)}]{exponential-backoff}
+\bibinfo{author}{Metcalfe, R.M.}, \bibinfo{author}{Boggs, D.R.},
+  \bibinfo{year}{1976}.
+\newblock \bibinfo{title}{Ethernet: Distributed packet switching for local
+  computer networks}.
+\newblock \bibinfo{journal}{Communications of the ACM} \bibinfo{volume}{19},
+  \bibinfo{pages}{395--404}.
+\newblock \DOIprefix\doi{10.1145/360248.360253}.
+%Type = Misc
+\bibitem[{Nottingham and Fielding(2012)}]{api-rate-limit-design}
+\bibinfo{author}{Nottingham, M.}, \bibinfo{author}{Fielding, R.T.},
+  \bibinfo{year}{2012}.
+\newblock \bibinfo{title}{Additional {HTTP} status codes}.
+\newblock \bibinfo{howpublished}{RFC 6585, Internet Engineering Task Force}.
+\newblock \URLprefix \url{https://www.rfc-editor.org/info/rfc6585},
+  \DOIprefix\doi{10.17487/RFC6585}.
+%Type = Inproceedings
+\bibitem[{Ouyang et~al.(2025a)Ouyang, Qu, Zhou, Zhu, Zhang, Lin, Wang, Zhao,
+  Jiang, Zhao, Shi, Wu, Chu, Liu, Li, Xu, Zhang, Shi, Tu and He}]{omnidocbench}
+\bibinfo{author}{Ouyang, L.}, \bibinfo{author}{Qu, Y.}, \bibinfo{author}{Zhou,
+  H.}, \bibinfo{author}{Zhu, J.}, \bibinfo{author}{Zhang, R.},
+  \bibinfo{author}{Lin, Q.}, \bibinfo{author}{Wang, B.}, \bibinfo{author}{Zhao,
+  Z.}, \bibinfo{author}{Jiang, M.}, \bibinfo{author}{Zhao, X.},
+  \bibinfo{author}{Shi, J.}, \bibinfo{author}{Wu, F.}, \bibinfo{author}{Chu,
+  P.}, \bibinfo{author}{Liu, M.}, \bibinfo{author}{Li, Z.},
+  \bibinfo{author}{Xu, C.}, \bibinfo{author}{Zhang, B.}, \bibinfo{author}{Shi,
+  B.}, \bibinfo{author}{Tu, Z.}, \bibinfo{author}{He, C.},
+  \bibinfo{year}{2025}a.
+\newblock \bibinfo{title}{{OmniDocBench}: Benchmarking diverse {PDF} document
+  parsing with comprehensive annotations}, in: \bibinfo{booktitle}{Proceedings
+  of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, pp. \bibinfo{pages}{24838--24848}.
+\newblock \URLprefix
+  \url{https://openaccess.thecvf.com/content/CVPR2025/html/Ouyang_OmniDocBench_Benchmarking_Diverse_PDF_Document_Parsing_with_Comprehensive_Annotations_CVPR_2025_paper.html}.
+  \bibinfo{note}{arXiv:2412.07626}.
+%Type = Inproceedings
+\bibitem[{Ouyang et~al.(2025b)Ouyang, Chu, Xin and Ma}]{pdf2zh}
+\bibinfo{author}{Ouyang, R.}, \bibinfo{author}{Chu, C.}, \bibinfo{author}{Xin,
+  Z.}, \bibinfo{author}{Ma, X.}, \bibinfo{year}{2025}b.
+\newblock \bibinfo{title}{{PDFMathTranslate}: Scientific document translation
+  preserving layouts}, in: \bibinfo{booktitle}{Proceedings of the 2025
+  Conference on Empirical Methods in Natural Language Processing: System
+  Demonstrations}, \bibinfo{publisher}{Association for Computational
+  Linguistics}, \bibinfo{address}{Suzhou, China}. pp.
+  \bibinfo{pages}{918--924}.
+\newblock \URLprefix \url{https://aclanthology.org/2025.emnlp-demos.71/},
+  \DOIprefix\doi{10.18653/v1/2025.emnlp-demos.71}.
+%Type = Inproceedings
+\bibitem[{Papineni et~al.(2002)Papineni, Roukos, Ward and Zhu}]{bleu}
+\bibinfo{author}{Papineni, K.}, \bibinfo{author}{Roukos, S.},
+  \bibinfo{author}{Ward, T.}, \bibinfo{author}{Zhu, W.J.},
+  \bibinfo{year}{2002}.
+\newblock \bibinfo{title}{{BLEU}: a method for automatic evaluation of machine
+  translation}, in: \bibinfo{booktitle}{Proceedings of the 40th Annual Meeting
+  of the Association for Computational Linguistics},
+  \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{Philadelphia, Pennsylvania, USA}. pp.
+  \bibinfo{pages}{311--318}.
+\newblock \URLprefix \url{https://aclanthology.org/P02-1040/},
+  \DOIprefix\doi{10.3115/1073083.1073135}.
+%Type = Misc
+\bibitem[{Paruchuri(2025)}]{marker}
+\bibinfo{author}{Paruchuri, V.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{Marker: Convert {PDF} to markdown and {JSON} quickly
+  with high accuracy}.
+\newblock \bibinfo{howpublished}{GitHub repository}.
+\newblock \URLprefix \url{https://github.com/datalab-to/marker}.
+%Type = Misc
+\bibitem[{Paruchuri and {Datalab Team}(2025)}]{surya}
+\bibinfo{author}{Paruchuri, V.}, \bibinfo{author}{{Datalab Team}},
+  \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{Surya: A lightweight document {OCR} and analysis
+  toolkit}.
+\newblock \bibinfo{howpublished}{GitHub repository}.
+\newblock \URLprefix \url{https://github.com/VikParuchuri/surya}.
+%Type = Inproceedings
+\bibitem[{Pfitzmann et~al.(2022)Pfitzmann, Auer, Dolfi, Nassar and
+  Staar}]{doclaynet}
+\bibinfo{author}{Pfitzmann, B.}, \bibinfo{author}{Auer, C.},
+  \bibinfo{author}{Dolfi, M.}, \bibinfo{author}{Nassar, A.S.},
+  \bibinfo{author}{Staar, P.W.J.}, \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{{DocLayNet}: A large human-annotated dataset for
+  document-layout segmentation}, in: \bibinfo{booktitle}{Proceedings of the
+  28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining},
+  \bibinfo{publisher}{Association for Computing Machinery}. pp.
+  \bibinfo{pages}{3743--3751}.
+\newblock \URLprefix \url{https://doi.org/10.1145/3534678.3539043},
+  \DOIprefix\doi{10.1145/3534678.3539043}.
+%Type = Inproceedings
+\bibitem[{Popovi{\'c}(2015)}]{chrf}
+\bibinfo{author}{Popovi{\'c}, M.}, \bibinfo{year}{2015}.
+\newblock \bibinfo{title}{chr{F}: Character n-gram {F}-score for automatic {MT}
+  evaluation}, in: \bibinfo{booktitle}{Proceedings of the Tenth Workshop on
+  Statistical Machine Translation}, \bibinfo{publisher}{Association for
+  Computational Linguistics}, \bibinfo{address}{Lisbon, Portugal}. pp.
+  \bibinfo{pages}{392--395}.
+\newblock \URLprefix \url{https://aclanthology.org/W15-3049/},
+  \DOIprefix\doi{10.18653/v1/W15-3049}.
+%Type = Misc
+\bibitem[{Poznanski et~al.(2025)Poznanski, Borchardt, Dunkelberger, Huff, Lin,
+  Rangapur, Wilhelm, Lo and Soldaini}]{olmocr}
+\bibinfo{author}{Poznanski, J.}, \bibinfo{author}{Borchardt, J.},
+  \bibinfo{author}{Dunkelberger, J.}, \bibinfo{author}{Huff, R.},
+  \bibinfo{author}{Lin, D.}, \bibinfo{author}{Rangapur, A.},
+  \bibinfo{author}{Wilhelm, C.}, \bibinfo{author}{Lo, K.},
+  \bibinfo{author}{Soldaini, L.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{{olmOCR}: Unlocking trillions of tokens in {PDFs}
+  with vision language models}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2502.18443}.
+\newblock \URLprefix \url{https://arxiv.org/abs/2502.18443}.
+%Type = Inproceedings
+\bibitem[{Rei et~al.(2022)Rei, C.~de Souza, Alves, Zerva, Farinha, Glushkova,
+  Lavie, Coheur and Martins}]{comet22}
+\bibinfo{author}{Rei, R.}, \bibinfo{author}{C.~de Souza, J.G.},
+  \bibinfo{author}{Alves, D.}, \bibinfo{author}{Zerva, C.},
+  \bibinfo{author}{Farinha, A.C.}, \bibinfo{author}{Glushkova, T.},
+  \bibinfo{author}{Lavie, A.}, \bibinfo{author}{Coheur, L.},
+  \bibinfo{author}{Martins, A.F.T.}, \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{{COMET}-22: Unbabel-{IST} 2022 submission for the
+  metrics shared task}, in: \bibinfo{booktitle}{Proceedings of the Seventh
+  Conference on Machine Translation (WMT)}, \bibinfo{publisher}{Association for
+  Computational Linguistics}, \bibinfo{address}{Abu Dhabi, United Arab Emirates
+  (Hybrid)}. pp. \bibinfo{pages}{578--585}.
+\newblock \URLprefix \url{https://aclanthology.org/2022.wmt-1.52/},
+  \DOIprefix\doi{10.18653/v1/2022.wmt-1.52}.
+%Type = Inproceedings
+\bibitem[{Rei et~al.(2020)Rei, Stewart, Farinha and Lavie}]{comet}
+\bibinfo{author}{Rei, R.}, \bibinfo{author}{Stewart, C.},
+  \bibinfo{author}{Farinha, A.C.}, \bibinfo{author}{Lavie, A.},
+  \bibinfo{year}{2020}.
+\newblock \bibinfo{title}{{COMET}: A neural framework for {MT} evaluation}, in:
+  \bibinfo{booktitle}{Proceedings of the 2020 Conference on Empirical Methods
+  in Natural Language Processing (EMNLP)}, \bibinfo{publisher}{Association for
+  Computational Linguistics}, \bibinfo{address}{Online}. pp.
+  \bibinfo{pages}{2685--2702}.
+\newblock \URLprefix \url{https://aclanthology.org/2020.emnlp-main.213/},
+  \DOIprefix\doi{10.18653/v1/2020.emnlp-main.213}.
+%Type = Misc
+\bibitem[{{retain-pdf contributors}(2024)}]{retain-pdf}
+\bibinfo{author}{{retain-pdf contributors}}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{retain-pdf}.
+\newblock \bibinfo{howpublished}{GitHub repository}.
+\newblock \URLprefix \url{https://github.com/wxyhgk/retain-pdf}.
+%Type = Inproceedings
+\bibitem[{Smock et~al.(2022)Smock, Pesala and Abraham}]{pubtables1m}
+\bibinfo{author}{Smock, B.}, \bibinfo{author}{Pesala, R.},
+  \bibinfo{author}{Abraham, R.}, \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{{PubTables-1M}: Towards comprehensive table
+  extraction from unstructured documents}, in: \bibinfo{booktitle}{Proceedings
+  of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, pp. \bibinfo{pages}{4634--4642}.
+\newblock \URLprefix
+  \url{https://openaccess.thecvf.com/content/CVPR2022/html/Smock_PubTables-1M_Towards_Comprehensive_Table_Extraction_From_Unstructured_Documents_CVPR_2022_paper.html}.
+%Type = Article
+\bibitem[{Stahlberg(2020)}]{nmt-survey}
+\bibinfo{author}{Stahlberg, F.}, \bibinfo{year}{2020}.
+\newblock \bibinfo{title}{Neural machine translation: A review}.
+\newblock \bibinfo{journal}{Journal of Artificial Intelligence Research}
+  \bibinfo{volume}{69}, \bibinfo{pages}{343--418}.
+\newblock \DOIprefix\doi{10.1613/jair.1.12007}.
+%Type = Inproceedings
+\bibitem[{Wang et~al.(2025)Wang, Wu, Ouyang, Gu, Zhang, Xia, Zhang and
+  He}]{cdm}
+\bibinfo{author}{Wang, B.}, \bibinfo{author}{Wu, F.}, \bibinfo{author}{Ouyang,
+  L.}, \bibinfo{author}{Gu, Z.}, \bibinfo{author}{Zhang, R.},
+  \bibinfo{author}{Xia, R.}, \bibinfo{author}{Zhang, B.}, \bibinfo{author}{He,
+  C.}, \bibinfo{year}{2025}.
+\newblock \bibinfo{title}{Image over text: Transforming formula recognition
+  evaluation with character detection matching}, in:
+  \bibinfo{booktitle}{Proceedings of the IEEE/CVF Conference on Computer Vision
+  and Pattern Recognition (CVPR)}, pp. \bibinfo{pages}{19681--19690}.
+\newblock \URLprefix
+  \url{https://openaccess.thecvf.com/content/CVPR2025/html/Wang_Image_Over_Text_Transforming_Formula_Recognition_Evaluation_with_Character_Detection_CVPR_2025_paper.html}.
+  \bibinfo{note}{arXiv:2409.03643}.
+%Type = Misc
+\bibitem[{Wang et~al.(2024)Wang, Xu, Zhao, Ouyang, Wu, Zhao, Xu, Liu, Qu,
+  Shang, Zhang, Wei, Sui, Li, Shi, Qiao, Lin and He}]{mineru}
+\bibinfo{author}{Wang, B.}, \bibinfo{author}{Xu, C.}, \bibinfo{author}{Zhao,
+  X.}, \bibinfo{author}{Ouyang, L.}, \bibinfo{author}{Wu, F.},
+  \bibinfo{author}{Zhao, Z.}, \bibinfo{author}{Xu, R.}, \bibinfo{author}{Liu,
+  K.}, \bibinfo{author}{Qu, Y.}, \bibinfo{author}{Shang, F.},
+  \bibinfo{author}{Zhang, B.}, \bibinfo{author}{Wei, L.}, \bibinfo{author}{Sui,
+  Z.}, \bibinfo{author}{Li, W.}, \bibinfo{author}{Shi, B.},
+  \bibinfo{author}{Qiao, Y.}, \bibinfo{author}{Lin, D.}, \bibinfo{author}{He,
+  C.}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{{MinerU}: An open-source solution for precise
+  document content extraction}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2409.18839}.
+\newblock \URLprefix \url{https://arxiv.org/abs/2409.18839}.
+%Type = Inproceedings
+\bibitem[{Yang et~al.(2026)Yang, Ma, Wang, Wang and Wang}]{babeldoc}
+\bibinfo{author}{Yang, Q.}, \bibinfo{author}{Ma, X.}, \bibinfo{author}{Wang,
+  X.}, \bibinfo{author}{Wang, H.}, \bibinfo{author}{Wang, R.},
+  \bibinfo{year}{2026}.
+\newblock \bibinfo{title}{{BabelDOC}: Better layout-preserving {PDF}
+  translation via intermediate representation}, in:
+  \bibinfo{booktitle}{Proceedings of the 64th Annual Meeting of the Association
+  for Computational Linguistics (Volume 3: System Demonstrations)},
+  \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{San Diego, California, United States}. pp.
+  \bibinfo{pages}{253--262}.
+\newblock \URLprefix \url{https://aclanthology.org/2026.acl-demo.25/},
+  \DOIprefix\doi{10.18653/v1/2026.acl-demo.25}.
+%Type = Misc
+\bibitem[{Zhao et~al.(2024)Zhao, Kang, Wang and He}]{doclayout-yolo}
+\bibinfo{author}{Zhao, Z.}, \bibinfo{author}{Kang, H.}, \bibinfo{author}{Wang,
+  B.}, \bibinfo{author}{He, C.}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{{DocLayout-YOLO}: Enhancing document layout analysis
+  through diverse synthetic data and global-to-local adaptive perception}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2410.12628}.
+\newblock \URLprefix \url{https://arxiv.org/abs/2410.12628}.
+%Type = Inproceedings
+\bibitem[{Zhu et~al.(2024)Zhu, Liu, Dong, Xu, Huang, Kong, Chen and
+  Li}]{llm-multilingual-mt}
+\bibinfo{author}{Zhu, W.}, \bibinfo{author}{Liu, H.}, \bibinfo{author}{Dong,
+  Q.}, \bibinfo{author}{Xu, J.}, \bibinfo{author}{Huang, S.},
+  \bibinfo{author}{Kong, L.}, \bibinfo{author}{Chen, J.}, \bibinfo{author}{Li,
+  L.}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{Multilingual machine translation with large language
+  models: Empirical results and analysis}, in: \bibinfo{booktitle}{Findings of
+  the Association for Computational Linguistics: NAACL 2024},
+  \bibinfo{publisher}{Association for Computational Linguistics},
+  \bibinfo{address}{Mexico City, Mexico}. pp. \bibinfo{pages}{2765--2781}.
+\newblock \URLprefix \url{https://aclanthology.org/2024.findings-naacl.176/},
+  \DOIprefix\doi{10.18653/v1/2024.findings-naacl.176}.
+
+\end{thebibliography}

@@ -18,6 +18,7 @@ build/
 
 # Virtual environments
 .venv/
+.venv-*/
 venv/
 env/
 ENV/
@@ -55,3 +56,10 @@ test_local/
 
 # Deposit bundle built from benchmark/parser/per_item_results/ (regenerable)
 parser-per-item-records.tar.gz
+
+.env.*
+!.env.example
+!.env.bench.example
+benchmark/e2e/work/
+benchmark/e2e/space-build/
+benchmark/e2e/space-build-*/

@@ -1,0 +1,219 @@
+\relax 
+\citation{pdf-spec}
+\citation{doclaynet}
+\citation{doclayout-yolo}
+\citation{doclayout-survey}
+\citation{nmt-survey}
+\citation{gpt-mt,llm-multilingual-mt}
+\providecommand \oddpage@label [2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}INTRODUCTION}{1}{}\protected@file@percent }
+\newlabel{sec:introduction}{{1}{1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Background}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Problem Statement}{2}{}\protected@file@percent }
+\citation{pdf2zh}
+\citation{docutranslate}
+\citation{retain-pdf}
+\citation{docling,marker,mineru,olmocr}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Research Gap}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Hypothesis}{4}{}\protected@file@percent }
+\newlabel{subsec:hypothesis}{{1.4}{4}}
+\@writefile{toc}{\contentsline {paragraph}{H1 (the bottleneck).}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{H2 (where layout must be enforced).}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5}The Present Study}{4}{}\protected@file@percent }
+\citation{omnidocbench}
+\citation{pubtables1m}
+\citation{wmt24pp}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.6}Contributions}{5}{}\protected@file@percent }
+\citation{pdf-spec}
+\@writefile{toc}{\contentsline {section}{\numberline {2}LITERATURE REVIEW}{6}{}\protected@file@percent }
+\newlabel{sec:literature}{{2}{6}}
+\citation{doclaynet}
+\citation{doclayout-survey}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}PDF Structure and Layout Preservation}{7}{}\protected@file@percent }
+\newlabel{subsec:lit-pdf}{{2.1}{7}}
+\@writefile{toc}{\contentsline {paragraph}{Format characteristics.}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Element types and per-type policy.}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Text overflow.}{7}{}\protected@file@percent }
+\citation{pdf-spec}
+\citation{doclayout-yolo}
+\citation{surya}
+\@writefile{toc}{\contentsline {paragraph}{Appearance beyond geometry.}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Foundation Models for Document Analysis}{8}{}\protected@file@percent }
+\newlabel{subsec:lit-models}{{2.2}{8}}
+\@writefile{toc}{\contentsline {paragraph}{Layout detection.}{8}{}\protected@file@percent }
+\citation{surya}
+\citation{paddleocr}
+\citation{bleu}
+\citation{chrf}
+\citation{comet}
+\citation{wmt-metrics-shared-task}
+\citation{omnidocbench}
+\citation{cdm}
+\citation{levenshtein}
+\citation{docling}
+\citation{marker}
+\citation{mineru}
+\citation{olmocr}
+\@writefile{toc}{\contentsline {paragraph}{OCR for scanned PDFs.}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evaluation metrics.}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Document Parsing and Conversion Systems}{9}{}\protected@file@percent }
+\newlabel{subsec:lit-conversion}{{2.3}{9}}
+\citation{pdf2zh}
+\citation{pdf2zh}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Related Document Translation Systems}{10}{}\protected@file@percent }
+\newlabel{subsec:lit-systems}{{2.4}{10}}
+\@writefile{toc}{\contentsline {paragraph}{Layout preservation by text overlay.}{10}{}\protected@file@percent }
+\citation{docutranslate}
+\citation{terminology-mt}
+\citation{doc-mt-multi-knowledge}
+\citation{docutranslate}
+\citation{retain-pdf}
+\@writefile{toc}{\contentsline {paragraph}{Segmentation and terminology consistency.}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Re-typesetting from OCR.}{11}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Qualitative comparison of related document translation approaches.\relax }}{12}{}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:related-work-comparison}{{1}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Synthesis and Research Gap}{12}{}\protected@file@percent }
+\newlabel{subsec:lit-gap}{{2.5}{12}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}METHODOLOGY}{13}{}\protected@file@percent }
+\newlabel{sec:methodology}{{3}{13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}System Overview}{13}{}\protected@file@percent }
+\newlabel{subsec:method-overview}{{3.1}{13}}
+\citation{surya,paddleocr}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The three-stage pipeline. Each stage consumes the previous artifact and writes a new JSON/PDF artifact into a per-session working directory, so individual stages can be inspected, corrected or re-run.\relax }}{14}{}\protected@file@percent }
+\newlabel{fig:pipeline-overview}{{1}{14}}
+\@writefile{toc}{\contentsline {paragraph}{Human-in-the-loop checkpoints.}{14}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Stage 1: Document Structure Analysis}{14}{}\protected@file@percent }
+\newlabel{subsec:method-parser}{{3.2}{14}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}Models and Output Representation}{15}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Page-level recognition stages: (a) the rasterised page is the input; (b) individual text lines are localised; (c) each line is recognised and re-anchored to its position; (d) the layout model delimits blocks, coloured by coarse \texttt  {category} and labelled with the fine-grained class.\relax }}{15}{}\protected@file@percent }
+\newlabel{fig:parser-stages}{{2}{15}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Table-cell detection: the PaddleOCR RT-DETR detector returns a box per cell inside each table region; the boxes are kept as geometry for cell-wise translation and table reconstruction.\relax }}{15}{}\protected@file@percent }
+\newlabel{fig:table-cells}{{3}{15}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}Translation-Oriented Post-processing}{16}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Sparse-block splitting separates formula-heavy regions into translatable line-level elements while preserving bypassed regions.\relax }}{17}{}\protected@file@percent }
+\newlabel{fig:sparse-split}{{4}{17}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Reading-order repair (before $\rightarrow $ after; solid black = layout block, grey = OCR text line, red dashed = affected element). (a) OCR lines overlapping a block by at least $0.3$ are absorbed and the block expands to hug the glyphs. (b) A block is removed when $\ge 0.7$ of its area lies inside a larger retained block, and the rest are re-sorted by position. (c) An OCR line covered by no block becomes a \texttt  {Text} element inserted at the right position in the reading sequence.\relax }}{17}{}\protected@file@percent }
+\newlabel{fig:reading-order}{{5}{17}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Stage 2: Content Translation}{18}{}\protected@file@percent }
+\newlabel{subsec:method-translate}{{3.3}{18}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.1}Translation Units and Prompt Contract}{18}{}\protected@file@percent }
+\newlabel{subsubsec:prompt}{{3.3.1}{18}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.2}Handling Tables and Formulas}{18}{}\protected@file@percent }
+\newlabel{subsubsec:special}{{3.3.2}{18}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.3}Format Post-processing}{18}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Stage 3: Document Reconstruction}{19}{}\protected@file@percent }
+\newlabel{subsec:method-render}{{3.4}{19}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.1}Size Selection}{19}{}\protected@file@percent }
+\newlabel{subsubsec:sizing}{{3.4.1}{19}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Font size changes only when rendered overflow would collide with a neighbouring element.\relax }}{19}{}\protected@file@percent }
+\newlabel{fig:overflow-collision}{{6}{19}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.2}Colour Selection}{19}{}\protected@file@percent }
+\newlabel{subsubsec:colour}{{3.4.2}{19}}
+\citation{typst}
+\citation{wmt24pp}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Background is sampled around the element; text colour is sampled from pixels far from that background inside the box.\relax }}{20}{}\protected@file@percent }
+\newlabel{fig:colour-sampling}{{7}{20}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.3}Overlay Compilation and Output}{20}{}\protected@file@percent }
+\newlabel{subsubsec:overlay}{{3.4.3}{20}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Experimental Design}{20}{}\protected@file@percent }
+\newlabel{subsec:method-eval}{{3.5}{20}}
+\citation{comet,wmt-metrics-shared-task}
+\citation{chrf}
+\citation{omnidocbench}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.1}Translation Quality}{21}{}\protected@file@percent }
+\newlabel{subsubsec:eval-mt}{{3.5.1}{21}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.2}Structure Analysis Accuracy}{21}{}\protected@file@percent }
+\newlabel{subsubsec:eval-parser}{{3.5.2}{21}}
+\citation{cdm}
+\citation{pubtables1m}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Structure-analysis metrics and the question each answers.\relax }}{22}{}\protected@file@percent }
+\newlabel{tab:structure-metrics}{{2}{22}}
+\@writefile{toc}{\contentsline {paragraph}{Cell geometry.}{22}{}\protected@file@percent }
+\citation{doclaynet}
+\citation{babeldoc}
+\citation{pdf2zh}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.3}End-to-End PDF Comparison}{23}{}\protected@file@percent }
+\newlabel{subsubsec:eval-e2e}{{3.5.3}{23}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.4}Experimental Environment}{23}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}RESULTS}{24}{}\protected@file@percent }
+\newlabel{sec:results}{{4}{24}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Finding 1: The Parser Loses Little, but What It Loses Is Unrecoverable}{24}{}\protected@file@percent }
+\newlabel{subsec:res-parser}{{4.1}{24}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Headline structure-analysis results over all 1{,}651 pages.\relax }}{25}{}\protected@file@percent }
+\newlabel{tab:res-headline}{{3}{25}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Parser failure slices that most affect downstream translation.\relax }}{25}{}\protected@file@percent }
+\newlabel{tab:res-risk-slices}{{4}{25}}
+\@writefile{toc}{\contentsline {paragraph}{Cell geometry.}{26}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Cell geometry on 1{,}499 PubTables-1M tables, given the annotated table region.\relax }}{26}{}\protected@file@percent }
+\newlabel{tab:res-cells}{{5}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Finding 2: Model Choice Is the Smaller Lever}{26}{}\protected@file@percent }
+\newlabel{subsec:res-mt}{{4.2}{26}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces COMET-DA (chrF++ in parentheses) by target language $\times $ system for representative languages. Full results are in the complete translation-results table in the Supplementary Material.\relax }}{27}{}\protected@file@percent }
+\newlabel{tab:comet-per-lang}{{6}{27}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Finding 3: A Prompt-Level Length Constraint Does Not Buy Layout Fidelity}{27}{}\protected@file@percent }
+\newlabel{subsec:res-compliance}{{4.3}{27}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Segment-level compliance with the $\pm 15\%$ length constraint.\relax }}{27}{}\protected@file@percent }
+\newlabel{tab:compliance-results}{{7}{27}}
+\@writefile{toc}{\contentsline {paragraph}{End-to-end artifact quality.}{28}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Selected end-to-end results on 204 English-to-Vietnamese pages. Complete scores are provided in the Supplementary Material.\relax }}{28}{}\protected@file@percent }
+\newlabel{tab:res-e2e-compact}{{8}{28}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Where the Bottleneck Is}{29}{}\protected@file@percent }
+\newlabel{subsec:res-bottleneck}{{4.4}{29}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}End-to-End Qualitative Behaviour}{29}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces End-to-end output on three document genres. Top row: source pages. Bottom row: the corresponding pages produced by the pipeline.\relax }}{30}{}\protected@file@percent }
+\newlabel{fig:qualitative}{{8}{30}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}DISCUSSION}{30}{}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}H1: What Kind of Error Bounds the Pipeline}{30}{}\protected@file@percent }
+\newlabel{subsec:disc-structure}{{5.1}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}H2: Layout Belongs to Reconstruction}{31}{}\protected@file@percent }
+\newlabel{subsec:disc-constraint}{{5.2}{31}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Metric Design}{32}{}\protected@file@percent }
+\newlabel{subsec:disc-metrics}{{5.3}{32}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Limitations and Next Steps}{32}{}\protected@file@percent }
+\newlabel{subsec:disc-limitations}{{5.4}{32}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}CONCLUSION}{32}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{32}}
+\bibstyle{elsarticle-harv}
+\citation{fasttext}
+\citation{comet22}
+\citation{exponential-backoff}
+\citation{aws-backoff-jitter}
+\citation{api-rate-limit-design}
+\bibdata{references}
+\bibcite{docling}{{1}{2024}{{Auer et~al.}}{{Auer, Lysak, Nassar, Dolfi, Livathinos, Vagenas, Ramis, Omenetti, Lindlbauer, Dinkla, Mishra, Kim, Gupta, Teixeira~de Lima, Weber, Morin, Meijer, Kuropiatnyk and Staar}}}
+\bibcite{doclayout-survey}{{2}{2019}{{BinMakhashen and Mahmoud}}{{}}}
+\bibcite{aws-backoff-jitter}{{3}{2015}{{Brooker}}{{}}}
+\bibcite{paddleocr}{{4}{2025}{{Cui et~al.}}{{Cui, Sun, Lin, Gao, Zhang, Liu, Wang, Zhang, Zhou, Liu, Zhang, Lv, Huang, Zhang, Zhang, Zhang, Liu, Yu and Ma}}}
+\bibcite{wmt24pp}{{5}{2025}{{Deutsch et~al.}}{{Deutsch, Briakou, Caswell, Finkelstein, Galor, Juraska, Kovacs, Lui, Rei, Riesa, Rijhwani, Riley, Salesky, Trabelsi, Winkler, Zhang and Freitag}}}
+\bibcite{terminology-mt}{{6}{2019}{{Dinu et~al.}}{{Dinu, Mathur, Federico and Al-Onaizan}}}
+\bibcite{docutranslate}{{7}{2024}{{docutranslate contributors}}{{}}}
+\bibcite{wmt-metrics-shared-task}{{8}{2022}{{Freitag et~al.}}{{Freitag, Rei, Mathur, Lo, Stewart, Avramidis, Kocmi, Foster, Lavie and Martins}}}
+\bibcite{typst}{{9}{2023}{{Haug et~al.}}{{Haug, M{\"a}dje and {Typst contributors}}}}
+\bibcite{gpt-mt}{{10}{2023}{{Hendy et~al.}}{{Hendy, Abdelrehim, Sharaf, Raunak, Gabr, Matsushita, Kim, Afify and Awadalla}}}
+\bibcite{pdf-spec}{{11}{2020}{{ISO}}{{}}}
+\bibcite{fasttext}{{12}{2017}{{Joulin et~al.}}{{Joulin, Grave, Bojanowski and Mikolov}}}
+\bibcite{levenshtein}{{13}{1966}{{Levenshtein}}{{}}}
+\bibcite{doc-mt-multi-knowledge}{{14}{2025}{{Liu et~al.}}{{Liu, Lyu, Li, Wei, Zhang, Tao and Yang}}}
+\bibcite{exponential-backoff}{{15}{1976}{{Metcalfe and Boggs}}{{}}}
+\bibcite{api-rate-limit-design}{{16}{2012}{{Nottingham and Fielding}}{{}}}
+\bibcite{omnidocbench}{{17}{2025a}{{Ouyang et~al.}}{{Ouyang, Qu, Zhou, Zhu, Zhang, Lin, Wang, Zhao, Jiang, Zhao, Shi, Wu, Chu, Liu, Li, Xu, Zhang, Shi, Tu and He}}}
+\bibcite{pdf2zh}{{18}{2025b}{{Ouyang et~al.}}{{Ouyang, Chu, Xin and Ma}}}
+\bibcite{bleu}{{19}{2002}{{Papineni et~al.}}{{Papineni, Roukos, Ward and Zhu}}}
+\bibcite{marker}{{20}{2025}{{Paruchuri}}{{}}}
+\bibcite{surya}{{21}{2025}{{Paruchuri and {Datalab Team}}}{{}}}
+\bibcite{doclaynet}{{22}{2022}{{Pfitzmann et~al.}}{{Pfitzmann, Auer, Dolfi, Nassar and Staar}}}
+\bibcite{chrf}{{23}{2015}{{Popovi{\'c}}}{{}}}
+\bibcite{olmocr}{{24}{2025}{{Poznanski et~al.}}{{Poznanski, Borchardt, Dunkelberger, Huff, Lin, Rangapur, Wilhelm, Lo and Soldaini}}}
+\bibcite{comet22}{{25}{2022}{{Rei et~al.}}{{Rei, C.~de Souza, Alves, Zerva, Farinha, Glushkova, Lavie, Coheur and Martins}}}
+\bibcite{comet}{{26}{2020}{{Rei et~al.}}{{Rei, Stewart, Farinha and Lavie}}}
+\bibcite{retain-pdf}{{27}{2024}{{retain-pdf contributors}}{{}}}
+\bibcite{pubtables1m}{{28}{2022}{{Smock et~al.}}{{Smock, Pesala and Abraham}}}
+\bibcite{nmt-survey}{{29}{2020}{{Stahlberg}}{{}}}
+\bibcite{cdm}{{30}{2025}{{Wang et~al.}}{{Wang, Wu, Ouyang, Gu, Zhang, Xia, Zhang and He}}}
+\bibcite{mineru}{{31}{2024}{{Wang et~al.}}{{Wang, Xu, Zhao, Ouyang, Wu, Zhao, Xu, Liu, Qu, Shang, Zhang, Wei, Sui, Li, Shi, Qiao, Lin and He}}}
+\bibcite{babeldoc}{{32}{2026}{{Yang et~al.}}{{Yang, Ma, Wang, Wang and Wang}}}
+\bibcite{doclayout-yolo}{{33}{2024}{{Zhao et~al.}}{{Zhao, Kang, Wang and He}}}
+\bibcite{llm-multilingual-mt}{{34}{2024}{{Zhu et~al.}}{{Zhu, Liu, Dong, Xu, Huang, Kong, Chen and Li}}}
+\gdef \@abspage@last{38}

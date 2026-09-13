@@ -1,0 +1,298 @@
+\section{LITERATURE REVIEW}
+\label{sec:literature}
+
+This section narrows from the format itself to the systems the proposed pipeline
+is positioned against. We first make explicit the mismatch between the
+presentational structure of PDF and the semantic structure machine translation
+requires (Section~\ref{subsec:lit-pdf}); we then review the model families the
+pipeline builds on (Section~\ref{subsec:lit-models}); next we distinguish
+document-conversion systems from document-translation systems
+(Sections~\ref{subsec:lit-conversion} and~\ref{subsec:lit-systems}); and finally
+we state the gap that motivates the hypothesis of Section~\ref{subsec:hypothesis}
+and the design decisions of Section~\ref{sec:methodology}
+(Section~\ref{subsec:lit-gap}).
+
+\subsection{PDF Structure and Layout Preservation}
+\label{subsec:lit-pdf}
+
+\paragraph{Format characteristics.} Under ISO~32000-2, page content is a stream
+of graphics operators that place glyphs, strokes and images into a fixed
+coordinate system~\citep{pdf-spec}. This is appropriate for display and print,
+but it does not guarantee that semantic units---headings, paragraphs, table
+cells, reading order---can be recovered directly. With respect to content
+accessibility, PDF documents fall into three groups. \emph{Born-digital} files
+contain text objects with font and position information, and can be extracted
+directly, although the order in which objects appear in the content stream need
+not be the reading order. \emph{Scanned} files contain page bitmaps and no
+trustworthy text layer, and therefore require OCR. \emph{Mixed} documents
+contain born-digital text, scanned pages and text-bearing images at the same
+time, so the extraction strategy must be decided per page rather than per
+document.
+
+Consequently, raw extraction is not sufficient input for machine translation.
+An intermediate representation must record content, element type, bounding box,
+page number and reading-order relations simultaneously; it is the bridge
+between the semantic domain of translation and the geometric domain of
+typesetting.
+
+\paragraph{Element types and per-type policy.} Document layout analysis (DLA)
+assigns positions and semantic labels to page regions. Datasets such as
+DocLayNet provide bounding-box labels for many element types across diverse
+document domains and thus support both training and
+evaluation~\citep{doclaynet}, and surveys report that DLA quality directly
+determines downstream information extraction, reading-order recovery and format
+conversion~\citep{doclayout-survey}. For translation, each element group
+requires a distinct policy: flowing text must be grouped into units with enough
+context; formulas must preserve their symbols, with only the accompanying prose
+translated; figures are copied unchanged while their captions are translated;
+and table content must remain bound to the correct row and column, since
+translating the flattened string of a table destroys inter-cell relations.
+
+\paragraph{Text overflow.} The length and typesetting behaviour of a
+translation differ from those of the source by an amount that depends on the
+language pair, the content, the terminology, the font and the line-breaking
+rules; a character count alone therefore does not predict the display space
+required. When target text is placed into the original box, three failures
+appear: content spills outside the box, it overlaps a neighbouring element, or
+the font is reduced until legibility suffers. This creates a trade-off between
+geometric fidelity and readability. Preserving coordinates and box sizes
+exactly keeps the target page close to the source but maximises overflow risk;
+re-flowing the page lets text adapt but moves figures, tables and page breaks.
+A layout-preserving system must therefore combine several signals---box size,
+source typography, surrounding free space, and the possibility of collision
+with other elements---and its evaluation must consider layout similarity,
+overlap count and readability rather than merely whether an output file was
+produced.
+
+\paragraph{Appearance beyond geometry.} Placing target text at the right
+coordinates is necessary but not sufficient, because the replaced text also
+carried a visual identity. Two properties are routinely lost. First, the
+\emph{background}: writing a translation over a source page requires masking
+what was there, and masking with a global white rectangle is correct only for
+white pages---on coloured slides, textbook sidebars, shaded table rows or
+scanned paper the mask is itself a visible defect. Second, the \emph{text
+colour}: headings, hyperlinks, emphasised terms and slide text are frequently
+non-black, and a reconstruction that repaints everything in black silently
+discards a layer of document semantics. Neither property can be read reliably
+from the content stream in the general case---scanned pages have no text objects
+at all, and born-digital pages express colour through nested graphics
+states~\citep{pdf-spec}---so a pipeline that already rasterises every page has
+the option, largely unexploited in existing systems, of \emph{estimating}
+appearance from the rendered pixels.
+
+\subsection{Foundation Models for Document Analysis}
+\label{subsec:lit-models}
+
+A layout-preserving translation pipeline must coordinate a document vision
+model, an OCR model, a translation model and a service-orchestration layer.
+These components do not operate independently: a recognition error at the front
+of the pipeline propagates into the translation and finally manifests as a
+typesetting defect. Model selection must therefore weigh accuracy, language
+coverage, inference cost, and---critically---whether the output format is usable
+by the following stage.
+
+\paragraph{Layout detection.} A layout detector consumes a page image and
+returns regions with semantic labels and confidences. DocLayout-YOLO balances
+accuracy against speed using diverse synthetic pre-training data and a
+global-to-local perception mechanism, which suits document pages where a
+one-line heading and a near-full-page table can co-occur~\citep{doclayout-yolo}.
+Surya provides layout detection, reading-order estimation and table recognition
+inside a single toolkit~\citep{surya}. For our pipeline the important output is
+not only the class label but a stable bounding box and a reading order that can
+be joined reliably with OCR results.
+
+\paragraph{OCR for scanned PDFs.} A document OCR workflow typically detects
+text lines or regions, recognises character sequences, and maps the result back
+into page coordinates. Unlike OCR intended only for search, reconstructing a
+PDF additionally requires line- or word-level boxes, recognition confidences
+and the relation between text and layout regions. Surya supports multilingual
+recognition, line detection, reading order, layout, tables and formulas in one
+toolkit~\citep{surya}; PaddleOCR contributes multilingual recognition models and
+structured document components, which are convenient for table-cell
+information~\citep{paddleocr}. No single model is accurate on every document
+type: resolution, skew, background noise, typeface and inline formulas all
+degrade results. A pipeline must therefore normalise coordinate systems, retain
+confidences and keep stable identifiers per element so that errors remain
+diagnosable across stages.
+
+\paragraph{Evaluation metrics.} For translation, lexical metrics such as
+BLEU~\citep{bleu} and chrF~\citep{chrf} measure surface overlap, whereas neural
+metrics such as COMET~\citep{comet} encode source, hypothesis and reference with
+a multilingual encoder and regress a continuous adequacy score. The WMT metrics
+shared task reports that neural metrics correlate better with human judgement
+and are more robust than lexical ones~\citep{wmt-metrics-shared-task}, which is
+why we treat COMET as primary and chrF++ as a diagnostic baseline. For document
+parsing, OmniDocBench provides 1{,}651 richly annotated pages together with a
+composite score built from text edit distance, table TEDS and formula
+CDM~\citep{omnidocbench}; CDM itself scores a formula by rendering it and
+matching detected symbols, which makes it invariant to notation differences
+that penalise string-based metrics unfairly~\citep{cdm}. Most of the string
+metrics used below reduce to the Levenshtein edit
+distance~\citep{levenshtein}.
+
+\subsection{Document Parsing and Conversion Systems}
+\label{subsec:lit-conversion}
+
+Several recent systems address the front half of the problem: turning PDFs into
+machine-readable structured representations. Docling converts PDFs into a
+document model that can be exported to Markdown or JSON, combining layout
+analysis and table-structure recognition in a resource-conscious
+package~\citep{docling}. Marker similarly targets Markdown, JSON, HTML and chunk
+outputs, using Surya-based OCR and layout models with optional LLM correction for
+tables, inline mathematics and block-level repair~\citep{marker}. MinerU focuses
+on high-precision document content extraction across diverse layouts, including
+tables, formulas and scanned or garbled PDFs~\citep{mineru}. olmOCR takes a
+large-scale VLM route, linearising PDFs into clean text while preserving reading
+order and structured content for language-model data pipelines~\citep{olmocr}.
+
+These systems are important comparators for the \emph{parsing} side of this
+work, and they motivate treating structure analysis as a first-class component
+rather than a utility function. They are not, however, direct baselines for the
+complete task studied here. Their primary outputs are structured text
+representations, not translated PDFs composited back onto the source page; they
+optimise readability, retrieval or data preparation rather than preservation of
+the original page geometry after translation. A fair end-to-end comparison would
+therefore require an additional reconstruction layer on top of each converter,
+plus an annotated PDF benchmark that scores both translation adequacy and final
+visual fidelity. In the absence of such a benchmark, the present paper compares
+the parsing stage to public ground truth and treats direct system-level
+comparison as future work rather than evidence of superiority.
+
+\subsection{Related Document Translation Systems}
+\label{subsec:lit-systems}
+
+Document translation systems can be distinguished by the intermediate
+representation they adopt: coordinate-based representations favour geometric
+fidelity, structured-text representations favour context and editability, and
+re-typesetting representations rebuild the document from recognised components.
+The comparison below concerns published architecture and scope, and does not
+treat feature count as evidence of output quality. The systems are discussed
+qualitatively because their public implementations do not expose the same input
+scope and output contract on scanned, mixed and born-digital PDFs.
+
+\paragraph{Layout preservation by text overlay.} PDFMathTranslate~\citep{pdf2zh}
+implements layout detection, content extraction, translation and document
+reconstruction. A layout model separates text from regions that must be
+preserved, and the text is passed to an intermediate layer supporting several
+translation services; target content is written back using the geometry of the
+source, so figures, formulas and page structure are disturbed far less than in
+a plain-text conversion. The important contribution is the separation of the
+layout pipeline from the translation service, which allows the language model to
+be replaced without redesigning the PDF parser. Output quality nevertheless
+remains bounded by layout-detection accuracy and by the ability to fit
+new-length text into old regions, and the published version identifies
+suboptimal OCR support as a limitation, which restricts applicability to
+scanned PDFs~\citep{pdf2zh}.
+
+\paragraph{Segmentation and terminology consistency.}
+docutranslate~\citep{docutranslate} approaches the task from the content side:
+it supports many formats, splits content into segments compatible with model
+input limits, executes translation asynchronously and supplies a glossary.
+Terminology constraints matter particularly for long documents, where the same
+concept must be rendered consistently across segments that are never processed
+in the same call; their effect has been studied in machine
+translation~\citep{terminology-mt}, and recent work on document-level
+translation reports that fusing several knowledge sources improves contextual
+consistency~\citep{doc-mt-multi-knowledge}. For PDF input, docutranslate uses a
+document parser to recognise tables, formulas and code, then converts content to
+Markdown before translation. This normalisation is convenient for semantic
+processing and multi-format export, but the project documentation states that
+the original PDF layout is lost in the conversion~\citep{docutranslate}.
+
+\paragraph{Re-typesetting from OCR.} RetainPDF~\citep{retain-pdf} represents the
+OCR-and-rebuild direction, covering content recognition, translation, diagnosis
+and PDF export, with an input scope that includes image-only and scanned
+documents. Compared with exploiting the existing text layer, this yields a more
+uniform representation of born-digital and scanned PDFs and allows control over
+fonts, tables and formulas during typesetting. In exchange, rebuilding from OCR
+introduces a chain of accumulated error: mis-detected regions produce wrong
+reading order, mis-recognised characters change the translation input, and
+geometric drift affects placement at export time. As the system is described
+mainly through its source repository rather than a peer-reviewed empirical
+study, its quality claims require verification on a common dataset and a common
+metric set before direct comparison.
+
+
+\begin{table}[H]
+    \centering
+    \caption{Qualitative comparison of related document translation approaches.}
+    \label{tab:related-work-comparison}
+    \footnotesize
+    % Fixed 2.6cm + 3x4.0cm columns were set for the 6.75in two-column measure
+    % and now overrun the text block; X columns divide whatever measure is in
+    % force, so the table fits by construction.
+    \begin{tabularx}{\textwidth}{@{}
+        >{\raggedright\arraybackslash}p{2.3cm}
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X
+        >{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Criterion} & \textbf{PDFMathTranslate} & \textbf{docutranslate} & \textbf{RetainPDF} \\
+        \midrule
+        Representation
+        & Bound to the source PDF
+        & Markdown or format-specific structure
+        & Re-typeset PDF \\
+        Primary objective
+        & Preserve formulas and page layout
+        & Translation context, terminology, many formats
+        & Support image/scanned PDF and re-export \\
+        Stated limitation
+        & OCR support suboptimal in the published version
+        & PDF-to-Markdown conversion loses the original layout
+        & Error may accumulate through OCR and rebuilding \\
+        Published evidence
+        & Peer-reviewed system paper
+        & Documentation and source repository
+        & Documentation and source repository \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\subsection{Synthesis and Research Gap}
+\label{subsec:lit-gap}
+
+The systems above are not mutually exclusive; they optimise different
+objectives. PDFMathTranslate prioritises the geometric layout of born-digital
+PDFs, docutranslate prioritises a content representation convenient for
+document-level translation, RetainPDF extends coverage to scanned documents
+through OCR and reconstruction, and document-conversion systems such as
+Docling, Marker, MinerU and olmOCR prioritise high-quality structured extraction
+for downstream applications. Table~\ref{tab:related-work-comparison} summarises
+the differences drawn from published papers and project documentation.
+
+The gap should therefore not be phrased as a single missing feature---several
+tools already support scanned PDFs, structured extraction or layout-aware export
+to varying degrees. What is still under-measured is the \emph{joint} problem of
+translation, geometry and appearance: the translated content must remain linked
+to page coordinates, and the reconstruction stage must be evaluated as part of
+the task rather than treated as a cosmetic post-process. Four requirements are
+therefore not addressed simultaneously by the surveyed systems:
+
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Unified input handling.} Born-digital, scanned and mixed PDFs
+  should follow one processing path while the provenance of each extracted
+  result remains traceable.
+  \item \textbf{Joint semantics and geometry.} Segmentation and glossaries
+  improve translation consistency, but the translated content must be mapped
+  back onto individual geometric elements rather than existing only as text.
+  \item \textbf{Page-aware overflow handling.} Uniform shrinking degrades
+  readability, while unconstrained overflow produces overlap. The scaling
+  decision must depend on whether a collision with a neighbouring element would
+  actually occur---which the translator, having no access to the page, cannot
+  determine.
+  \item \textbf{Appearance fidelity.} A translated block must inherit the
+  background it sits on and the colour it is drawn in. Neither is available from
+  the content stream for scanned input, so both have to be estimated from the
+  rendered page if the output is to remain faithful on anything other than
+  black-on-white documents.
+\end{itemize}
+
+Two consequences follow, and they structure the rest of the paper. First, because
+the surveyed tools report evidence in different forms, no conclusion about which
+stage limits output quality can be drawn from feature descriptions alone. That
+question must first be approached by measuring the stages apart, which is the
+protocol of Section~\ref{subsec:method-eval} and the substance of hypothesis~H1.
+Second, because layout preservation is a property of the page rather than of the
+text, the requirements above are discharged at reconstruction time, which is
+hypothesis~H2 and the substance of Section~\ref{subsec:method-render}.

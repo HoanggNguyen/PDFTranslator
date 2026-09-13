@@ -1,0 +1,21 @@
+\section{CONCLUSION}
+\label{sec:conclusion}
+
+This paper framed layout-preserving PDF translation as a three-stage document
+problem rather than a translation problem with a rendering tail. The implemented
+pipeline analyses pages visually, translates addressable elements under an
+identifier contract, and reconstructs the PDF with font-size and colour
+decisions computed from the source page.
+
+The stage-level evidence supports that framing. On OmniDocBench, the parser
+recovers regions well under a granularity-invariant matcher, labels them
+reliably, and preserves reading order; its harmful failures are the regions,
+formulas, tables and OCR slices that never reach translation correctly. On
+WMT24++, competitive LLMs differ less by model choice than target languages
+differ from one another. Finally, a prompt-level $\pm15\%$ character-length
+constraint is weakly obeyed and uncorrelated with adequacy, so layout fidelity
+must be enforced by reconstruction rather than by the translator.
+
+The shared final-artifact comparison complements these stage-level findings.
+Future work should extend it with matched scanned pages, human references and
+visual-quality judgements.

@@ -6,6 +6,19 @@ on:
     branches: [main, develop, feature/*]
 
 jobs:
+  benchmark-mock:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r benchmark/e2e/requirements-local.txt
+      - run: python -m pytest benchmark/e2e/tests benchmark/e2e/metrics/test_metrics.py -q
+
   lint-and-test:
     runs-on: ubuntu-latest
 
@@ -42,4 +55,3 @@ jobs:
       # 🧪 Run tests
       - name: Run pytest
         run: pytest test/ -v
-

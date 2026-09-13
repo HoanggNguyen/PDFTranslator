@@ -245,7 +245,9 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
 
         boxes.append((y_min, y_center, x_min, y_max, line))
 
-    boxes.sort()
+    # Key tường minh: khi 2 box trùng hoàn toàn 4 số, Python sẽ so tiếp phần
+    # tử thứ 5 (TextLine) vốn không có __lt__ -> TypeError. Key chỉ dùng 4 số.
+    boxes.sort(key=lambda b: b[:4])
 
     rows = []
     current_row = []
@@ -270,7 +272,7 @@ def sort_text_lines(lines: list[Any]) -> list[Any]:
 
     sorted_lines = []
     for row in rows:
-        row.sort()
+        row.sort(key=lambda r: r[0])  # chỉ x_min; TextLine không có __lt__
         for _, line in row:
             sorted_lines.append(line)
 
